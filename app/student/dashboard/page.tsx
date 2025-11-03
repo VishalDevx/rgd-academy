@@ -1,0 +1,15 @@
+"use client";
+import { useSession } from "next-auth/react";
+
+export default function StudentDashboard() {
+  const { data: session } = useSession();
+
+  if (!session) return <p>Loading...</p>;
+
+  return (
+    <div className="p-6">
+      <h1 className="text-xl font-bold">Student Dashboard</h1>
+      <p>Welcome, {session.user?.name}</p>
+    </div>
+  );
+}
