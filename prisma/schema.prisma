@@ -1,15 +1,377 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// ----------------- ENUMS -----------------
+enum Role {
+  ADMIN
+  STAFF
+  STUDENT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum FeeStatus {
+  PENDING
+  PAID
+  PARTIAL
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  LEAVE
+}
+
+enum NotificationType {
+  ANNOUNCEMENT
+  FEE_REMINDER
+  RESULT_PUBLISHED
+  ATTENDANCE_ALERT
+  GENERAL
+}
+
+enum Grade {
+  NURSERY
+  LKG
+  UKG
+  ONE
+  TWO
+  THREE
+  FOUR
+  FIVE
+  SIX
+  SEVEN
+  EIGHT
+  NINE
+  TEN
+}
+
+enum PaymentMethod {
+  CASH
+  ONLINE
+  CARD
+  UPI
+}
+
+// ----------------- CORE MODELS -----------------
+model User {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  passwordHash String
+  name         String
+  role         Role
+  phone        String?        @unique
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  // relations
+  student       Student?
+  staff         Staff?
+  notifications Notification[]
+  sessions      Session[]
+  announcements Announcement[]  // announcements created by this user
+  expenses      Expense[]
+
+  @@index([role])
+  AuditLog AuditLog[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  refreshToken String
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ----------------- SCHOOL / STRUCTURE -----------------
+model SchoolSettings {
+  id           String   @id @default(cuid())
+  name         String
+  address      String?
+  contactEmail String?
+  contactPhone String?
+  academicYear String?
+  logoUrl      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// Class represents a class/grade+section entity
+model Class {
+  id          String      @id @default(cuid())
+  name        String
+  grade       Grade
+  section     String?     // A / B / Morning / Evening etc.
+  gradeCode   String?     // optional external code
+  teacherId   String?     // class teacher (staff)
+  createdAt   DateTime    @default(now())
+
+  // relations
+  teacher     Staff?      @relation("ClassTeacher", fields: [teacherId], references: [id])
+  students    Student[]
+  subjects    Subject[]
+  exams       Exam[]
+  attendances Attendance[]
+  feeStructures FeeStructure[]
+
+  @@index([teacherId])
+  @@index([grade, section])
+}
+
+// ----------------- SUBJECTS / ACADEMICS -----------------
+model Subject {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  classId   String
+  teacherId String?
+
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher   Staff?   @relation(fields: [teacherId], references: [id])
+  results   Result[]
+
+  @@index([classId])
+  @@index([teacherId])
+}
+
+// ----------------- STAFF -----------------
+model Staff {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  designation  String
+  salary       Float?
+  joinDate     DateTime @default(now())
+  active       Boolean  @default(true)
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  classes      Class[]  @relation("ClassTeacher")
+  subjects     Subject[]
+  exams        Exam[]   @relation("ExamCreatedBy")
+  results      Result[]  // results uploaded by this staff
+  leaves       Leave[]
+
+  @@index([userId])
+  @@index([designation])
+  Attendance Attendance[]
+}
+
+// ----------------- STUDENT -----------------
+model Student {
+  id            String      @id @default(cuid())
+  userId        String      @unique
+  admissionNo   String      @unique
+  rollNumber    String
+  admissionDate DateTime    @default(now())
+  dob           DateTime?
+  gender        Gender?
+  address       String?
+  classId       String?
+  active        Boolean     @default(true)
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  class       Class?   @relation(fields: [classId], references: [id])
+  fees        FeePayment[]
+  attendance  Attendance[]
+  results     Result[]
+  notifications Notification[]
+
+  @@unique([classId, rollNumber]) // roll unique per class
+  @@index([classId])
+  @@index([active])
+}
+
+// ----------------- ATTENDANCE -----------------
+model Attendance {
+  id         String           @id @default(cuid())
+  classId    String
+  studentId  String
+  date       DateTime
+  status     AttendanceStatus
+  markedById String
+  createdAt  DateTime         @default(now())
+
+  class      Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student    Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  markedBy   Staff            @relation(fields: [markedById], references: [id])
+
+  @@unique([studentId, date])   // avoid duplicate marks for same day
+  @@index([classId, date])
+  @@index([markedById])
+}
+
+// ----------------- FEES / PAYMENTS -----------------
+// Use Decimal for money
+model FeeStructure {
+  id           String   @id @default(cuid())
+  classId      String
+  name         String?            // e.g., "Annual Tuition 2025-26", "Transport Sep 2025"
+  tuitionFee   Decimal  @db.Decimal(12,2)
+  examFee      Decimal? @db.Decimal(12,2)
+  transportFee Decimal? @db.Decimal(12,2)
+  miscFee      Decimal? @db.Decimal(12,2)
+  total        Decimal  @db.Decimal(12,2)
+  createdAt    DateTime @default(now())
+
+  class        Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  payments     FeePayment[]
+
+  @@index([classId])
+}
+
+model FeePayment {
+  id               String    @id @default(cuid())
+  studentId        String
+  feeStructureId   String
+  amountPaid       Decimal   @db.Decimal(12,2)
+  status           FeeStatus @default(PENDING)
+  paymentDate      DateTime?
+  razorpayOrder    String?   @unique
+  razorpayPaymentId String?
+  receiptUrl       String?
+  createdAt        DateTime  @default(now())
+
+  student        Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  feeStructure   FeeStructure @relation(fields: [feeStructureId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([feeStructureId])
+}
+
+// ----------------- EXAMS / RESULTS -----------------
+model Exam {
+  id          String   @id @default(cuid())
+  name        String
+  classId     String
+  startDate   DateTime
+  endDate     DateTime
+  createdById String
+  createdAt   DateTime @default(now())
+
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  createdBy   Staff    @relation("ExamCreatedBy", fields: [createdById], references: [id])
+  results     Result[]
+
+  @@index([classId])
+  @@index([createdById])
+}
+
+model Result {
+  id          String   @id @default(cuid())
+  studentId   String
+  examId      String
+  subjectId   String
+  marks       Float
+  maxMarks    Float
+  grade       String?
+  remarks     String?
+  uploadedBy  String?   // staff id
+  createdAt   DateTime @default(now())
+
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  uploader    Staff?   @relation(fields: [uploadedBy], references: [id])
+
+  @@index([studentId])
+  @@index([examId])
+  @@index([subjectId])
+}
+
+// ----------------- EXPENSES -----------------
+model Expense {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  amount      Decimal  @db.Decimal(12,2)
+  date        DateTime @default(now())
+  createdById String
+
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  @@index([createdById])
+}
+
+// ----------------- ANNOUNCEMENTS / NOTIFICATIONS -----------------
+model Announcement {
+  id            String                      @id @default(cuid())
+  title         String
+  content       String
+  createdBy     String
+  createdAt     DateTime                    @default(now())
+
+  creator       User                        @relation(fields: [createdBy], references: [id])
+  visibleRoles  AnnouncementVisibility[]
+}
+
+model AnnouncementVisibility {
+  id             String       @id @default(cuid())
+  announcementId String
+  role           Role
+
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@index([announcementId])
+  @@unique([announcementId, role])
+}
+
+model Notification {
+  id        String            @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  read      Boolean           @default(false)
+  createdAt DateTime          @default(now())
+
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  Student Student[]
+}
+
+// ----------------- LEAVE -----------------
+model Leave {
+  id        String   @id @default(cuid())
+  staffId   String
+  fromDate  DateTime
+  toDate    DateTime
+  reason    String
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+
+  staff     Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId])
+}
+
+// ----------------- AUDIT / LOGGING -----------------
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  oldValue  Json?
+  newValue  Json?
+  createdAt DateTime @default(now())
+
+  user      User?    @relation(fields: [userId], references: [id])
+  @@index([userId])
+  @@index([entity, entityId])
 }
