@@ -1,39 +1,29 @@
-import { withAuth } from "next-auth/middleware";
-import { NextResponse } from "next/server";
 
-export default withAuth(
-  function middleware(req) {
-    const token = req.nextauth.token;
-    const path = req.nextUrl.pathname;
+import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
+import { auth } from "./api/auth/[...nextauth]/route"
 
-    // Redirect logged-in users away from login page
-    if (path === "/login" && token) {
-      if (token.role === "ADMIN")
-        return NextResponse.redirect(new URL("/admin/dashboard", req.url));
-      if (token.role === "STAFF")
-        return NextResponse.redirect(new URL("/staff/dashboard", req.url));
-      if (token.role === "STUDENT")
-        return NextResponse.redirect(new URL("/student/dashboard", req.url));
-    }
+export async function middleware(req: NextRequest) {
+  const session = await auth()
+  const path = req.nextUrl.pathname
 
-    // Role-based access control
-    if (path.startsWith("/admin") && token?.role !== "ADMIN")
-      return NextResponse.redirect(new URL("/login", req.url));
-    if (path.startsWith("/staff") && token?.role !== "STAFF")
-      return NextResponse.redirect(new URL("/login", req.url));
-    if (path.startsWith("/student") && token?.role !== "STUDENT")
-      return NextResponse.redirect(new URL("/login", req.url));
-
-    return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized: ({ token }) => !!token,
-    },
+  if (path === "/login" && session?.user) {
+    const role = session.user.role
+    if (role === "ADMIN") return NextResponse.redirect(new URL("/admin/dashboard", req.url))
+    if (role === "STAFF") return NextResponse.redirect(new URL("/staff/dashboard", req.url))
+    if (role === "STUDENT") return NextResponse.redirect(new URL("/student/dashboard", req.url))
   }
-);
 
-// Run middleware only on protected routes
+  if (path.startsWith("/admin") && session?.user.role !== "ADMIN")
+    return NextResponse.redirect(new URL("/login", req.url))
+  if (path.startsWith("/staff") && session?.user.role !== "STAFF")
+    return NextResponse.redirect(new URL("/login", req.url))
+  if (path.startsWith("/student") && session?.user.role !== "STUDENT")
+    return NextResponse.redirect(new URL("/login", req.url))
+
+  return NextResponse.next()
+}
+
 export const config = {
   matcher: ["/admin/:path*", "/staff/:path*", "/student/:path*"],
-};
+}

@@ -10,15 +10,17 @@
     "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
+    "@auth/core": "^0.35.2",
     "@auth/prisma-adapter": "^2.11.1",
     "@prisma/client": "^6.18.0",
     "@types/bcrypt": "^6.0.0",
     "bcrypt": "^6.0.0",
-    "next": "16.0.1",
-    "next-auth": "^4.24.13",
+    "bcryptjs": "^3.0.3",
+    "next": "^15.0.3",
+    "next-auth": "^5.0.0-beta.19",
     "prisma": "^6.18.0",
-    "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

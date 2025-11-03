@@ -1,100 +1,72 @@
-import NextAuth from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import { db } from "@/lib/prisma";
-import bcrypt from "bcrypt";
+// app/api/auth/[...nextauth]/route.ts
+import NextAuth, { type NextAuthConfig } from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs"; // use bcryptjs (lighter, better for serverless)
+import { db } from "@/lib/prisma"; // must exist
 
-const handler = NextAuth({
+const authConfig: NextAuthConfig = {
   providers: [
-    CredentialsProvider({
-      id: "email-password",
-      name: "Email and Password",
+    Credentials({
+      name: "Credentials",
       credentials: {
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password)
-          throw new Error("Missing credentials");
+        // ✅ Strong runtime validation
+        const email = (credentials?.email as string | undefined)?.trim();
+        const password = (credentials?.password as string | undefined)?.trim();
 
-        const user = await db.user.findUnique({
-          where: { email: credentials.email },
-        });
+        if (!email || !password) throw new Error("Missing credentials");
+
+        // ✅ Query the user from Prisma
+        const user = await db.user.findUnique({ where: { email } });
         if (!user) throw new Error("User not found");
 
-        const isValid = await bcrypt.compare(
-          credentials.password,
-          user.passwordHash ?? ""
-        );
-        if (!isValid) throw new Error("Invalid password");
+        const isValid =
+          user.passwordHash &&
+          (await bcrypt.compare(password, user.passwordHash));
+        if (!user || !user.passwordHash) throw new Error("Invalid credentials");
 
-        if (user.role !== "ADMIN" && user.role !== "STAFF")
-          throw new Error("Use student login portal");
-
-        return { id: user.id, role: user.role, email: user.email };
-      },
-    }),
-
-    CredentialsProvider({
-      id: "student-login",
-      name: "Student Login",
-      credentials: {
-        aadhar: { label: "Aadhaar No", type: "text" },
-        dob: { label: "Date of Birth", type: "text" },
-      },
-      async authorize(credentials) {
-        if (!credentials?.aadhar || !credentials?.dob)
-          throw new Error("Missing credentials");
-
-        const student = await db.student.findUnique({
-          where: { admissionNo: credentials.aadhar },
-          include: { user: true },
-        });
-
-        if (!student) throw new Error("Student not found");
-        if (student.user.role !== "STUDENT")
-          throw new Error("Invalid role");
-
-        const dob = new Date(credentials.dob).toISOString().split("T")[0];
-        const storedDob = student.dob?.toISOString().split("T")[0];
-        if (dob !== storedDob) throw new Error("Invalid DOB");
-
-        return { id: student.user.id, role: "STUDENT", email: student.user.email };
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        };
       },
     }),
   ],
 
-  session: { strategy: "jwt" },
-  pages: { signIn: "/login" },
+  pages: {
+    signIn: "/login",
+  },
 
-  // 👇 ADD THIS SECTION HERE
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = user.role;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id;
-        session.user.role = token.role;
-      }
-      return session;
-    },
-    async redirect({ url, baseUrl }) {
-      if (url.startsWith("/")) return `${baseUrl}${url}`;
-      return baseUrl;
-    },
-    async signIn({ user }) {
-      if (user.role === "ADMIN") return "/admin/dashboard";
-      if (user.role === "STAFF") return "/staff/dashboard";
-      if (user.role === "STUDENT") return "/student/dashboard";
-      return false;
-    },
+  session: {
+    strategy: "jwt" as const, // ✅ Fix: proper literal type
   },
 
   secret: process.env.NEXTAUTH_SECRET,
-});
 
-export { handler as GET, handler as POST };
+callbacks: {
+  async jwt({ token, user }) {
+    if (user) {
+      token.role = user.role; // add role to JWT
+    }
+    return token;
+  },
+  async session({ session, token }) {
+    if (token && session.user) {
+      session.user.role = token.role as string;
+    }
+    return session;
+  },
+}
+
+};
+
+// ✅ Correct NextAuth v5 export pattern
+export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
+
+export const GET = handlers.GET;
+export const POST = handlers.POST;

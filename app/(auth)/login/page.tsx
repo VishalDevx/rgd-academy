@@ -69,14 +69,14 @@ export default function LoginPage() {
                 placeholder="Aadhaar Number"
                 value={form.aadhar}
                 onChange={(e) => setForm({ ...form, aadhar: e.target.value })}
-                className="w-full border p-2 rounded-md"
+                className="w-full border p-2 rounded-md text-black"
               />
               <input
                 type="date"
                 placeholder="Date of Birth"
                 value={form.dob}
                 onChange={(e) => setForm({ ...form, dob: e.target.value })}
-                className="w-full border p-2 rounded-md"
+                className="w-full border p-2 rounded-md text-black"
               />
             </>
           ) : (
@@ -86,14 +86,14 @@ export default function LoginPage() {
                 placeholder="Email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full border p-2 rounded-md"
+                className="w-full border p-2 rounded-md text-black"
               />
               <input
                 type="password"
                 placeholder="Password"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                className="w-full border p-2 rounded-md"
+                className="w-full border p-2 rounded-md text-black" 
               />
             </>
           )}
