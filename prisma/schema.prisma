@@ -75,8 +75,8 @@ model User {
   phone        String?        @unique
   image        String?
   emailVerified DateTime?
-  adharNo      String
-  dob          DateTime
+  adharNo      String       @unique
+ 
 
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
@@ -207,6 +207,7 @@ model Student {
   admissionNo   String      @unique
   rollNumber    String
   admissionDate DateTime    @default(now())
+ 
   dob           DateTime?
   gender        Gender?
   address       String?

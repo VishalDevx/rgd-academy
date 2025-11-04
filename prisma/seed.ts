@@ -4,19 +4,22 @@ import bcrypt from "bcrypt";
 const db = new PrismaClient();
 
 async function main() {
+  console.log("🌱 Starting database seeding...");
+
+  // --- HASHED PASSWORDS ---
   const adminPassword = await bcrypt.hash("Admin@123", 10);
   const staffPassword = await bcrypt.hash("Staff@123", 10);
   const studentPassword = await bcrypt.hash("Student@123", 10);
 
-  // --- CLASS ---
+  // --- CLASS CREATION ---
   const class10A = await db.class.create({
     data: {
       name: "Class 10 A",
-      grade :"TEN"
+      grade: "TEN",
     },
   });
 
-  // --- ADMIN ---
+  // --- ADMIN CREATION ---
   const admin = await db.user.create({
     data: {
       name: "Principal Admin",
@@ -24,11 +27,11 @@ async function main() {
       passwordHash: adminPassword,
       role: "ADMIN",
       adharNo: "999988887777",
-      dob:new Date( "1980-05-10"), 
+ 
     },
   });
 
-  // --- STAFF ---
+  // --- STAFF CREATION ---
   const staff = await db.user.create({
     data: {
       name: "John Teacher",
@@ -36,11 +39,11 @@ async function main() {
       passwordHash: staffPassword,
       role: "STAFF",
       adharNo: "888877776666",
-      dob:new Date( "1988-09-21"), 
+ 
     },
   });
 
-  // --- STUDENT ---
+  // --- STUDENT CREATION ---
   const studentUser = await db.user.create({
     data: {
       name: "Ravi Student",
@@ -48,17 +51,18 @@ async function main() {
       passwordHash: studentPassword,
       role: "STUDENT",
       adharNo: "123456789012",
-      dob: new Date( "2007-08-15"), 
+     
     },
   });
 
+  // --- STUDENT PROFILE CREATION ---
   await db.student.create({
     data: {
       userId: studentUser.id,
       admissionNo: "ADM-2200170100060",
       rollNumber: "2200170100060",
-      dob:new Date( "2007-08-15"), 
-      classId: class10A.id, 
+      dob: new Date("2007-08-15"),
+      classId: class10A.id,
     },
   });
 
@@ -66,8 +70,8 @@ async function main() {
 }
 
 main()
-  .catch((e) => {
-    console.error("❌ Seed failed:", e);
+  .catch((err) => {
+    console.error("❌ Seeding failed:", err);
     process.exit(1);
   })
   .finally(async () => {
