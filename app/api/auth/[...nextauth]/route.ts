@@ -80,7 +80,21 @@ const authConfig: NextAuthConfig = {
     strategy: "jwt",
   },
 
-secret: process.env.NEXTAUTH_SECRET as string,
+  // 👇 Add this block here
+  cookies: {
+    sessionToken: {
+      name: "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: undefined, // session ends when browser closes
+      },
+    },
+  },
+
+  secret: process.env.NEXTAUTH_SECRET as string,
 
   callbacks: {
     async jwt({ token, user }) {
@@ -107,6 +121,8 @@ secret: process.env.NEXTAUTH_SECRET as string,
   },
 };
 
+
+// ✅ added: NextAuth handler + exports for signIn / signOut usage
 export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
 export const GET = handlers.GET;
 export const POST = handlers.POST;

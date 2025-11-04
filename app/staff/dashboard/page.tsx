@@ -1,4 +1,5 @@
-// app/admin/dashboard/page.tsx
+
+export const dynamic = "force-dynamic";
 import { auth } from "@/app/api/auth/[...nextauth]/route"
 import { redirect } from "next/navigation"
 
