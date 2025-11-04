@@ -80,7 +80,7 @@ const authConfig: NextAuthConfig = {
     strategy: "jwt",
   },
 
-  secret: process.env.NEXTAUTH_SECRET,
+secret: process.env.NEXTAUTH_SECRET as string,
 
   callbacks: {
     async jwt({ token, user }) {
