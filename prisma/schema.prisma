@@ -64,6 +64,12 @@ enum PaymentMethod {
   UPI
 }
 
+enum SubscriptionTier {
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
 // ----------------- AUTH (NextAuth) -----------------
 
 model User {
@@ -139,6 +145,10 @@ model SchoolSettings {
   contactPhone String?
   academicYear String?
   logoUrl      String?
+  faviconUrl   String?
+  primaryColor String?
+  tier         SubscriptionTier @default(BASIC)
+  featureFlags Json?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }

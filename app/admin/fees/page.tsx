@@ -1,0 +1,76 @@
+export const dynamic = "force-dynamic";
+
+import Link from "next/link";
+import { auth } from "@/app/api/auth/[...nextauth]/route";
+import { redirect } from "next/navigation";
+import { db } from "@/lib/prisma";
+
+export default async function AdminFeesPage() {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
+
+  const structures = await db.feeStructure.findMany({ include: { class: true }, orderBy: { createdAt: "desc" } } as any);
+  const payments = await db.feePayment.findMany({ include: { student: { include: { user: true } }, feeStructure: true }, orderBy: { createdAt: "desc" } } as any);
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Fee Structures</h2>
+          <Link href="/admin/fees/structures/new" className="px-3 py-2 rounded bg-blue-600 text-white text-sm">New Structure</Link>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-white border text-sm">
+            <thead>
+              <tr className="bg-gray-50 text-left">
+                <th className="p-2 border">Class</th>
+                <th className="p-2 border">Name</th>
+                <th className="p-2 border">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {structures.map((s: any) => (
+                <tr key={s.id}>
+                  <td className="p-2 border">{s.class?.name}</td>
+                  <td className="p-2 border">{s.name ?? '-'}</td>
+                  <td className="p-2 border">{s.total as any}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Payments</h2>
+          <Link href="/admin/fees/payments/new" className="px-3 py-2 rounded bg-blue-600 text-white text-sm">Record Payment</Link>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-white border text-sm">
+            <thead>
+              <tr className="bg-gray-50 text-left">
+                <th className="p-2 border">Student</th>
+                <th className="p-2 border">Structure</th>
+                <th className="p-2 border">Amount</th>
+                <th className="p-2 border">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {payments.map((p: any) => (
+                <tr key={p.id}>
+                  <td className="p-2 border">{p.student.user.name}</td>
+                  <td className="p-2 border">{p.feeStructure.name ?? p.feeStructure.id}</td>
+                  <td className="p-2 border">{p.amountPaid as any}</td>
+                  <td className="p-2 border">{p.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+

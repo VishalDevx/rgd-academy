@@ -33,45 +33,32 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      let result;
+      const callbackUrl =
+        role === "ADMIN"
+          ? "/admin/dashboard"
+          : role === "STAFF"
+          ? "/staff/dashboard"
+          : "/student/dashboard";
 
+      let result;
       if (role === "STUDENT") {
-        // Student login → aadharNo + password
         result = await signIn("student-login", {
           adharNo: form.aadharNo,
           password: form.password,
-          redirect: false,
+          redirect: true,
+          callbackUrl,
         });
       } else {
-        // Admin or staff login → email + password
         result = await signIn("email-password", {
           email: form.email,
           password: form.password,
-          redirect: false,
+          redirect: true,
+          callbackUrl,
         });
       }
 
       setLoading(false);
-
-      if (result?.error) {
-        setError(result.error);
-        return;
-      }
-
-      // Role-based redirect
-      switch (role) {
-        case "ADMIN":
-          router.push("/admin/dashboard");
-          break;
-        case "STAFF":
-          router.push("/staff/dashboard");
-          break;
-        case "STUDENT":
-          router.push("/student/dashboard");
-          break;
-        default:
-          router.push("/");
-      }
+      if ((result as any)?.error) setError((result as any).error);
     } catch (err) {
       console.error(err);
       setError("Something went wrong. Please try again.");

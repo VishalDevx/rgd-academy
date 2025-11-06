@@ -12,12 +12,8 @@ async function main() {
   const studentPassword = await bcrypt.hash("Student@123", 10);
 
   // --- CLASS CREATION ---
-  const class10A = await db.class.create({
-    data: {
-      name: "Class 10 A",
-      grade: "TEN",
-    },
-  });
+  const class9A = await db.class.create({ data: { name: "Class 9 A", grade: "NINE" } });
+  const class10A = await db.class.create({ data: { name: "Class 10 A", grade: "TEN" } });
 
   // --- ADMIN CREATION ---
   const admin = await db.user.create({
@@ -56,13 +52,53 @@ async function main() {
   });
 
   // --- STUDENT PROFILE CREATION ---
-  await db.student.create({
+  const studentProfile = await db.student.create({
     data: {
       userId: studentUser.id,
       admissionNo: "ADM-2200170100060",
       rollNumber: "2200170100060",
       dob: new Date("2007-08-15"),
+      classId: class9A.id,
+    },
+  });
+
+  // --- FEE STRUCTURE & PAYMENT ---
+  const fee10 = await db.feeStructure.create({
+    data: {
       classId: class10A.id,
+      name: "Tuition 10th",
+      tuitionFee: "25000.00" as any,
+      examFee: "1500.00" as any,
+      transportFee: "0.00" as any,
+      miscFee: "500.00" as any,
+      total: "27000.00" as any,
+    },
+  });
+
+  await db.feePayment.createMany({
+    data: [
+      { studentId: studentProfile.id, feeStructureId: fee10.id, amountPaid: "10000.00" as any, status: "PARTIAL" },
+      { studentId: studentProfile.id, feeStructureId: fee10.id, amountPaid: "17000.00" as any, status: "PAID" },
+    ],
+  } as any);
+
+  // --- EXPENSES ---
+  await db.expense.createMany({
+    data: [
+      { title: "Electricity Bill", amount: "8500.00" as any, date: new Date(), createdById: admin.id },
+      { title: "Books & Supplies", amount: "12000.00" as any, date: new Date(), createdById: admin.id },
+      { title: "Repairs & Maintenance", amount: "6000.00" as any, date: new Date(), createdById: admin.id },
+    ],
+  } as any);
+
+  // --- EXAM ---
+  const exam = await db.exam.create({
+    data: {
+      name: "Mid Term",
+      classId: class9A.id,
+      startDate: new Date(),
+      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      createdById: (await db.staff.findFirst())?.id || (await db.staff.create({ data: { userId: staff.id, designation: "Teacher" } })).id,
     },
   });
 

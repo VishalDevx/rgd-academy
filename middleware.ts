@@ -3,11 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 export async function middleware(req: NextRequest) {
-  const token = await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET as string,
-    salt: ""
-  });
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET as string });
 
   const { pathname } = req.nextUrl;
 
@@ -18,7 +14,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  const role = token?.role ?? "";
+  const role = (token as any)?.role ?? "";
 
   // Prevent logged-in users from accessing login page
   if (pathname === "/login" && token) {
@@ -50,3 +46,5 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: ["/login", "/admin/:path*", "/staff/:path*", "/student/:path*"],
 };
+
+
