@@ -2,8 +2,8 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { db } from "@/lib/prisma";
-import { auth } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
+import { auth } from "@/app/lib/auth";
 
 export default async function AdminStudentsPage() {
   const session = await auth();
@@ -37,7 +37,7 @@ export default async function AdminStudentsPage() {
                 <td className="p-2 border">{s.user.email}</td>
                 <td className="p-2 border">{s.admissionNo}</td>
                 <td className="p-2 border">{s.rollNumber}</td>
-                <td className="p-2 border">{s.class ? `${s.class.name}` : "-"}</td>
+                <td className="p-2 border">{s.class ? `${s.classId.name}` : "-"}</td>
               </tr>
             ))}
           </tbody>

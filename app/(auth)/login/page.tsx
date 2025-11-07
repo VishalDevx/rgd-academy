@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { signIn, getCsrfToken } from "next-auth/react";
+import { useState } from "react";
+import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 type Role = "ADMIN" | "STAFF" | "STUDENT";
@@ -19,21 +19,12 @@ export default function LoginPage() {
     password: "",
     aadharNo: "",
   });
-  const [csrfToken, setCsrfToken] = useState<string>("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
   const router = useRouter();
 
-  // Fetch CSRF token once
-  useEffect(() => {
-    const fetchCsrf = async () => {
-      const token = await getCsrfToken();
-      if (token) setCsrfToken(token);
-    };
-    fetchCsrf();
-  }, []);
-
-  // Clear form on role change
+  // Clear form when role changes
   const handleRoleChange = (newRole: Role) => {
     setRole(newRole);
     setForm({ email: "", password: "", aadharNo: "" });
@@ -49,27 +40,27 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    // Build credentials object
+    // Validate form fields
+    if (
+      (role === "STUDENT" && !form.aadharNo?.trim()) ||
+      (role !== "STUDENT" && !form.email?.trim()) ||
+      !form.password.trim()
+    ) {
+      setError("All fields are required.");
+      setLoading(false);
+      return;
+    }
+
     const credentials: Record<string, string> =
-      role === "STUDENT"
-        ? { aadharNo: form.aadharNo!.trim(), password: form.password.trim() }
-        : { email: form.email!.trim(), password: form.password.trim() };
+  role === "STUDENT"
+    ? { aadharNo: (form.aadharNo ?? "").trim(), password: form.password.trim() }
+    : { email: (form.email ?? "").trim(), password: form.password.trim() };
+
 
     const provider = role === "STUDENT" ? "student-login" : "email-password";
 
     try {
-      const result = await signIn(provider, {
-        ...credentials,
-        redirect: false,
-        callbackUrl:
-          role === "ADMIN"
-            ? "/admin/dashboard"
-            : role === "STAFF"
-            ? "/staff/dashboard"
-            : "/student/dashboard",
-        csrfToken,
-      });
-
+      const result = await signIn(provider, { ...credentials, redirect: false });
       setLoading(false);
 
       if (!result) {
@@ -78,7 +69,6 @@ export default function LoginPage() {
       }
 
       if (result.error) {
-        // Map backend error to friendly message
         let msg = result.error.toLowerCase();
         if (msg.includes("missing")) msg = "Please fill in all required fields.";
         else if (msg.includes("invalid")) msg = "Incorrect credentials.";
@@ -88,13 +78,14 @@ export default function LoginPage() {
       }
 
       // Redirect manually
-      router.push(
+      const redirectUrl =
         role === "ADMIN"
           ? "/admin/dashboard"
           : role === "STAFF"
           ? "/staff/dashboard"
-          : "/student/dashboard"
-      );
+          : "/student/dashboard";
+
+      router.push(redirectUrl);
     } catch (err) {
       console.error(err);
       setError("Something went wrong. Please try again.");
@@ -105,9 +96,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="w-full max-w-md bg-white shadow-md rounded-xl p-6">
-        <h1 className="text-2xl font-semibold text-center mb-6">
-          School Login
-        </h1>
+        <h1 className="text-2xl font-semibold text-center mb-6">School Login</h1>
 
         {/* Role Selector */}
         <div className="flex justify-center gap-3 mb-6">
@@ -159,9 +148,7 @@ export default function LoginPage() {
             required
           />
 
-          {error && (
-            <p className="text-red-600 text-sm text-center">{error}</p>
-          )}
+          {error && <p className="text-red-600 text-sm text-center">{error}</p>}
 
           <button
             type="submit"

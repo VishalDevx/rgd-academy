@@ -1,21 +1,15 @@
-// app/admin/layout.tsx
-import { auth } from "@/app/api/auth/[...nextauth]/route";
+import getServerSession from "next-auth";
+import { authConfig } from "@/app/lib/auth";
+import type { Session } from "next-auth";
 import { redirect } from "next/navigation";
-import { Sidebar } from "@/app/components/Sidebar";
-import { Suspense } from "react";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth(); // ✅ reads cookies from request
-  if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
+  const rawSession = await getServerSession(authConfig);
+  const session = rawSession as unknown as Session | null;
 
-  return (
-    <div className="flex">
-      <Sidebar role="ADMIN" />
-      <main className="flex-1 min-h-screen bg-gray-50">
-        <div className="p-6">
-          <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
-        </div>
-      </main>
-    </div>
-  );
+  if (!session?.user || session.user.role !== "ADMIN") {
+    redirect("/login");
+  }
+
+  return <>{children}</>;
 }

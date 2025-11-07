@@ -3,50 +3,58 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 export async function middleware(req: NextRequest) {
-  // Safely extract JWT token using NextAuth's default salt
-  const token = await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET as string,
-  
-  });
-
   const { pathname } = req.nextUrl;
 
-  // 1️⃣ Redirect unauthenticated users trying to access protected routes
+  if (
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/_next") ||
+    pathname.includes(".")
+  ) {
+    return NextResponse.next();
+  }
+
+  if (!process.env.NEXTAUTH_SECRET) {
+    throw new Error("NEXTAUTH_SECRET must be set in .env or .env.local");
+  }
+
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
+
+  const role: "ADMIN" | "STAFF" | "STUDENT" | null = (token as any)?.role ?? null;
+
+  // 1️⃣ Redirect unauthenticated users
   if (!token && !pathname.startsWith("/login")) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("callbackUrl", req.url);
     return NextResponse.redirect(loginUrl);
   }
 
-  const role = (token as any)?.role ?? "";
-
-  // 2️⃣ Prevent logged-in users from going back to the login page
-  if (pathname === "/login" && token) {
+  // 2️⃣ Redirect logged-in users from /login
+  if (pathname.startsWith("/login") && token) {
     const dashboard =
       role === "ADMIN"
         ? "/admin/dashboard"
         : role === "STAFF"
         ? "/staff/dashboard"
         : "/student/dashboard";
-
     return NextResponse.redirect(new URL(dashboard, req.url));
   }
 
-  // 3️⃣ Role-based route protection
+  // 3️⃣ Role-based access control
   if (pathname.startsWith("/admin") && role !== "ADMIN") {
     return NextResponse.redirect(new URL("/unauthorized", req.url));
   }
 
-  if (pathname.startsWith("/staff") && !["STAFF", "ADMIN"].includes(role)) {
-    return NextResponse.redirect(new URL("/unauthorized", req.url));
-  }
+if (pathname.startsWith("/staff") && role && !["STAFF", "ADMIN"].includes(role)) {
+  return NextResponse.redirect(new URL("/unauthorized", req.url));
+}
 
   if (pathname.startsWith("/student") && role !== "STUDENT") {
     return NextResponse.redirect(new URL("/unauthorized", req.url));
   }
 
-  // 4️⃣ Allow access
   return NextResponse.next();
 }
 
