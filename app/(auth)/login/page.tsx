@@ -14,17 +14,12 @@ interface LoginForm {
 
 export default function LoginPage() {
   const [role, setRole] = useState<Role>("ADMIN");
-  const [form, setForm] = useState<LoginForm>({
-    email: "",
-    password: "",
-    aadharNo: "",
-  });
+  const [form, setForm] = useState<LoginForm>({ email: "", password: "", aadharNo: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const router = useRouter();
 
-  // Clear form when role changes
   const handleRoleChange = (newRole: Role) => {
     setRole(newRole);
     setForm({ email: "", password: "", aadharNo: "" });
@@ -40,22 +35,16 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    // Validate form fields
-    if (
-      (role === "STUDENT" && !form.aadharNo?.trim()) ||
-      (role !== "STUDENT" && !form.email?.trim()) ||
-      !form.password.trim()
-    ) {
+    if ((role === "STUDENT" && !form.aadharNo?.trim()) || (role !== "STUDENT" && !form.email?.trim()) || !form.password.trim()) {
       setError("All fields are required.");
       setLoading(false);
       return;
     }
 
-    const credentials: Record<string, string> =
-  role === "STUDENT"
-    ? { aadharNo: (form.aadharNo ?? "").trim(), password: form.password.trim() }
-    : { email: (form.email ?? "").trim(), password: form.password.trim() };
-
+    const credentials =
+      role === "STUDENT"
+        ? { aadharNo: form.aadharNo!.trim(), password: form.password.trim() }
+        : { email: form.email!.trim(), password: form.password.trim() };
 
     const provider = role === "STUDENT" ? "student-login" : "email-password";
 
@@ -64,20 +53,15 @@ export default function LoginPage() {
       setLoading(false);
 
       if (!result) {
-        setError("Unexpected error, please try again.");
+        setError("Unexpected error");
         return;
       }
 
       if (result.error) {
-        let msg = result.error.toLowerCase();
-        if (msg.includes("missing")) msg = "Please fill in all required fields.";
-        else if (msg.includes("invalid")) msg = "Incorrect credentials.";
-        else if (msg.includes("unauthorized")) msg = "You are not authorized.";
-        setError(msg);
+        setError(result.error);
         return;
       }
 
-      // Redirect manually
       const redirectUrl =
         role === "ADMIN"
           ? "/admin/dashboard"
@@ -86,9 +70,8 @@ export default function LoginPage() {
           : "/student/dashboard";
 
       router.push(redirectUrl);
-    } catch (err) {
-      console.error(err);
-      setError("Something went wrong. Please try again.");
+    } catch {
+      setError("Something went wrong");
       setLoading(false);
     }
   };
@@ -98,18 +81,14 @@ export default function LoginPage() {
       <div className="w-full max-w-md bg-white shadow-md rounded-xl p-6">
         <h1 className="text-2xl font-semibold text-center mb-6">School Login</h1>
 
-        {/* Role Selector */}
         <div className="flex justify-center gap-3 mb-6">
           {["ADMIN", "STAFF", "STUDENT"].map((r) => (
             <button
               key={r}
               type="button"
               onClick={() => handleRoleChange(r as Role)}
-              aria-pressed={role === r}
               className={`px-4 py-2 rounded-md font-medium transition ${
-                role === r
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                role === r ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-700 hover:bg-gray-300"
               }`}
             >
               {r}
@@ -117,48 +96,17 @@ export default function LoginPage() {
           ))}
         </div>
 
-        {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {role !== "STUDENT" ? (
-            <input
-              type="email"
-              placeholder="Email"
-              value={form.email || ""}
-              onChange={(e) => handleChange("email", e.target.value)}
-              className="w-full border p-2 rounded-md text-black"
-              required
-            />
+            <input type="email" placeholder="Email" value={form.email} onChange={(e) => handleChange("email", e.target.value)} required className="w-full border p-2 rounded-md" />
           ) : (
-            <input
-              type="text"
-              placeholder="Aadhar Number"
-              value={form.aadharNo || ""}
-              onChange={(e) => handleChange("aadharNo", e.target.value)}
-              className="w-full border p-2 rounded-md text-black"
-              required
-            />
+            <input type="text" placeholder="Aadhar Number" value={form.aadharNo} onChange={(e) => handleChange("aadharNo", e.target.value)} required className="w-full border p-2 rounded-md" />
           )}
+          <input type="password" placeholder="Password" value={form.password} onChange={(e) => handleChange("password", e.target.value)} required className="w-full border p-2 rounded-md" />
 
-          <input
-            type="password"
-            placeholder="Password"
-            value={form.password}
-            onChange={(e) => handleChange("password", e.target.value)}
-            className="w-full border p-2 rounded-md text-black"
-            required
-          />
+          {error && <p className="text-red-600 text-center">{error}</p>}
 
-          {error && <p className="text-red-600 text-sm text-center">{error}</p>}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full py-2 rounded-md text-white font-medium ${
-              loading
-                ? "bg-blue-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700 transition"
-            }`}
-          >
+          <button type="submit" disabled={loading} className={`w-full py-2 rounded-md text-white ${loading ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}>
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
