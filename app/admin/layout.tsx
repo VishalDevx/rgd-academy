@@ -1,10 +1,11 @@
+// app/admin/layout.tsx
 import { auth } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/app/components/Sidebar";
 import { Suspense } from "react";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
+  const session = await auth(); // ✅ reads cookies from request
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
   return (
@@ -18,5 +19,3 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     </div>
   );
 }
-
-

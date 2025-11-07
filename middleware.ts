@@ -3,14 +3,16 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 export async function middleware(req: NextRequest) {
+  // Safely extract JWT token using NextAuth's default salt
   const token = await getToken({
-    req, secret: process.env.NEXTAUTH_SECRET as string,
-    salt: ""
+    req,
+    secret: process.env.NEXTAUTH_SECRET as string,
+  
   });
 
   const { pathname } = req.nextUrl;
 
-  // Redirect unauthenticated users
+  // 1️⃣ Redirect unauthenticated users trying to access protected routes
   if (!token && !pathname.startsWith("/login")) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("callbackUrl", req.url);
@@ -19,7 +21,7 @@ export async function middleware(req: NextRequest) {
 
   const role = (token as any)?.role ?? "";
 
-  // Prevent logged-in users from accessing login page
+  // 2️⃣ Prevent logged-in users from going back to the login page
   if (pathname === "/login" && token) {
     const dashboard =
       role === "ADMIN"
@@ -27,10 +29,11 @@ export async function middleware(req: NextRequest) {
         : role === "STAFF"
         ? "/staff/dashboard"
         : "/student/dashboard";
+
     return NextResponse.redirect(new URL(dashboard, req.url));
   }
 
-  // Role-based access control
+  // 3️⃣ Role-based route protection
   if (pathname.startsWith("/admin") && role !== "ADMIN") {
     return NextResponse.redirect(new URL("/unauthorized", req.url));
   }
@@ -43,11 +46,10 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/unauthorized", req.url));
   }
 
+  // 4️⃣ Allow access
   return NextResponse.next();
 }
 
 export const config = {
   matcher: ["/login", "/admin/:path*", "/staff/:path*", "/student/:path*"],
 };
-
-
