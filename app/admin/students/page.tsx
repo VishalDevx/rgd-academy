@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { db } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { auth } from "@/app/api/auth/[...nextauth]/route";
 
 export default async function AdminStudentsPage() {
   const session = await auth();
