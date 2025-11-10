@@ -1,19 +1,20 @@
-import { ReactNode } from "react";
-import { getServerSession } from "next-auth";
-import { authConfig } from "@/app/api/auth/[...nextauth]/route";
+// app/admin/layout.tsx
 import { redirect } from "next/navigation";
-
-export default async function StaffLayout({ children }: { children: ReactNode }) {
-  const session = await getServerSession(authConfig);
-
-  // 🔒 Block access if not logged in or not an ADMIN
-  if (!session?.user || session.user.role !== "STAFF") {
-    redirect("/login");
-  }
-
-  return <>{children}</>;
+import { authConfig } from "../api/auth/[...nextauth]/route";
+import getServerSession from "next-auth";
+import type { Session } from "next-auth";
+import { Sidebar } from "../components/Sidebar";
+import { StaffAuthGuard } from "../components/StaffAuthGuard";
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <StaffAuthGuard>
+      <div className="flex h-screen">
+        <Sidebar role="ADMIN" />
+        <main className="flex-1 overflow-auto p-6">{children}</main>
+      </div>
+    </StaffAuthGuard>
+  );
 }
-
 
 
 
