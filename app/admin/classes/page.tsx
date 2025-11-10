@@ -1,12 +1,14 @@
-export const dynamic = "force-dynamic";
-
+import { getServerSession } from "next-auth";
+import { authConfig } from "@/app/api/auth/[...nextauth]/route";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/prisma";
-import { auth } from "@/app/api/auth/[...nextauth]/route";
-import { redirect } from "next/navigation";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminClassesPage() {
-  const session = await auth();
+  // ✅ Use the real NextAuth getServerSession
+  const session = await getServerSession(authConfig);
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
   const classes = await db.class.findMany({ orderBy: { createdAt: "desc" } });
@@ -42,7 +44,3 @@ export default async function AdminClassesPage() {
     </div>
   );
 }
-
-
-
-

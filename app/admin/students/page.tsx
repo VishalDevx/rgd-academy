@@ -1,15 +1,20 @@
-export const dynamic = "force-dynamic";
-
+import { getServerSession } from "next-auth";
+import { authConfig } from "@/app/api/auth/[...nextauth]/route";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/prisma";
-import { redirect } from "next/navigation";
-import { auth } from "@/app/api/auth/[...nextauth]/route";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminStudentsPage() {
-  const session = await auth();
+  // ✅ Proper server-side session check
+  const session = await getServerSession(authConfig);
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
-  const students = await db.student.findMany({ include: { user: true, class: true }, orderBy: { admissionDate: "desc" } } as any);
+  const students = await db.student.findMany({
+    include: { user: true, class: true },
+    orderBy: { admissionDate: "desc" },
+  });
 
   return (
     <div>
@@ -37,7 +42,7 @@ export default async function AdminStudentsPage() {
                 <td className="p-2 border">{s.user.email}</td>
                 <td className="p-2 border">{s.admissionNo}</td>
                 <td className="p-2 border">{s.rollNumber}</td>
-                <td className="p-2 border">{s.class ? `${s.classId.name}` : "-"}</td>
+                <td className="p-2 border">{s.class ? s.class.name : "-"}</td>
               </tr>
             ))}
           </tbody>
@@ -46,5 +51,3 @@ export default async function AdminStudentsPage() {
     </div>
   );
 }
-
-
