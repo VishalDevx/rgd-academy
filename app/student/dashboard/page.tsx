@@ -1,18 +1,19 @@
-export const dynamic = "force-dynamic";
-import { auth } from "@/app/api/auth/[...nextauth]/route"
-import { redirect } from "next/navigation"
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authConfig } from "@/app/api/auth/[...nextauth]/route";
 
-export default async function StudentDashboard() {
-  const session = await auth()
 
-  if (!session?.user) redirect("/login")
-  if (session.user.role !== "STUDENT") redirect("/login")
+export default async function AdminDashboardPage() {
+  const session = await getServerSession(authConfig);
+
+  if (!session?.user || session.user.role !== "STUDENT") {
+    redirect("/login");
+  }
 
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-bold">Student Dashboard</h1>
-      <p>Welcome, {session.user.name}</p>
+    <div>
+      STUDENT DASHBOARD
+      {session.user.name}
     </div>
-  )
+  );
 }
-

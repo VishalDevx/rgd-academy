@@ -1,19 +1,19 @@
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authConfig } from "@/app/api/auth/[...nextauth]/route";
 
-export const dynamic = "force-dynamic";
-import { auth } from "@/app/api/auth/[...nextauth]/route"
-import { redirect } from "next/navigation"
 
-export default async function StaffDashboard() {
-  const session = await auth()
+export default async function AdminDashboardPage() {
+  const session = await getServerSession(authConfig);
 
-  if (!session?.user) redirect("/login")
-  if (session.user.role !== "STAFF") redirect("/login")
+  if (!session?.user || session.user.role !== "STAFF") {
+    redirect("/login");
+  }
 
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-bold">STAFF Dashboard</h1>
-      <p>Welcome, {session.user.name}</p>
+    <div>
+      STAFF  DASHBOARD
+      {session.user.name}
     </div>
-  )
+  );
 }
-
