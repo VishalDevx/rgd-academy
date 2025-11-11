@@ -3,7 +3,16 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { Mail, Lock, IdCard, UserCog, Users, GraduationCap } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  IdCard,
+  UserCog,
+  Users,
+  GraduationCap,
+  Quote,
+} from "lucide-react";
+import { StudyAnimation } from "@/app/components/StudyAnimation";
 
 type Role = "ADMIN" | "STAFF" | "STUDENT";
 
@@ -15,7 +24,11 @@ interface LoginForm {
 
 export default function LoginPage() {
   const [role, setRole] = useState<Role>("STAFF");
-  const [form, setForm] = useState<LoginForm>({ email: "", password: "", aadharNo: "" });
+  const [form, setForm] = useState<LoginForm>({
+    email: "",
+    password: "",
+    aadharNo: "",
+  });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
@@ -24,7 +37,6 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    // Only show admin login if ?admin=true in URL or secure condition
     const allowAdmin = searchParams.get("admin") === "true";
     setShowAdmin(allowAdmin);
   }, [searchParams]);
@@ -44,7 +56,11 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    if ((role === "STUDENT" && !form.aadharNo?.trim()) || (role !== "STUDENT" && !form.email?.trim()) || !form.password.trim()) {
+    if (
+      (role === "STUDENT" && !form.aadharNo?.trim()) ||
+      (role !== "STUDENT" && !form.email?.trim()) ||
+      !form.password.trim()
+    ) {
       setError("All fields are required.");
       setLoading(false);
       return;
@@ -86,91 +102,121 @@ export default function LoginPage() {
   };
 
   const roles: { type: Role; label: string; icon: any }[] = [
-    ...(showAdmin ? [{ type: "ADMIN" as Role, label: "Admin", icon: UserCog }] : []),
+    ...(showAdmin
+      ? [{ type: "ADMIN" as Role, label: "Admin", icon: UserCog }]
+      : []),
     { type: "STAFF", label: "Staff", icon: Users },
     { type: "STUDENT", label: "Student", icon: GraduationCap },
   ];
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center bg-cover bg-center"
-      style={{
-        backgroundImage: "url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=1950&q=80')",
-      }}
-    >
-      <div className="w-full max-w-md bg-white/10 backdrop-blur-md shadow-2xl rounded-2xl p-8 border border-white/20">
-        <h1 className="text-3xl font-bold text-center text-white mb-8 tracking-wide">🎓 School Portal</h1>
+    <div className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
+      {/* Left Animation / Quote */}
+      <div className="hidden md:flex w-1/2 flex-col items-center justify-center relative bg-gradient-to-br from-blue-white to-white p-10">
+        <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')]"></div>
 
-        <div className="flex justify-center gap-3 mb-8">
-          {roles.map((r) => (
-            <button
-              key={r.type}
-              onClick={() => handleRoleChange(r.type)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition font-medium ${
-                role === r.type
-                  ? "bg-blue-600 text-white shadow-lg scale-105"
-                  : "bg-white/20 text-gray-100 hover:bg-white/30"
-              }`}
-            >
-              <r.icon size={18} />
-              {r.label}
-            </button>
-          ))}
+        {/* ✅ Custom animated SVG component */}
+        <div className="relative z-10">
+          <StudyAnimation />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {role !== "STUDENT" ? (
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 text-gray-400" size={18} />
-              <input
-                type="email"
-                placeholder="Email"
-                value={form.email}
-                onChange={(e) => handleChange("email", e.target.value)}
-                required
-                className="w-full pl-10 pr-3 py-2 rounded-lg bg-white/20 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
-          ) : (
-            <div className="relative">
-              <IdCard className="absolute left-3 top-3 text-gray-400" size={18} />
-              <input
-                type="text"
-                placeholder="Aadhar Number"
-                value={form.aadharNo}
-                onChange={(e) => handleChange("aadharNo", e.target.value)}
-                required
-                className="w-full pl-10 pr-3 py-2 rounded-lg bg-white/20 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              />
-            </div>
-          )}
+        <div className="text-center mt-8 relative z-10">
+          <Quote size={40} className="mx-auto mb-4 text-blue-400" />
+          <h2 className="text-2xl font-semibold text-gray-700 leading-snug">
+            “The future belongs to those who believe in the beauty of their dreams.”
+          </h2>
+          <p className="text-blue-500 mt-2 font-medium">— Eleanor Roosevelt</p>
+        </div>
+      </div>
 
-          <div className="relative">
-            <Lock className="absolute left-3 top-3 text-gray-400" size={18} />
-            <input
-              type="password"
-              placeholder="Password"
-              value={form.password}
-              onChange={(e) => handleChange("password", e.target.value)}
-              required
-              className="w-full pl-10 pr-3 py-2 rounded-lg bg-white/20 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
+      {/* Right Login Form */}
+      <div className="flex-1 flex items-center justify-center px-6 py-10">
+        <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl shadow-lg p-8">
+          <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">
+            🎓 School Portal
+          </h1>
+
+          <div className="flex justify-center gap-3 mb-8 flex-wrap">
+            {roles.map((r) => (
+              <button
+                key={r.type}
+                onClick={() => handleRoleChange(r.type)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition font-medium ${
+                  role === r.type
+                    ? "bg-blue-600 text-white shadow-md scale-105"
+                    : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+                }`}
+              >
+                <r.icon size={18} />
+                {r.label}
+              </button>
+            ))}
           </div>
 
-          {error && <p className="text-red-400 text-center font-medium">{error}</p>}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {role !== "STUDENT" ? (
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 text-gray-400" size={18} />
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={form.email}
+                  onChange={(e) => handleChange("email", e.target.value)}
+                  required
+                  className="w-full pl-10 pr-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                />
+              </div>
+            ) : (
+              <div className="relative">
+                <IdCard className="absolute left-3 top-3 text-gray-400" size={18} />
+                <input
+                  type="text"
+                  placeholder="Aadhar Number"
+                  value={form.aadharNo}
+                  onChange={(e) => handleChange("aadharNo", e.target.value)}
+                  required
+                  className="w-full pl-10 pr-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                />
+              </div>
+            )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full py-2 rounded-lg text-white font-semibold mt-2 transition ${
-              loading
-                ? "bg-blue-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700 active:scale-95"
-            }`}
-          >
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 text-gray-400" size={18} />
+              <input
+                type="password"
+                placeholder="Password"
+                value={form.password}
+                onChange={(e) => handleChange("password", e.target.value)}
+                required
+                className="w-full pl-10 pr-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              />
+            </div>
+
+            {error && (
+              <p className="text-red-500 text-center font-medium">{error}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full py-2 rounded-lg text-white font-semibold mt-2 transition ${
+                loading
+                  ? "bg-blue-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700 active:scale-95"
+              }`}
+            >
+              {loading ? "Logging in..." : "Login"}
+            </button>
+          </form>
+
+          {/* Mobile Quote */}
+          <div className="block md:hidden text-center mt-10 text-gray-500 text-sm">
+            <p className="italic">
+              “Education is the most powerful weapon which you can use to change the world.”
+            </p>
+            <span className="text-blue-600 mt-2 block">— Nelson Mandela</span>
+          </div>
+        </div>
       </div>
     </div>
   );
