@@ -217,7 +217,7 @@ model Student {
   admissionNo   String      @unique
   rollNumber    String
   admissionDate DateTime    @default(now())
- 
+ profileImg String
   dob           DateTime?
   gender        Gender?
   address       String?
