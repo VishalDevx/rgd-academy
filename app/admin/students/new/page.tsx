@@ -11,6 +11,7 @@ interface ClassItem {
 
 export default function NewStudentPage() {
   const router = useRouter();
+
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [form, setForm] = useState({
     name: "",
@@ -19,19 +20,30 @@ export default function NewStudentPage() {
     admissionNo: "",
     rollNumber: "",
     classId: "",
+    dob: "",
+    gender: "",
+    address: "",
   });
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  // Fetch available classes
   useEffect(() => {
-    fetch("/api/classes").then(async (r) => setClasses(await r.json()));
+    fetch("/api/classes")
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Failed to fetch classes");
+        setClasses(await res.json());
+      })
+      .catch(console.error);
   }, []);
 
+  // Handle form input changes
   const onChange = (key: keyof typeof form, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
 
+  // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (selected) {
@@ -40,6 +52,7 @@ export default function NewStudentPage() {
     }
   };
 
+  // Form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -58,7 +71,7 @@ export default function NewStudentPage() {
       if (!res.ok) throw new Error(await res.text());
       router.push("/admin/students");
     } catch (err: any) {
-      setError(err.message ?? "Failed");
+      setError(err.message ?? "Failed to create student");
     } finally {
       setSubmitting(false);
     }
@@ -136,6 +149,39 @@ export default function NewStudentPage() {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700">Date of Birth</label>
+            <input
+              type="date"
+              className="w-full border border-gray-300 rounded-lg p-2.5 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={form.dob}
+              onChange={(e) => onChange("dob", e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700">Gender</label>
+            <select
+              className="w-full border border-gray-300 rounded-lg p-2.5 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={form.gender}
+              onChange={(e) => onChange("gender", e.target.value)}
+            >
+              <option value="">Select</option>
+              <option value="MALE">Male</option>
+              <option value="FEMALE">Female</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium mb-1 text-gray-700">Address</label>
+            <textarea
+              className="w-full border border-gray-300 rounded-lg p-2.5 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={form.address}
+              onChange={(e) => onChange("address", e.target.value)}
+            />
           </div>
         </div>
 
