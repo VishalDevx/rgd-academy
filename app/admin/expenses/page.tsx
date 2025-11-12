@@ -1,12 +1,12 @@
 export const dynamic = "force-dynamic";
-
-import { auth } from "@/app/api/auth/[...nextauth]/route";
+import getServerSession from "next-auth/next"
+import { authConfig } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
 import Link from "next/link";
 
 export default async function AdminExpensesPage() {
-  const session = await auth();
+ const session = await getServerSession(authConfig)
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
   const items = await db.expense.findMany({ orderBy: { date: "desc" } } as any);

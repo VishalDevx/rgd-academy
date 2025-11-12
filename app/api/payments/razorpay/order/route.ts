@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
-import { auth } from "@/app/api/auth/[...nextauth]/route";
-
+import { authConfig } from "@/app/api/auth/[...nextauth]/route";
+import getServerSession from "next-auth/next"
 const key_id = process.env.RAZORPAY_KEY_ID as string | undefined;
 const key_secret = process.env.RAZORPAY_KEY_SECRET as string | undefined;
 
 export async function POST(req: Request) {
-  const session = await auth();
+  const session = await getServerSession(authConfig);
   if (!session?.user) return new NextResponse("Unauthorized", { status: 401 });
   if (!key_id || !key_secret) return new NextResponse("Razorpay not configured", { status: 500 });
 

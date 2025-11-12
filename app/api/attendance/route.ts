@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
-import { auth } from "@/app/api/auth/[...nextauth]/route";
-
+import { authConfig } from "../auth/[...nextauth]/route";
+import getServerSession from "next-auth/next"
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const classId = searchParams.get("classId");
@@ -14,7 +14,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const session = await auth();
+ const session = await getServerSession(authConfig)
   if (!session?.user || !["ADMIN", "STAFF"].includes(session.user.role)) return new NextResponse("Unauthorized", { status: 401 });
   const b = await req.json().catch(() => null);
   if (!b || !b.classId || !Array.isArray(b.records)) return new NextResponse("Invalid payload", { status: 400 });

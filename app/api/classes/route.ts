@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
-import { auth } from "@/app/api/auth/[...nextauth]/route";
-
+import { authConfig } from "@/app/api/auth/[...nextauth]/route";
+import getServerSession from "next-auth/next"
 export async function GET() {
   const classes = await db.class.findMany({
     orderBy: { createdAt: "desc" },
@@ -10,7 +10,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await auth();
+ const session = await getServerSession(authConfig)
   if (!session?.user || session.user.role !== "ADMIN") {
     return new NextResponse("Unauthorized", { status: 401 });
   }

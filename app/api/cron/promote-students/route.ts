@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { promoteAllActiveStudents } from "@/app/lib/promotion";
-import { auth } from "@/app/api/auth/[...nextauth]/route";
-
+import { authConfig } from "@/app/api/auth/[...nextauth]/route";
+import getServerSession from "next-auth/next"
 // Allow manual trigger by ADMIN; for Vercel Cron we can allow a secret token header
 export async function POST(req: Request) {
-  const session = await auth();
+const session = await getServerSession(authConfig)
   const headerToken = req.headers.get("x-cron-token");
   const envToken = process.env.CRON_SECRET_TOKEN;
 

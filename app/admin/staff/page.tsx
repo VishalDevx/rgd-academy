@@ -7,7 +7,7 @@ import { getServerSession } from "next-auth";
 import { authConfig } from "@/app/api/auth/[...nextauth]/route";
 
 export default async function AdminStaffPage() {
-  // ✅ Proper server-side auth
+ 
   const session = await getServerSession(authConfig);
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 

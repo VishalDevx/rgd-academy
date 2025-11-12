@@ -1,12 +1,13 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { auth } from "@/app/api/auth/[...nextauth]/route";
+import {  authConfig } from "@/app/api/auth/[...nextauth]/route";
+import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
 
 export default async function AdminExamsPage() {
-  const session = await auth();
+ const session = await getServerSession(authConfig)
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
   const exams = await db.exam.findMany({ include: { class: true }, orderBy: { startDate: "desc" } } as any);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
-import { auth } from "@/app/api/auth/[...nextauth]/route";
+import { authConfig } from "@/app/api/auth/[...nextauth]/route";
+import getServerSession from "next-auth/next"
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const item = await db.staff.findUnique({ where: { id: params.id }, include: { user: true } } as any);
@@ -9,7 +10,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 }
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const session = await auth();
+  const session = await getServerSession(authConfig);
   if (!session?.user || session.user.role !== "ADMIN") return new NextResponse("Unauthorized", { status: 401 });
   const body = await req.json().catch(() => null);
   if (!body) return new NextResponse("Invalid payload", { status: 400 });
@@ -26,7 +27,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 }
 
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
-  const session = await auth();
+  const session = await getServerSession(authConfig);
   if (!session?.user || session.user.role !== "ADMIN") return new NextResponse("Unauthorized", { status: 401 });
   await db.staff.delete({ where: { id: params.id } });
   return new NextResponse(null, { status: 204 });

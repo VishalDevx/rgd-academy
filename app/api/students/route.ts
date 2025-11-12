@@ -2,118 +2,103 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authConfig } from "../auth/[...nextauth]/route";
-import fs from "fs";
 import { createClient } from "@supabase/supabase-js";
-import formidable from "formidable";
-import { Gender } from "@prisma/client";
-import { Readable } from "stream";
 
+// Initialize Supabase client
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// Disable automatic body parsing — necessary for FormData uploads
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
-// Convert Web Request → Node Readable Stream
-function requestToStream(req: Request): Readable {
-  const reader = req.body?.getReader();
-  if (!reader) throw new Error("Request body missing");
-
-  return new Readable({
-    async read() {
-      const { done, value } = await reader.read();
-      if (done) this.push(null);
-      else this.push(value);
-    },
-  });
-}
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
+    // ✅ Auth check
     const session = await getServerSession(authConfig);
     if (!session?.user || session.user.role !== "ADMIN") {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Convert the request to Node-compatible stream
-    const stream = requestToStream(req);
+    // ✅ Parse FormData (works natively in App Router)
+    const form = await req.formData();
 
-    // Parse multipart form
-    const form = formidable({
-      multiples: false,
-      keepExtensions: true,
-    });
+    // ✅ Extract text fields
+    const name = form.get("name") as string | null;
+    const email = form.get("email") as string | null;
+    const adharNo = form.get("adharNo") as string | null;
+    const admissionNo = form.get("admissionNo") as string | null;
+    const rollNumber = form.get("rollNumber") as string | null;
+    const dob = form.get("dob") as string | null;
+    const gender = form.get("gender") as string | null;
+    const address = form.get("address") as string | null;
+    const classId = form.get("classId") as string | null;
+    const passwordHash = form.get("passwordHash") as string | null;
+    const file = form.get("file") as File | null;
 
-    const { fields, files }: any = await new Promise((resolve, reject) => {
-      form.parse(stream as any, (err, fields, files) => {
-        if (err) reject(err);
-        else resolve({ fields, files });
-      });
-    });
-
-    // Validate required fields
-    const required = ["name", "email", "adharNo", "admissionNo", "rollNumber"];
-    for (const field of required) {
-      if (!fields[field]) {
-        return new NextResponse(`Missing ${field}`, { status: 400 });
+    // ✅ Validate required fields
+    const required = { name, email, adharNo, admissionNo, rollNumber };
+    for (const [key, value] of Object.entries(required)) {
+      if (!value) {
+        return NextResponse.json({ error: `Missing ${key}` }, { status: 400 });
       }
     }
 
-    // Upload profile image to Supabase (if present)
+    // ✅ Upload profile image to Supabase (if provided)
     let profileImgUrl = "";
-    if (files.file) {
-      const file = Array.isArray(files.file) ? files.file[0] : files.file;
-      const fileData = fs.readFileSync(file.filepath);
-      const ext = file.originalFilename?.split(".").pop();
-      const fileName = `students/${Date.now()}-${fields.name}.${ext}`;
+    if (file) {
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      const fileExt = file.name.split(".").pop();
+      const fileName = `students/${Date.now()}-${name}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("profile-images")
-        .upload(fileName, fileData, { upsert: true });
+        .upload(fileName, buffer, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: file.type,
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error(uploadError);
+        return NextResponse.json(
+          { error: "Failed to upload image" },
+          { status: 500 }
+        );
+      }
 
       const { data: publicData } = supabase.storage
         .from("profile-images")
         .getPublicUrl(fileName);
+
       profileImgUrl = publicData.publicUrl;
     }
 
-    // Save to DB
+    // ✅ Create user and student in a transaction
     const created = await db.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
-          name: String(fields.name),
-          email: String(fields.email).toLowerCase(),
+          name: name!,
+          email: email!.toLowerCase(),
           role: "STUDENT",
-          adharNo: String(fields.adharNo),
-          passwordHash: fields.passwordHash ?? null,
+          adharNo: adharNo!,
+          passwordHash: passwordHash,
         },
       });
 
       const student = await tx.student.create({
         data: {
           userId: user.id,
-          admissionNo: String(fields.admissionNo),
-          rollNumber: String(fields.rollNumber),
-          classId: fields.classId ? String(fields.classId) : null,
-          dob: fields.dob ? new Date(String(fields.dob)) : null,
-          gender: fields.gender
-            ? (String(
-                Array.isArray(fields.gender)
-                  ? fields.gender[0]
-                  : fields.gender
-              ).toUpperCase() as Gender)
+          admissionNo: admissionNo!,
+          rollNumber: rollNumber!,
+          classId: classId || null,
+          dob: dob ? new Date(dob) : null,
+          gender: gender && ["MALE", "FEMALE", "OTHER"].includes(gender.toUpperCase())
+            ? (gender.toUpperCase() as any)
             : null,
-          address: Array.isArray(fields.address)
-            ? fields.address[0]
-            : fields.address ?? null,
+          address,
           profileImg: profileImgUrl,
         },
       });
@@ -124,6 +109,9 @@ export async function POST(req: Request) {
     return NextResponse.json(created, { status: 201 });
   } catch (err: any) {
     console.error("Error creating student:", err);
-    return NextResponse.json({ error: err.message || String(err) }, { status: 500 });
+    return NextResponse.json(
+      { error: err.message || "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
