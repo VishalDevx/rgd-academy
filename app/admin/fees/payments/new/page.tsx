@@ -3,11 +3,18 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+interface FeePaymentForm {
+  studentId: string;
+  feeStructureId: string;
+  amountPaid: string;
+  status: "PAID" | "PENDING" | "PARTIAL";
+}
+
 export default function NewFeePaymentPage() {
   const router = useRouter();
   const [students, setStudents] = useState<any[]>([]);
   const [structures, setStructures] = useState<any[]>([]);
-  const [form, setForm] = useState({ studentId: "", feeStructureId: "", amountPaid: "", status: "PAID" });
+  const [form, setForm] = useState<FeePaymentForm>({ studentId: "", feeStructureId: "", amountPaid: "", status: "PAID" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -16,14 +23,18 @@ export default function NewFeePaymentPage() {
     fetch("/api/fees/structures").then(async (r) => setStructures(await r.json()));
   }, []);
 
-  const onChange = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const onChange = (key: keyof FeePaymentForm, value: string) => setForm((f) => ({ ...f, [key]: value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setError("");
     try {
-      const res = await fetch("/api/fees/payments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      const res = await fetch("/api/fees/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
       if (!res.ok) throw new Error(await res.text());
       router.push("/admin/fees");
     } catch (err: any) {
@@ -64,8 +75,8 @@ export default function NewFeePaymentPage() {
             <label className="block text-sm mb-1">Status</label>
             <select className="w-full border rounded p-2 text-black" value={form.status} onChange={(e) => onChange("status", e.target.value)}>
               <option value="PAID">PAID</option>
-              <option value="PENDING">PENDING</option>
               <option value="PARTIAL">PARTIAL</option>
+              <option value="PENDING">PENDING</option>
             </select>
           </div>
         </div>
@@ -78,5 +89,3 @@ export default function NewFeePaymentPage() {
     </div>
   );
 }
-
-

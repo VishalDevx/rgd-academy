@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { authConfig } from "../auth/[...nextauth]/route";
 import getServerSession from "next-auth/next";
+import { cookies } from "next/headers";
 
 // ------------------ GET ATTENDANCE ------------------
 export async function GET(req: Request) {
@@ -14,7 +15,6 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Missing classId or date" }, { status: 400 });
     }
 
-    // Normalize date to 00:00:00
     const startDate = new Date(dateStr);
     startDate.setHours(0, 0, 0, 0);
     const endDate = new Date(startDate);
@@ -43,7 +43,10 @@ export async function GET(req: Request) {
 // ------------------ SAVE/UPDATE ATTENDANCE ------------------
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authConfig);
+    // Pass request to getServerSession to read cookies
+    
+const session = await getServerSession(authConfig)
+
     if (!session?.user || !["ADMIN", "STAFF"].includes(session.user.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

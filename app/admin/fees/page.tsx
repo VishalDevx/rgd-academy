@@ -1,20 +1,27 @@
-export const dynamic = "force-dynamic";
-
 import Link from "next/link";
 import { authConfig } from "@/app/api/auth/[...nextauth]/route";
-import getServerSession from "next-auth/next"
+import getServerSession from "next-auth/next";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
 
-export default async function AdminFeesPage() {
-const session = await getServerSession(authConfig)
-  if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
+export const dynamic = "force-dynamic";
 
-  const structures = await db.feeStructure.findMany({ include: { class: true }, orderBy: { createdAt: "desc" } } as any);
-  const payments = await db.feePayment.findMany({ include: { student: { include: { user: true } }, feeStructure: true }, orderBy: { createdAt: "desc" } } as any);
+export default async function AdminFeesPage() {
+  const session = await getServerSession(authConfig);
+if (!session?.user || session.user.role !== "ADMIN") {
+  redirect("/login"); 
+  return;           
+}
+
+
+  const [structures, payments] = await Promise.all([
+    db.feeStructure.findMany({ include: { class: true }, orderBy: { createdAt: "desc" } }),
+    db.feePayment.findMany({ include: { student: { include: { user: true } }, feeStructure: true }, orderBy: { createdAt: "desc" } }),
+  ]);
 
   return (
     <div className="space-y-8">
+      {/* Fee Structures Table */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Fee Structures</h2>
@@ -30,11 +37,11 @@ const session = await getServerSession(authConfig)
               </tr>
             </thead>
             <tbody>
-              {structures.map((s: any) => (
+              {structures.map((s) => (
                 <tr key={s.id}>
                   <td className="p-2 border">{s.class?.name}</td>
-                  <td className="p-2 border">{s.name ?? '-'}</td>
-                  <td className="p-2 border">{s.total as any}</td>
+                  <td className="p-2 border">{s.name ?? "-"}</td>
+                  <td className="p-2 border">{s.total.toString()}</td>
                 </tr>
               ))}
             </tbody>
@@ -42,6 +49,7 @@ const session = await getServerSession(authConfig)
         </div>
       </div>
 
+      {/* Fee Payments Table */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Payments</h2>
@@ -58,11 +66,11 @@ const session = await getServerSession(authConfig)
               </tr>
             </thead>
             <tbody>
-              {payments.map((p: any) => (
+              {payments.map((p) => (
                 <tr key={p.id}>
                   <td className="p-2 border">{p.student.user.name}</td>
                   <td className="p-2 border">{p.feeStructure.name ?? p.feeStructure.id}</td>
-                  <td className="p-2 border">{p.amountPaid as any}</td>
+                  <td className="p-2 border">{p.amountPaid.toString()}</td>
                   <td className="p-2 border">{p.status}</td>
                 </tr>
               ))}
@@ -73,5 +81,3 @@ const session = await getServerSession(authConfig)
     </div>
   );
 }
-
-

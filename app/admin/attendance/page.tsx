@@ -8,23 +8,16 @@ interface Student {
   classId: string;
 }
 
-interface AttendanceRecord {
-  studentId: string;
-  status: string;
-}
-
 export default function AdminAttendancePage() {
   const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedClass, setSelectedClass] = useState("");
-  const [date, setDate] = useState<string>(
-    () => new Date().toISOString().slice(0, 10)
-  );
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [records, setRecords] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Fetch all classes
+  // Fetch classes
   useEffect(() => {
     fetch("/api/classes")
       .then((res) => res.json())
@@ -32,7 +25,7 @@ export default function AdminAttendancePage() {
       .catch((err) => console.error("Failed to load classes", err));
   }, []);
 
-  // Fetch students when class is selected
+  // Fetch students when class changes
   useEffect(() => {
     if (!selectedClass) return;
 
@@ -53,6 +46,7 @@ export default function AdminAttendancePage() {
 
   const submitAttendance = async () => {
     if (!selectedClass) return;
+
     setSaving(true);
     setMessage("");
 
@@ -70,13 +64,12 @@ export default function AdminAttendancePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-        credentials: "include", // important for session cookies
+        credentials: "include", // ensure cookies are sent
       });
 
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(errText || "Failed to save attendance");
-      }
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || "Failed to save attendance");
 
       setMessage("Attendance saved successfully!");
     } catch (err: any) {

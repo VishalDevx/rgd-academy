@@ -3,10 +3,26 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+interface FeeStructureForm {
+  classId: string;
+  name: string;
+  tuitionFee: string;
+  examFee: string;
+  transportFee: string;
+  miscFee: string;
+}
+
 export default function NewFeeStructurePage() {
   const router = useRouter();
   const [classes, setClasses] = useState<any[]>([]);
-  const [form, setForm] = useState({ classId: "", name: "", tuitionFee: "", examFee: "", transportFee: "", miscFee: "" });
+  const [form, setForm] = useState<FeeStructureForm>({
+    classId: "",
+    name: "",
+    tuitionFee: "",
+    examFee: "",
+    transportFee: "",
+    miscFee: "",
+  });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -14,14 +30,18 @@ export default function NewFeeStructurePage() {
     fetch("/api/classes").then(async (r) => setClasses(await r.json()));
   }, []);
 
-  const onChange = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const onChange = (key: keyof FeeStructureForm, value: string) => setForm((f) => ({ ...f, [key]: value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setError("");
     try {
-      const res = await fetch("/api/fees/structures", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      const res = await fetch("/api/fees/structures", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
       if (!res.ok) throw new Error(await res.text());
       router.push("/admin/fees");
     } catch (err: any) {
@@ -75,5 +95,3 @@ export default function NewFeeStructurePage() {
     </div>
   );
 }
-
-

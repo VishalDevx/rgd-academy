@@ -12,12 +12,12 @@ export const authConfig: AuthOptions = {
   adapter: PrismaAdapter(db),
 
   session: {
-    strategy: "jwt",
+    strategy: "jwt", // <- database sessions allow multiple logins in the same browser
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
 
   providers: [
-    // ✅ Admin & Staff login
+    // Admin & Staff login
     Credentials({
       id: "email-password",
       name: "Email & Password",
@@ -27,7 +27,6 @@ export const authConfig: AuthOptions = {
       },
       async authorize(credentials) {
         const { email, password } = credentials ?? {};
-
         if (!email || !password) throw new Error("Missing credentials");
 
         const user = await db.user.findUnique({
@@ -51,7 +50,7 @@ export const authConfig: AuthOptions = {
       },
     }),
 
-    // ✅ Student login
+    // Student login
     Credentials({
       id: "student-login",
       name: "Student Login",
@@ -61,7 +60,6 @@ export const authConfig: AuthOptions = {
       },
       async authorize(credentials) {
         const { aadharNo, password } = credentials ?? {};
-
         if (!aadharNo || !password) throw new Error("Missing credentials");
 
         const user = await db.user.findUnique({
@@ -92,7 +90,6 @@ export const authConfig: AuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 
   callbacks: {
-    // ✅ 1. Attach user info to the JWT token
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
@@ -101,7 +98,6 @@ export const authConfig: AuthOptions = {
       return token;
     },
 
-    // ✅ 2. Attach token info to session.user
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
@@ -110,7 +106,6 @@ export const authConfig: AuthOptions = {
       return session;
     },
 
-    // ✅ 3. Handle redirects cleanly
     async redirect({ url, baseUrl }) {
       if (url.startsWith("/")) return `${baseUrl}${url}`;
       if (url.startsWith(baseUrl)) return url;
@@ -120,5 +115,4 @@ export const authConfig: AuthOptions = {
 };
 
 const handler = NextAuth(authConfig);
-
 export { handler as GET, handler as POST };
