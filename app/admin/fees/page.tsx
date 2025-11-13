@@ -1,17 +1,16 @@
-import Link from "next/link";
-import { authConfig } from "@/app/api/auth/[...nextauth]/route";
-import getServerSession from "next-auth/next";
+import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/prisma";
+import { authConfig } from "@/app/api/auth/[...nextauth]/route";
 
-export const dynamic = "force-dynamic";
+import { db } from "@/lib/prisma";
+import Link from "next/link";
 
 export default async function AdminFeesPage() {
   const session = await getServerSession(authConfig);
-if (!session?.user || session.user.role !== "ADMIN") {
-  redirect("/login"); 
-  return;           
-}
+
+  if (!session?.user || session.user.role !== "ADMIN") {
+    redirect("/login");
+  }
 
 
   const [structures, payments] = await Promise.all([
@@ -24,19 +23,19 @@ if (!session?.user || session.user.role !== "ADMIN") {
       {/* Fee Structures Table */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Fee Structures</h2>
+          <h2 className="text-lg font-semibold text-black">Fee Structures</h2>
           <Link href="/admin/fees/structures/new" className="px-3 py-2 rounded bg-blue-600 text-white text-sm">New Structure</Link>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white border text-sm">
             <thead>
-              <tr className="bg-gray-50 text-left">
+              <tr className="bg-gray-50 text-left text-black">
                 <th className="p-2 border">Class</th>
                 <th className="p-2 border">Name</th>
                 <th className="p-2 border">Total</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="text-black">
               {structures.map((s) => (
                 <tr key={s.id}>
                   <td className="p-2 border">{s.class?.name}</td>
@@ -56,7 +55,7 @@ if (!session?.user || session.user.role !== "ADMIN") {
           <Link href="/admin/fees/payments/new" className="px-3 py-2 rounded bg-blue-600 text-white text-sm">Record Payment</Link>
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border text-sm">
+          <table className="min-w-full bg-white border text-sm text-black">
             <thead>
               <tr className="bg-gray-50 text-left">
                 <th className="p-2 border">Student</th>
