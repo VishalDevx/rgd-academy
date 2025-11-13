@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authConfig } from "../auth/[...nextauth]/route";
 import { createClient } from "@supabase/supabase-js";
 
-// Initialize Supabase client
+// ✅ Initialize Supabase client
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -20,10 +20,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // ✅ Parse FormData (works natively in App Router)
+    // ✅ Parse form data
     const form = await req.formData();
 
-    // ✅ Extract text fields
+    // ✅ Extract fields
     const name = form.get("name") as string | null;
     const email = form.get("email") as string | null;
     const adharNo = form.get("adharNo") as string | null;
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // ✅ Upload profile image to Supabase (if provided)
+    // ✅ Upload profile image (if provided)
     let profileImgUrl = "";
     if (file) {
       const bytes = await file.arrayBuffer();
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
       const fileName = `students/${Date.now()}-${name}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("profile-images")
+        .from("rgd-school") // ✅ correct bucket
         .upload(fileName, buffer, {
           cacheControl: "3600",
           upsert: false,
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
         });
 
       if (uploadError) {
-        console.error(uploadError);
+        console.error("Supabase upload error:", uploadError);
         return NextResponse.json(
           { error: "Failed to upload image" },
           { status: 500 }
@@ -70,13 +70,13 @@ export async function POST(req: Request) {
       }
 
       const { data: publicData } = supabase.storage
-        .from("profile-images")
+        .from("rgd-school") // ✅ same bucket here
         .getPublicUrl(fileName);
 
       profileImgUrl = publicData.publicUrl;
     }
 
-    // ✅ Create user and student in a transaction
+    // ✅ Create user + student in a transaction
     const created = await db.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
@@ -95,9 +95,10 @@ export async function POST(req: Request) {
           rollNumber: rollNumber!,
           classId: classId || null,
           dob: dob ? new Date(dob) : null,
-          gender: gender && ["MALE", "FEMALE", "OTHER"].includes(gender.toUpperCase())
-            ? (gender.toUpperCase() as any)
-            : null,
+          gender:
+            gender && ["MALE", "FEMALE", "OTHER"].includes(gender.toUpperCase())
+              ? (gender.toUpperCase() as any)
+              : null,
           address,
           profileImg: profileImgUrl,
         },

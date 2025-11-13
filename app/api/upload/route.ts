@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authConfig } from "../auth/[...nextauth]/route";
 import { supabase } from "@/app/lib/supabaseClient";
+
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
@@ -30,17 +31,20 @@ export async function POST(req: Request) {
   if (!["image/jpeg", "image/png", "image/webp"].includes(file.type))
     return new NextResponse("Invalid file type.", { status: 400 });
 
-  // Upload
+  // ✅ Upload to the real bucket
   const filePath = `${type}s/${id}/${Date.now()}_${file.name}`;
   const { error } = await supabase.storage
-    .from("student-documents")
+    .from("rgd-school") // ✅ correct bucket
     .upload(filePath, file, { upsert: true });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("Supabase upload error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
-  // Generate signed URL
+  // ✅ Generate signed URL
   const { data: signed } = await supabase.storage
-    .from("student-documents")
+    .from("rgd-school") // ✅ same bucket
     .createSignedUrl(filePath, 60 * 60);
 
   return NextResponse.json({
