@@ -2,76 +2,139 @@
 
 import { useEffect, useState } from "react";
 
+interface Student {
+  id: string;
+  user: { name: string };
+  classId: string;
+}
+
+interface AttendanceRecord {
+  studentId: string;
+  status: string;
+}
+
 export default function AdminAttendancePage() {
-  const [classes, setClasses] = useState<any[]>([]);
-  const [students, setStudents] = useState<any[]>([]);
+  const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [selectedClass, setSelectedClass] = useState("");
-  const [date, setDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState<string>(
+    () => new Date().toISOString().slice(0, 10)
+  );
   const [records, setRecords] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
+  // Fetch all classes
   useEffect(() => {
-    fetch("/api/classes").then(async (r) => setClasses(await r.json()));
+    fetch("/api/classes")
+      .then((res) => res.json())
+      .then((data) => setClasses(data))
+      .catch((err) => console.error("Failed to load classes", err));
   }, []);
 
+  // Fetch students when class is selected
   useEffect(() => {
     if (!selectedClass) return;
-    fetch("/api/students").then(async (r) => {
-      const all = await r.json();
-      const list = all.filter((s: any) => s.classId === selectedClass);
-      setStudents(list);
-      setRecords(Object.fromEntries(list.map((s: any) => [s.id, "PRESENT"])));
-    });
+
+    fetch(`/api/students?classId=${selectedClass}`)
+      .then((res) => res.json())
+      .then((data: Student[]) => {
+        setStudents(data);
+        const initialRecords: Record<string, string> = {};
+        data.forEach((s) => (initialRecords[s.id] = "PRESENT"));
+        setRecords(initialRecords);
+      })
+      .catch((err) => console.error("Failed to load students", err));
   }, [selectedClass]);
 
-  const setStatus = (studentId: string, status: string) => setRecords((rec) => ({ ...rec, [studentId]: status }));
+  const setStatus = (studentId: string, status: string) => {
+    setRecords((prev) => ({ ...prev, [studentId]: status }));
+  };
 
-  const submit = async () => {
+  const submitAttendance = async () => {
     if (!selectedClass) return;
     setSaving(true);
     setMessage("");
+
+    const payload = {
+      classId: selectedClass,
+      date,
+      records: students.map((s) => ({
+        studentId: s.id,
+        status: records[s.id] || "PRESENT",
+      })),
+    };
+
     try {
-      const payload = { classId: selectedClass, date, records: students.map((s) => ({ studentId: s.id, status: records[s.id] || "PRESENT" })) };
-      const res = await fetch("/api/attendance", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      if (!res.ok) throw new Error(await res.text());
-      setMessage("Attendance saved");
-    } catch (e: any) {
-      setMessage(e.message ?? "Failed");
+      const res = await fetch("/api/attendance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        credentials: "include", // important for session cookies
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || "Failed to save attendance");
+      }
+
+      setMessage("Attendance saved successfully!");
+    } catch (err: any) {
+      setMessage(err.message || "Error saving attendance");
     } finally {
       setSaving(false);
-      setTimeout(() => setMessage(""), 2000);
+      setTimeout(() => setMessage(""), 3000);
     }
   };
 
   return (
-    <div>
-      <h1 className="text-xl font-bold mb-4">Attendance</h1>
-      <div className="flex gap-3 items-end mb-4">
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Attendance</h1>
+
+      <div className="flex flex-wrap gap-4 mb-4 items-end">
         <div>
-          <label className="block text-sm mb-1">Class</label>
-          <select className="border p-2 rounded text-black" value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}>
+          <label className="block mb-1 text-sm font-medium">Class</label>
+          <select
+            className="border rounded px-2 py-1"
+            value={selectedClass}
+            onChange={(e) => setSelectedClass(e.target.value)}
+          >
             <option value="">Select class</option>
             {classes.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
             ))}
           </select>
         </div>
+
         <div>
-          <label className="block text-sm mb-1">Date</label>
-          <input type="date" className="border p-2 rounded text-black" value={date} onChange={(e) => setDate(e.target.value)} />
+          <label className="block mb-1 text-sm font-medium">Date</label>
+          <input
+            type="date"
+            className="border rounded px-2 py-1"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
         </div>
-        <button className={`px-3 py-2 rounded text-white ${saving ? "bg-blue-400" : "bg-blue-600 hover:bg-blue-700"}`} onClick={submit} disabled={saving || !selectedClass}>
-          {saving ? "Saving..." : "Save"}
+
+        <button
+          className={`px-4 py-2 rounded text-white ${
+            saving ? "bg-blue-400" : "bg-blue-600 hover:bg-blue-700"
+          }`}
+          onClick={submitAttendance}
+          disabled={saving || !selectedClass}
+        >
+          {saving ? "Saving..." : "Save Attendance"}
         </button>
       </div>
 
-      {message && <p className="text-sm mb-3">{message}</p>}
+      {message && <p className="text-sm text-green-600 mb-3">{message}</p>}
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border text-sm">
-          <thead>
-            <tr className="bg-gray-50 text-left">
+      <div className="overflow-x-auto bg-white rounded shadow">
+        <table className="min-w-full border text-left text-sm">
+          <thead className="bg-gray-100">
+            <tr>
               <th className="p-2 border">Student</th>
               <th className="p-2 border">Status</th>
             </tr>
@@ -81,7 +144,11 @@ export default function AdminAttendancePage() {
               <tr key={s.id}>
                 <td className="p-2 border">{s.user.name}</td>
                 <td className="p-2 border">
-                  <select className="border p-1 rounded text-black" value={records[s.id] || "PRESENT"} onChange={(e) => setStatus(s.id, e.target.value)}>
+                  <select
+                    className="border px-1 py-0.5 rounded"
+                    value={records[s.id] || "PRESENT"}
+                    onChange={(e) => setStatus(s.id, e.target.value)}
+                  >
                     <option value="PRESENT">PRESENT</option>
                     <option value="ABSENT">ABSENT</option>
                     <option value="LATE">LATE</option>
@@ -96,5 +163,3 @@ export default function AdminAttendancePage() {
     </div>
   );
 }
-
-
