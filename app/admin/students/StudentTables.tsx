@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 
 interface Student {
   id: string;
@@ -14,8 +15,8 @@ interface Student {
 export default function StudentsTable({ students }: { students: Student[] }) {
   const [query, setQuery] = useState("");
   const [selectedClass, setSelectedClass] = useState("all");
+  const router = useRouter();
 
-  // Extract all class names for the dropdown filter
   const classList = useMemo(() => {
     const unique = Array.from(
       new Set(students.map((s) => s.class?.name).filter(Boolean))
@@ -23,7 +24,6 @@ export default function StudentsTable({ students }: { students: Student[] }) {
     return ["all", ...unique];
   }, [students]);
 
-  // Search + filter logic
   const filtered = useMemo(() => {
     return students.filter((s) => {
       const matchesSearch = [s.user.name, s.user.email, s.admissionNo, s.rollNumber, s.class?.name]
@@ -38,7 +38,7 @@ export default function StudentsTable({ students }: { students: Student[] }) {
 
   return (
     <div>
-      {/* Search + Filter bar */}
+      {/* Search & Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
         <div className="flex items-center gap-3">
           <input
@@ -46,13 +46,12 @@ export default function StudentsTable({ students }: { students: Student[] }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search students..."
-            className="px-4 py-2 rounded-lg border text-black border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm w-64"
+            className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm w-64"
           />
-
           <select
             value={selectedClass}
             onChange={(e) => setSelectedClass(e.target.value)}
-            className="px-3 py-2 rounded-lg border text-black border-gray-300 focus:ring-2 focus:ring-blue-500 text-sm"
+            className="px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 text-sm"
           >
             {classList.map((cls) => (
               <option key={cls} value={cls}>
@@ -84,9 +83,10 @@ export default function StudentsTable({ students }: { students: Student[] }) {
             {filtered.map((s, i) => (
               <tr
                 key={s.id}
-                className={`border-t ${
+                className={`border-t cursor-pointer ${
                   i % 2 === 0 ? "bg-white" : "bg-gray-50"
                 } hover:bg-blue-50 transition`}
+                onClick={() => router.push(`/admin/students/${s.id}`)}
               >
                 <td className="p-3">
                   {s.profileImg ? (
