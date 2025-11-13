@@ -1,8 +1,9 @@
 import { getServerSession } from "next-auth";
-import { authConfig } from "@/app/api/auth/[...nextauth]/route";
+
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/prisma";
+import { authConfig } from "@/app/api/auth/[...nextauth]/route";
 
 export const dynamic = "force-dynamic";
 
