@@ -116,3 +116,56 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export async function GET() {
+  try {
+    const session = await getServerSession(authConfig);
+    if (!session?.user || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const students = await db.student.findMany({
+      orderBy: { admissionDate: "desc" }, // FIXED
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            adharNo: true,
+            role: true,
+            createdAt: true,
+          },
+        },
+        class: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    const data = students.map((s) => ({
+      id: s.id,
+      admissionNo: s.admissionNo,
+      rollNumber: s.rollNumber,
+      admissionDate: s.admissionDate,
+      dob: s.dob,
+      gender: s.gender,
+      address: s.address,
+      profileImg: s.profileImg,
+      class: s.class, // exists now
+      user: s.user,   // exists now
+      active: s.active,
+    }));
+
+    return NextResponse.json(data, { status: 200 });
+  } catch (err: any) {
+    console.error("GET students error:", err);
+    return NextResponse.json(
+      { error: err.message || "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}

@@ -1,10 +1,14 @@
+// REWRITTEN CLEAN VERSION — ADMIN FEES PAGE
+// This version removes all Prisma Decimal issues and keeps arrays intact.
+// Every Decimal is converted to number before passing into any Client Component.
+
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { authConfig } from "@/app/api/auth/[...nextauth]/route";
 import { db } from "@/lib/prisma";
 
-// Shadcn UI Components
+// UI Components
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import {
@@ -27,6 +31,26 @@ import {
 import { PaymentsTrendChart } from "@/app/components/charts/payments-trend-chart";
 import { FeeStatusChart } from "@/app/components/charts/fee-status-chart";
 
+// Convert all Prisma Decimals to JS numbers
+function normalizeStructure(s: any) {
+  return {
+    ...s,
+    tuitionFee: Number(s.tuitionFee),
+    examFee: Number(s.examFee),
+    transportFee: Number(s.transportFee),
+    miscFee: Number(s.miscFee),
+    total: Number(s.total),
+  };
+}
+
+function normalizePayment(p: any) {
+  return {
+    ...p,
+    amountPaid: Number(p.amountPaid),
+    feeStructure: normalizeStructure(p.feeStructure),
+  };
+}
+
 export default async function AdminFeesPage() {
   const session = await getServerSession(authConfig);
 
@@ -34,8 +58,8 @@ export default async function AdminFeesPage() {
     redirect("/login");
   }
 
-  // Fetch all data in parallel
-  const [structures, paymentsRaw, totalCollectedResult] = await Promise.all([
+  // Fetch all data
+  const [structuresRaw, paymentsRaw, totalCollectedResult] = await Promise.all([
     db.feeStructure.findMany({
       include: { class: true },
       orderBy: { createdAt: "desc" },
@@ -48,20 +72,18 @@ export default async function AdminFeesPage() {
     db.feePayment.aggregate({ _sum: { amountPaid: true } }),
   ]);
 
-  // Convert Decimal to number for charts and tables
-  const payments = paymentsRaw.map((p) => ({
-    ...p,
-    amountPaid: Number(p.amountPaid),
-  }));
+  // Normalize Decimals
+  const structures = structuresRaw.map(normalizeStructure);
+  const payments = paymentsRaw.map(normalizePayment);
 
   // Metrics
   const totalPaid = Number(totalCollectedResult._sum.amountPaid ?? 0);
-  const totalExpected = structures.reduce((sum, s) => sum + Number(s.total), 0);
+  const totalExpected = structures.reduce((sum, s) => sum + s.total, 0);
   const outstandingFees = totalExpected - totalPaid;
 
   return (
     <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
-      {/* Page Header */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Fee Management</h1>
@@ -79,22 +101,21 @@ export default async function AdminFeesPage() {
         </div>
       </div>
 
-      {/* Key Metric Cards */}
+      {/* Metrics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Collected</CardTitle>
-            <svg /* Dollar Icon */></svg>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{totalPaid.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">+20.1% from last month</p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Outstanding Fees</CardTitle>
-            <svg /* Credit Card Icon */></svg>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{outstandingFees.toLocaleString()}</div>
@@ -159,16 +180,23 @@ export default async function AdminFeesPage() {
                       {p.student.user.email}
                     </div>
                   </TableCell>
-                  <TableCell className="hidden sm:table-cell">{p.feeStructure.name}</TableCell>
+
+                  <TableCell className="hidden sm:table-cell">
+                    {p.feeStructure.name}
+                  </TableCell>
+
                   <TableCell className="hidden md:table-cell">
                     {new Date(p.createdAt).toLocaleDateString()}
                   </TableCell>
-                  <TableCell className="text-right">₹{p.amountPaid.toLocaleString()}</TableCell>
-                  <TableCell className="text-center">
-                  <Badge variant={p.status === "PAID" ? "secondary" : "destructive"}>
-  {p.status}
-</Badge>
 
+                  <TableCell className="text-right">
+                    ₹{p.amountPaid.toLocaleString()}
+                  </TableCell>
+
+                  <TableCell className="text-center">
+                    <Badge variant={p.status === "PAID" ? "secondary" : "destructive"}>
+                      {p.status}
+                    </Badge>
                   </TableCell>
                 </TableRow>
               ))}
