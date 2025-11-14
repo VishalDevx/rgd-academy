@@ -1,47 +1,78 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import {  authConfig } from "@/app/api/auth/[...nextauth]/route";
+import { authConfig } from "@/app/api/auth/[...nextauth]/route";
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
 
+import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { Button } from "@/app/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/app/components/ui/table";
+
 export default async function AdminExamsPage() {
- const session = await getServerSession(authConfig)
+  const session = await getServerSession(authConfig);
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
-  const exams = await db.exam.findMany({ include: { class: true }, orderBy: { startDate: "desc" } } as any);
+  const exams = await db.exam.findMany({
+    include: { class: true },
+    orderBy: { startDate: "desc" },
+  });
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold">Exams</h1>
-        <Link href="/admin/exams/new" className="px-3 py-2 rounded bg-blue-600 text-white text-sm">New Exam</Link>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold tracking-tight">Exams</h1>
+     
+<Button asChild variant="default" size="sm">
+  <Link href="/admin/exams/new">
+    New Exam
+  </Link>
+</Button>
       </div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border text-sm">
-          <thead>
-            <tr className="bg-gray-50 text-left">
-              <th className="p-2 border">Name</th>
-              <th className="p-2 border">Class</th>
-              <th className="p-2 border">Start</th>
-              <th className="p-2 border">End</th>
-            </tr>
-          </thead>
-          <tbody>
-            {exams.map((e: any) => (
-              <tr key={e.id}>
-                <td className="p-2 border">{e.name}</td>
-                <td className="p-2 border">{e.class?.name}</td>
-                <td className="p-2 border">{new Date(e.startDate).toLocaleDateString()}</td>
-                <td className="p-2 border">{new Date(e.endDate).toLocaleDateString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+
+      {/* Exams Table Card */}
+      <Card className="shadow-lg border border-gray-200">
+        <CardHeader className="bg-gray-50">
+          <CardTitle>Upcoming & Past Exams</CardTitle>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <Table className="min-w-full divide-y divide-gray-200">
+            <TableHeader>
+              <TableRow className="bg-gray-100">
+                <TableHead className="text-left">Name</TableHead>
+                <TableHead className="text-left">Class</TableHead>
+                <TableHead className="text-left">Start Date</TableHead>
+                <TableHead className="text-left">End Date</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {exams.map((exam: any) => (
+                <TableRow
+                  key={exam.id}
+                  className="hover:bg-gray-50 transition-colors duration-150 cursor-pointer"
+                >
+                  <TableCell>{exam.name}</TableCell>
+                  <TableCell>{exam.class?.name || "-"}</TableCell>
+                  <TableCell>{new Date(exam.startDate).toLocaleDateString()}</TableCell>
+                  <TableCell>{new Date(exam.endDate).toLocaleDateString()}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {exams.length === 0 && (
+            <p className="text-center py-4 text-gray-500">No exams scheduled yet.</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
-
-

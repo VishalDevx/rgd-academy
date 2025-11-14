@@ -2,12 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { toast } from "sonner";
+
+interface FeePaymentForm {
+  studentId: string;
+  feeStructureId: string;
+  amountPaid: string;
+  status: "PAID" | "PARTIAL" | "PENDING";
+}
 
 interface Student {
   id: string;
@@ -17,26 +25,12 @@ interface Student {
 interface FeeStructure {
   id: string;
   name: string;
-  tuitionFee: number;
-  examFee: number;
-  transportFee: number;
-  miscFee: number;
-  total: number;
-  paid?: number; // already paid
-}
-
-interface FeePaymentForm {
-  studentId: string;
-  feeStructureId: string;
-  amountPaid: string;
-  status: "PAID" | "PARTIAL" | "PENDING";
 }
 
 export default function NewFeePaymentPage() {
   const router = useRouter();
   const [students, setStudents] = useState<Student[]>([]);
   const [structures, setStructures] = useState<FeeStructure[]>([]);
-  const [selectedFee, setSelectedFee] = useState<FeeStructure | null>(null);
   const [form, setForm] = useState<FeePaymentForm>({
     studentId: "",
     feeStructureId: "",
@@ -46,7 +40,6 @@ export default function NewFeePaymentPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // Fetch students and fee structures
   useEffect(() => {
     fetch("/api/students")
       .then((res) => res.json())
@@ -59,26 +52,7 @@ export default function NewFeePaymentPage() {
       .catch(() => toast.error("Failed to load fee structures"));
   }, []);
 
-  // Update selected fee structure
-  useEffect(() => {
-    const structure = structures.find((s) => s.id === form.feeStructureId) || null;
-    setSelectedFee(structure);
-
-    if (structure) {
-      if (form.status === "PAID") {
-        setForm((prev) => ({ ...prev, amountPaid: (structure.total - (structure.paid ?? 0)).toString() }));
-      } else if (form.status === "PENDING") {
-        setForm((prev) => ({ ...prev, amountPaid: "0" }));
-      }
-    }
-  }, [form.feeStructureId, form.status, structures]);
-
   const onChange = (key: keyof FeePaymentForm, value: string) => {
-    // For PARTIAL, allow dynamic update
-    if (key === "amountPaid" && form.status === "PARTIAL" && selectedFee) {
-      const max = selectedFee.total - (selectedFee.paid ?? 0);
-      if (Number(value) > max) value = max.toString();
-    }
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -95,6 +69,7 @@ export default function NewFeePaymentPage() {
       });
 
       if (!res.ok) throw new Error(await res.text());
+
       toast.success("Payment recorded successfully!");
       router.push("/admin/fees");
     } catch (err: any) {
@@ -105,8 +80,6 @@ export default function NewFeePaymentPage() {
       setSubmitting(false);
     }
   };
-
-  const remainingAmount = selectedFee ? selectedFee.total - (selectedFee.paid ?? 0) : 0;
 
   return (
     <div className="max-w-4xl mx-auto py-8">
@@ -138,7 +111,7 @@ export default function NewFeePaymentPage() {
                 </Select>
               </div>
 
-              {/* Fee Structure */}
+              {/* Fee Structure Select */}
               <div>
                 <Label htmlFor="feeStructureId">Fee Structure</Label>
                 <Select
@@ -152,14 +125,14 @@ export default function NewFeePaymentPage() {
                   <SelectContent>
                     {structures.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
-                        {s.name} - ₹{s.total}
+                        {s.name ?? s.id}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Amount */}
+              {/* Amount Paid */}
               <div>
                 <Label htmlFor="amountPaid">Amount Paid</Label>
                 <Input
@@ -167,14 +140,8 @@ export default function NewFeePaymentPage() {
                   type="number"
                   value={form.amountPaid}
                   onChange={(e) => onChange("amountPaid", e.target.value)}
-                  placeholder={remainingAmount.toString()}
                   required
                 />
-                {selectedFee && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Remaining: ₹{remainingAmount}
-                  </p>
-                )}
               </div>
 
               {/* Status */}

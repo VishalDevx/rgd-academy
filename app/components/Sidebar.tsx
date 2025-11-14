@@ -19,6 +19,9 @@ import {
   BarChart3,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "./ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+
 
 interface SidebarProps {
   role: AppRole;
@@ -26,7 +29,7 @@ interface SidebarProps {
   onToggleCollapsed?: () => void;
 }
 
-// Map icon strings → actual Lucide icons
+// Icon mapping
 const icons = {
   dashboard: LayoutDashboard,
   students: Users,
@@ -37,8 +40,8 @@ const icons = {
   announce: Megaphone,
   expense: FileText,
   exams: ClipboardList,
-    exam: ClipboardList,
-     results: BarChart3,
+  exam: ClipboardList,
+  results: BarChart3,
 };
 
 export function Sidebar({ role, collapsed = false, onToggleCollapsed }: SidebarProps) {
@@ -47,36 +50,50 @@ export function Sidebar({ role, collapsed = false, onToggleCollapsed }: SidebarP
 
   return (
     <aside
-      className={`h-screen border-r bg-white shadow-sm flex flex-col transition-all duration-300 ${
+      className={`h-screen flex flex-col transition-all duration-300 ${
         collapsed ? "w-20" : "w-64"
-      }`}
+      } bg-gradient-to-b from-blue-50 to-blue-100 shadow-lg border-r border-blue-200`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-2">
-          <div className="bg-blue-600 text-white p-2 rounded-lg">
-            <School size={20} />
+      <div className="flex items-center justify-between p-4 border-b border-blue-200">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-10 h-10 bg-blue-600 rounded-lg shadow-lg">
+            <School size={22} className="text-white" />
           </div>
           {!collapsed && (
-            <span className="text-lg font-semibold text-gray-800 tracking-tight">
-              RGD School
-            </span>
+            <span className="text-xl font-bold text-blue-900 tracking-tight">RGD School</span>
           )}
         </div>
-        <button
+
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onToggleCollapsed}
-          className="text-gray-500 hover:text-gray-800 transition"
+          className="text-blue-600 hover:text-blue-800"
         >
-          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-        </button>
+          {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+        </Button>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-3">
-        <ul className="space-y-2">
+        <ul className="space-y-3">
           {items.map((item) => {
             const active = pathname.startsWith(item.href);
-            const Icon = icons[item.icon as keyof typeof icons]; // pick mapped icon
+            const Icon = icons[item.icon as keyof typeof icons];
+
+            const linkContent = (
+              <div
+                className={`flex items-center gap-3 px-4 py-2 rounded-xl font-medium text-sm transition-all duration-200 ${
+                  active
+                    ? "bg-blue-600 text-white shadow-lg"
+                    : "text-blue-700 hover:bg-blue-200 hover:text-blue-900"
+                }`}
+              >
+                {Icon && <Icon size={20} />}
+                {!collapsed && <span>{item.label}</span>}
+              </div>
+            );
 
             return (
               <motion.li
@@ -84,36 +101,19 @@ export function Sidebar({ role, collapsed = false, onToggleCollapsed }: SidebarP
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <Link
-                  href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-xl font-medium text-sm transition-all ${
-                    active
-                      ? "bg-blue-600 text-white shadow-sm"
-                      : "text-gray-700 hover:bg-blue-50 hover:text-blue-700"
-                  }`}
-                >
-                  {/* Icon */}
-                  {Icon && (
-                    <Icon
-                      size={18}
-                      className={`${active ? "text-white" : "text-blue-500"}`}
-                    />
-                  )}
+                {collapsed ? (
+                  <Tooltip>
+  <TooltipTrigger asChild>
+    <Link href={item.href}>{linkContent}</Link>
+  </TooltipTrigger>
+  <TooltipContent side="right">
+    {item.label}
+  </TooltipContent>
+</Tooltip>
 
-                  {/* Label */}
-                  <AnimatePresence>
-                    {!collapsed && (
-                      <motion.span
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -10 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        {item.label}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </Link>
+                ) : (
+                  <Link href={item.href}>{linkContent}</Link>
+                )}
               </motion.li>
             );
           })}
@@ -121,7 +121,11 @@ export function Sidebar({ role, collapsed = false, onToggleCollapsed }: SidebarP
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t text-xs text-gray-400 text-center">
+      <div
+        className={`p-4 text-xs text-blue-700 font-semibold border-t border-blue-200 ${
+          collapsed ? "text-center" : "text-left"
+        }`}
+      >
         {!collapsed ? "© 2025 RGD School" : "©"}
       </div>
     </aside>

@@ -2,70 +2,131 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
+import { Button } from "@/app/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
+import { toast } from "sonner";
 
 export default function NewExamPage() {
   const router = useRouter();
-  const [classes, setClasses] = useState<any[]>([]);
+  const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
   const [form, setForm] = useState({ name: "", classId: "", startDate: "", endDate: "" });
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("/api/classes").then(async (r) => setClasses(await r.json()));
+    fetch("/api/classes")
+      .then((res) => res.json())
+      .then((data) => setClasses(data))
+      .catch(() => toast.error("Failed to load classes"));
   }, []);
 
-  const onChange = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const onChange = (key: keyof typeof form, value: string) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    setError("");
+
     try {
-      const res = await fetch("/api/exams", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      const res = await fetch("/api/exams", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
       if (!res.ok) throw new Error(await res.text());
+
+      toast.success("Exam created successfully!");
       router.push("/admin/exams");
     } catch (err: any) {
-      setError(err.message ?? "Failed");
+      toast.error(err.message || "Failed to create exam");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div>
-      <h1 className="text-xl font-bold mb-4">New Exam</h1>
-      <form className="space-y-3 max-w-xl" onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm mb-1">Name</label>
-            <input className="w-full border rounded p-2 text-black" value={form.name} onChange={(e) => onChange("name", e.target.value)} required />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Class</label>
-            <select className="w-full border rounded p-2 text-black" value={form.classId} onChange={(e) => onChange("classId", e.target.value)} required>
-              <option value="" disabled>Select class</option>
-              {classes.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Start Date</label>
-            <input type="date" className="w-full border rounded p-2 text-black" value={form.startDate} onChange={(e) => onChange("startDate", e.target.value)} required />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">End Date</label>
-            <input type="date" className="w-full border rounded p-2 text-black" value={form.endDate} onChange={(e) => onChange("endDate", e.target.value)} required />
-          </div>
-        </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <div className="flex gap-2">
-          <button type="button" className="px-3 py-2 rounded border" onClick={() => router.back()}>Cancel</button>
-          <button type="submit" disabled={submitting} className={`px-3 py-2 rounded text-white ${submitting ? "bg-blue-400" : "bg-blue-600 hover:bg-blue-700"}`}>{submitting ? "Creating..." : "Create"}</button>
-        </div>
-      </form>
+    <div className="max-w-3xl mx-auto py-8">
+      <Card>
+        <CardHeader>
+          <CardTitle>New Exam</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Exam Name */}
+              <div>
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  placeholder="Enter exam name"
+                  value={form.name}
+                  onChange={(e) => onChange("name", e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Class Select */}
+              <div>
+                <Label htmlFor="classId">Class</Label>
+                <Select
+                  value={form.classId}
+                  onValueChange={(val) => onChange("classId", val)}
+                  required
+                >
+                  <SelectTrigger id="classId">
+                    <SelectValue placeholder="Select class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Start Date */}
+              <div>
+                <Label htmlFor="startDate">Start Date</Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={form.startDate}
+                  onChange={(e) => onChange("startDate", e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* End Date */}
+              <div>
+                <Label htmlFor="endDate">End Date</Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={form.endDate}
+                  onChange={(e) => onChange("endDate", e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" type="button" onClick={() => router.back()}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? "Creating..." : "Create Exam"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
-
-
