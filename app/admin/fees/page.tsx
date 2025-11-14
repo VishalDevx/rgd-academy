@@ -1,7 +1,3 @@
-// REWRITTEN CLEAN VERSION — ADMIN FEES PAGE
-// This version removes all Prisma Decimal issues and keeps arrays intact.
-// Every Decimal is converted to number before passing into any Client Component.
-
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -30,9 +26,8 @@ import {
 // Charts
 import { PaymentsTrendChart } from "@/app/components/charts/payments-trend-chart";
 import { FeeStatusChart } from "@/app/components/charts/fee-status-chart";
-import { Divide } from "lucide-react";
 
-// Convert all Prisma Decimals to JS numbers
+// Convert Prisma Decimal to number
 function normalizeStructure(s: any) {
   return {
     ...s,
@@ -54,12 +49,9 @@ function normalizePayment(p: any) {
 
 export default async function AdminFeesPage() {
   const session = await getServerSession(authConfig);
+  if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
-  if (!session?.user || session.user.role !== "ADMIN") {
-    redirect("/login");
-  }
-
-  // Fetch all data
+  // Fetch data
   const [structuresRaw, paymentsRaw, totalCollectedResult] = await Promise.all([
     db.feeStructure.findMany({
       include: { class: true },
@@ -73,7 +65,7 @@ export default async function AdminFeesPage() {
     db.feePayment.aggregate({ _sum: { amountPaid: true } }),
   ]);
 
-  // Normalize Decimals
+  // Normalize
   const structures = structuresRaw.map(normalizeStructure);
   const payments = paymentsRaw.map(normalizePayment);
 
@@ -81,6 +73,8 @@ export default async function AdminFeesPage() {
   const totalPaid = Number(totalCollectedResult._sum.amountPaid ?? 0);
   const totalExpected = structures.reduce((sum, s) => sum + s.total, 0);
   const outstandingFees = totalExpected - totalPaid;
+  const totalStudents = new Set(payments.map(p => p.student.id)).size;
+  const totalStructures = structures.length;
 
   return (
     <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
@@ -102,10 +96,10 @@ export default async function AdminFeesPage() {
         </div>
       </div>
 
-      {/* Metrics */}
+      {/* Top Metrics Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader>
             <CardTitle className="text-sm font-medium">Total Collected</CardTitle>
           </CardHeader>
           <CardContent>
@@ -115,7 +109,7 @@ export default async function AdminFeesPage() {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader>
             <CardTitle className="text-sm font-medium">Outstanding Fees</CardTitle>
           </CardHeader>
           <CardContent>
@@ -123,9 +117,29 @@ export default async function AdminFeesPage() {
             <p className="text-xs text-muted-foreground">Across all structures</p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalStudents}</div>
+            <p className="text-xs text-muted-foreground">With payment records</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Fee Structures</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalStructures}</div>
+            <p className="text-xs text-muted-foreground">Active structures</p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Charts */}
+      {/* Charts Section */}
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -137,21 +151,21 @@ export default async function AdminFeesPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="h-full">
           <CardHeader>
             <CardTitle>Recent Payment Trends</CardTitle>
             <CardDescription>Last 5 payments.</CardDescription>
           </CardHeader>
           <CardContent>
-<PaymentsTrendChart
-  payments={payments.map(p => ({
-    id: p.id,
-    amountPaid: p.amountPaid,
-    createdAt: new Date(p.createdAt),
-  }))}
-/>
-
-
+            <PaymentsTrendChart
+              payments={payments.map(p => ({
+                id: p.id,
+                amountPaid: p.amountPaid,
+                createdAt: new Date(p.createdAt),
+                status: p.status,
+                studentName: p.student.user.name,
+              }))}
+            />
           </CardContent>
         </Card>
       </div>
@@ -181,7 +195,7 @@ export default async function AdminFeesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {payments.map((p) => (
+              {payments.map(p => (
                 <TableRow key={p.id}>
                   <TableCell>
                     <div className="font-medium">{p.student.user.name}</div>
@@ -189,19 +203,11 @@ export default async function AdminFeesPage() {
                       {p.student.user.email}
                     </div>
                   </TableCell>
-
-                  <TableCell className="hidden sm:table-cell">
-                    {p.feeStructure.name}
-                  </TableCell>
-
+                  <TableCell className="hidden sm:table-cell">{p.feeStructure.name}</TableCell>
                   <TableCell className="hidden md:table-cell">
                     {new Date(p.createdAt).toLocaleDateString()}
                   </TableCell>
-
-                  <TableCell className="text-right">
-                    ₹{p.amountPaid.toLocaleString()}
-                  </TableCell>
-
+                  <TableCell className="text-right">₹{p.amountPaid.toLocaleString()}</TableCell>
                   <TableCell className="text-center">
                     <Badge variant={p.status === "PAID" ? "secondary" : "destructive"}>
                       {p.status}
