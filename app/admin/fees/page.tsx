@@ -30,6 +30,7 @@ import {
 // Charts
 import { PaymentsTrendChart } from "@/app/components/charts/payments-trend-chart";
 import { FeeStatusChart } from "@/app/components/charts/fee-status-chart";
+import { Divide } from "lucide-react";
 
 // Convert all Prisma Decimals to JS numbers
 function normalizeStructure(s: any) {
@@ -142,7 +143,15 @@ export default async function AdminFeesPage() {
             <CardDescription>Last 5 payments.</CardDescription>
           </CardHeader>
           <CardContent>
-            <PaymentsTrendChart payments={payments} />
+<PaymentsTrendChart
+  payments={payments.map(p => ({
+    id: p.id,
+    amountPaid: p.amountPaid,
+    createdAt: new Date(p.createdAt),
+  }))}
+/>
+
+
           </CardContent>
         </Card>
       </div>
