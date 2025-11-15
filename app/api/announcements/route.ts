@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { authConfig } from "../auth/[...nextauth]/route";
-import getServerSession from "next-auth/next"
+import {getServerSession} from "next-auth/next"
 
 export async function GET() {
   const items = await db.announcement.findMany({ include: { visibleRoles: true, creator: true }, orderBy: { createdAt: "desc" } } as any);
