@@ -27,7 +27,7 @@ import {
 import { PaymentsTrendChart } from "@/app/components/charts/payments-trend-chart";
 import { FeeStatusChart } from "@/app/components/charts/fee-status-chart";
 
-// Convert Prisma Decimal to number
+// Helpers
 function normalizeStructure(s: any) {
   return {
     ...s,
@@ -51,8 +51,8 @@ export default async function AdminFeesPage() {
   const session = await getServerSession(authConfig);
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
-  // Fetch data
-  const [structuresRaw, paymentsRaw, totalCollectedResult] = await Promise.all([
+  // Fetch DB data
+  const [structuresRaw, paymentsRaw] = await Promise.all([
     db.feeStructure.findMany({
       include: { class: true },
       orderBy: { createdAt: "desc" },
@@ -62,18 +62,28 @@ export default async function AdminFeesPage() {
       orderBy: { createdAt: "desc" },
       take: 5,
     }),
-    db.feePayment.aggregate({ _sum: { amountPaid: true } }),
   ]);
 
-  // Normalize
   const structures = structuresRaw.map(normalizeStructure);
   const payments = paymentsRaw.map(normalizePayment);
 
-  // Metrics
-  const totalPaid = Number(totalCollectedResult._sum.amountPaid ?? 0);
+  // Total expected fee from all structures
   const totalExpected = structures.reduce((sum, s) => sum + s.total, 0);
-  const outstandingFees = totalExpected - totalPaid;
-  const totalStudents = new Set(payments.map(p => p.student.id)).size;
+
+  // Calculate totals by status
+  const totalPaidFull = payments
+    .filter((p) => p.status === "PAID")
+    .reduce((sum, p) => sum + p.amountPaid, 0);
+
+  const totalPartial = payments
+    .filter((p) => p.status === "PARTIAL")
+    .reduce((sum, p) => sum + p.amountPaid, 0);
+
+  const totalPaid = totalPaidFull + totalPartial;
+
+  const totalOutstanding = Math.max(totalExpected - totalPaid, 0);
+
+  const totalStudents = new Set(payments.map((p) => p.student.id)).size;
   const totalStructures = structures.length;
 
   return (
@@ -86,17 +96,19 @@ export default async function AdminFeesPage() {
             Oversee fee structures, track payments, and view analytics.
           </p>
         </div>
+
         <div className="flex items-center space-x-2">
           <Button asChild>
             <Link href="/admin/fees/structures/new">New Structure</Link>
           </Button>
+
           <Button asChild variant="outline">
             <Link href="/admin/fees/payments/new">Record Payment</Link>
           </Button>
         </div>
       </div>
 
-      {/* Top Metrics Cards */}
+      {/* Metric Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader>
@@ -104,7 +116,7 @@ export default async function AdminFeesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{totalPaid.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+            <p className="text-xs text-muted-foreground">Full + Partial</p>
           </CardContent>
         </Card>
 
@@ -113,8 +125,8 @@ export default async function AdminFeesPage() {
             <CardTitle className="text-sm font-medium">Outstanding Fees</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{outstandingFees.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">Across all structures</p>
+            <div className="text-2xl font-bold">₹{totalOutstanding.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">Remaining expected amount</p>
           </CardContent>
         </Card>
 
@@ -124,7 +136,7 @@ export default async function AdminFeesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalStudents}</div>
-            <p className="text-xs text-muted-foreground">With payment records</p>
+            <p className="text-xs text-muted-foreground">With payments</p>
           </CardContent>
         </Card>
 
@@ -139,26 +151,32 @@ export default async function AdminFeesPage() {
         </Card>
       </div>
 
-      {/* Charts Section */}
-      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+      {/* Charts */}
+      <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Fee Status Overview</CardTitle>
-            <CardDescription>Collected vs. Outstanding fees.</CardDescription>
+            <CardDescription>Paid vs Partial vs Outstanding</CardDescription>
           </CardHeader>
+
           <CardContent>
-            <FeeStatusChart paid={totalPaid} outstanding={outstandingFees} />
+            <FeeStatusChart
+              paid={totalPaidFull}
+              partial={totalPartial}
+              outstanding={totalOutstanding}
+            />
           </CardContent>
         </Card>
 
         <Card className="h-full">
           <CardHeader>
             <CardTitle>Recent Payment Trends</CardTitle>
-            <CardDescription>Last 5 payments.</CardDescription>
+            <CardDescription>Last 5 transactions</CardDescription>
           </CardHeader>
+
           <CardContent>
             <PaymentsTrendChart
-              payments={payments.map(p => ({
+              payments={payments.map((p) => ({
                 id: p.id,
                 amountPaid: p.amountPaid,
                 createdAt: new Date(p.createdAt),
@@ -175,6 +193,7 @@ export default async function AdminFeesPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Recent Payments</CardTitle>
+
             <Link
               href="/admin/fees/payments"
               className="text-sm font-medium text-blue-600 hover:underline"
@@ -183,19 +202,21 @@ export default async function AdminFeesPage() {
             </Link>
           </div>
         </CardHeader>
+
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Student</TableHead>
-                <TableHead className="hidden sm:table-cell">Fee Structure</TableHead>
+                <TableHead className="hidden sm:table-cell">Structure</TableHead>
                 <TableHead className="hidden md:table-cell">Date</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
                 <TableHead className="text-center">Status</TableHead>
               </TableRow>
             </TableHeader>
+
             <TableBody>
-              {payments.map(p => (
+              {payments.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>
                     <div className="font-medium">{p.student.user.name}</div>
@@ -203,13 +224,29 @@ export default async function AdminFeesPage() {
                       {p.student.user.email}
                     </div>
                   </TableCell>
-                  <TableCell className="hidden sm:table-cell">{p.feeStructure.name}</TableCell>
+
+                  <TableCell className="hidden sm:table-cell">
+                    {p.feeStructure.name}
+                  </TableCell>
+
                   <TableCell className="hidden md:table-cell">
                     {new Date(p.createdAt).toLocaleDateString()}
                   </TableCell>
-                  <TableCell className="text-right">₹{p.amountPaid.toLocaleString()}</TableCell>
+
+                  <TableCell className="text-right">
+                    ₹{p.amountPaid.toLocaleString()}
+                  </TableCell>
+
                   <TableCell className="text-center">
-                    <Badge variant={p.status === "PAID" ? "secondary" : "destructive"}>
+                    <Badge
+                      variant={
+                        p.status === "PAID"
+                          ? "secondary"
+                          : p.status === "PARTIAL"
+                          ? "outline"
+                          : "destructive"
+                      }
+                    >
                       {p.status}
                     </Badge>
                   </TableCell>

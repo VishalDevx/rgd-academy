@@ -1,47 +1,62 @@
 import { getServerSession } from "next-auth";
-
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/prisma";
 import { authConfig } from "@/app/api/auth/[...nextauth]/route";
 
+import { Card, CardHeader, CardTitle, CardContent } from "@/app/components/ui/card";
+import { Button } from "@/app/components/ui/button";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/app/components/ui/table";
+
 export const dynamic = "force-dynamic";
 
 export default async function AdminClassesPage() {
-  // ✅ Use the real NextAuth getServerSession
   const session = await getServerSession(authConfig);
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
   const classes = await db.class.findMany({ orderBy: { createdAt: "desc" } });
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold">Classes</h1>
-        <Link href="/admin/classes/new" className="px-3 py-2 rounded bg-blue-600 text-white text-sm">
-          New Class
-        </Link>
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Classes</h1>
+        <Button asChild>
+          <Link href="/admin/classes/new">New Class</Link>
+        </Button>
       </div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border">
-          <thead>
-            <tr className="bg-gray-50 text-left text-sm">
-              <th className="p-2 border">Name</th>
-              <th className="p-2 border">Grade</th>
-              <th className="p-2 border">Section</th>
-            </tr>
-          </thead>
-          <tbody>
-            {classes.map((c) => (
-              <tr key={c.id} className="text-sm">
-                <td className="p-2 border">{c.name}</td>
-                <td className="p-2 border">{c.grade}</td>
-                <td className="p-2 border">{c.section ?? "-"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">All Classes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Grade</TableHead>
+                <TableHead>Section</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {classes.map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell>{c.name}</TableCell>
+                  <TableCell>{c.grade}</TableCell>
+                  <TableCell>{c.section ?? "-"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }

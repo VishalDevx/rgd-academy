@@ -2,6 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/app/components/ui/card";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 
 const GRADES = [
   "NURSERY",
@@ -37,78 +42,66 @@ export default function NewClassPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, grade, section }),
       });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || "Failed to create");
-      }
+      if (!res.ok) throw new Error(await res.text());
       router.push("/admin/classes");
     } catch (err: any) {
-      setError(err.message ?? "Failed");
+      setError(err.message || "Failed");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div>
-      <h1 className="text-xl font-bold mb-4">New Class</h1>
-      <form className="space-y-3 max-w-md" onSubmit={handleSubmit}>
-        <div>
-          <label className="block text-sm mb-1">Name</label>
-          <input
-            className="w-full border rounded p-2 text-black"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm mb-1">Grade</label>
-          <select
-            className="w-full border rounded p-2 text-black"
-            value={grade}
-            onChange={(e) => setGrade(e.target.value)}
-          >
-            {GRADES.map((g) => (
-              <option key={g} value={g}>
-                {g}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm mb-1">Section</label>
-          <input
-            className="w-full border rounded p-2 text-black"
-            value={section}
-            onChange={(e) => setSection(e.target.value)}
-            placeholder="A, B, ..."
-          />
-        </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <div className="flex gap-2">
-          <button
-            type="button"
-            className="px-3 py-2 rounded border"
-            onClick={() => router.back()}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={submitting}
-            className={`px-3 py-2 rounded text-white ${
-              submitting ? "bg-blue-400" : "bg-blue-600 hover:bg-blue-700"
-            }`}
-          >
-            {submitting ? "Creating..." : "Create"}
-          </button>
-        </div>
-      </form>
+    <div className="p-6">
+      <Card className="max-w-lg mx-auto shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-xl font-bold">New Class</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <div>
+              <Label>Name</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} required />
+            </div>
+
+            <div>
+              <Label>Grade</Label>
+              <Select value={grade} onValueChange={(v) => setGrade(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select grade" />
+                </SelectTrigger>
+                <SelectContent>
+                  {GRADES.map((g) => (
+                    <SelectItem key={g} value={g}>
+                      {g}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Section</Label>
+              <Input
+                value={section}
+                onChange={(e) => setSection(e.target.value)}
+                placeholder="A, B, ..."
+              />
+            </div>
+
+            {error && <p className="text-sm text-red-600">{error}</p>}
+
+            <div className="flex gap-3 justify-end">
+              <Button type="button" variant="outline" onClick={() => router.back()}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? "Creating..." : "Create"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
-
-
-
-
