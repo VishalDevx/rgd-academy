@@ -17,6 +17,10 @@ import {
   FileText,
   ClipboardList,
   BarChart3,
+
+  Settings,
+  LogsIcon,
+  UserRoundPen
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/app/components/ui/button";
@@ -46,6 +50,9 @@ const icons = {
   exams: ClipboardList,
   exam: ClipboardList,
   results: BarChart3,
+  settings:Settings,
+  logs:LogsIcon,
+  user:UserRoundPen
 };
 
 export function Sidebar({ role, collapsed = false, onToggleCollapsed }: SidebarProps) {
@@ -120,14 +127,29 @@ export function Sidebar({ role, collapsed = false, onToggleCollapsed }: SidebarP
       </nav>
 
       {/* Footer */}
-      <div
-        className={cn(
-          "p-4 text-xs font-medium border-t text-muted-foreground",
-          collapsed ? "text-center" : "text-left"
-        )}
+     <div
+  className={cn(
+    "p-4 text-xs font-medium border-t text-muted-foreground",
+    collapsed ? "text-center" : "text-left"
+  )}
+>
+  {!collapsed ? (
+    <span>
+      © 2025 RGD School —{" "}
+      <a
+        href="https://github.com/VishalDevx"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline hover:text-primary transition"
       >
-        {!collapsed ? "© 2025 RGD School" : "©"}
-      </div>
+        Built by Vishal
+      </a>
+    </span>
+  ) : (
+    "©"
+  )}
+</div>
+
     </aside>
   );
 }
