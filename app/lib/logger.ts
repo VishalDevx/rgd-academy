@@ -1,17 +1,54 @@
-import log4js from "log4js"
+// app/lib/logger.ts
 
-log4js.configure({
-    appenders:{
-        console:{type : "stdout"},
-        file:{
-            type : "file",
-            filename : "logs/app.log",
-            maxLogSize:10*1024*1024,
-            backups : 3
-        }
+type LogLevel = "debug" | "info" | "warn" | "error";
+
+const CURRENT_LEVEL: Record<LogLevel, number> = {
+  debug: 0,
+  info: 1,
+  warn: 2,
+  error: 3
+};
+
+const ACTIVE_LEVEL: LogLevel =
+  (process.env.LOG_LEVEL as LogLevel) || "info";
+
+function safeSerialize(value: any) {
+  try {
+    return JSON.parse(
+      JSON.stringify(value, Object.getOwnPropertyNames(value))
+    );
+  } catch {
+    return String(value);
+  }
+}
+
+function format(level: LogLevel, context: string, args: any[]) {
+  return JSON.stringify({
+    level,
+    context,
+    timestamp: new Date().toISOString(),
+    message: args.map(String).join(" "),
+    meta: args.map(safeSerialize),
+  });
+}
+
+export function logger(context: string) {
+  function shouldLog(level: LogLevel) {
+    return CURRENT_LEVEL[level] >= CURRENT_LEVEL[ACTIVE_LEVEL];
+  }
+
+  return {
+    debug: (...msg: any[]) => {
+      if (shouldLog("debug")) console.debug(format("debug", context, msg));
     },
-    categories :{
-        default :{appenders : ["console","file"],level:'debug'}
-    }
-})
-export const logger = (name:string)=>log4js.getLogger(name)
+    info: (...msg: any[]) => {
+      if (shouldLog("info")) console.log(format("info", context, msg));
+    },
+    warn: (...msg: any[]) => {
+      if (shouldLog("warn")) console.warn(format("warn", context, msg));
+    },
+    error: (...msg: any[]) => {
+      if (shouldLog("error")) console.error(format("error", context, msg));
+    },
+  };
+}

@@ -2,23 +2,34 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { authConfig } from "../auth/[...nextauth]/route";
 import getServerSession from "next-auth/next";
-import { cookies } from "next/headers";
+import { logger } from "@/app/lib/logger";
+
+const log = logger("attendance-route");
 
 // ------------------ GET ATTENDANCE ------------------
 export async function GET(req: Request) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const classId = searchParams.get("classId");
-    const dateStr = searchParams.get("date");
+  const url = new URL(req.url);
+  const classId = url.searchParams.get("classId");
+  const dateStr = url.searchParams.get("date");
 
+  log.info("GET /attendance called", { classId, dateStr });
+
+  try {
     if (!classId || !dateStr) {
-      return NextResponse.json({ error: "Missing classId or date" }, { status: 400 });
+      log.warn("Missing required query params", { classId, dateStr });
+      return NextResponse.json(
+        { error: "Missing classId or date" },
+        { status: 400 }
+      );
     }
 
     const startDate = new Date(dateStr);
     startDate.setHours(0, 0, 0, 0);
+
     const endDate = new Date(startDate);
     endDate.setDate(startDate.getDate() + 1);
+
+    log.debug("Date window", { startDate, endDate });
 
     const items = await db.attendance.findMany({
       where: {
@@ -33,36 +44,59 @@ export async function GET(req: Request) {
       orderBy: { date: "asc" },
     });
 
+    log.info("Attendance fetched", {
+      count: items.length,
+      classId,
+      dateStr,
+    });
+
     return NextResponse.json({ success: true, data: items });
-  } catch (err) {
-    console.error("GET /attendance error:", err);
+  } catch (err: any) {
+    log.error("GET /attendance error", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
 
 // ------------------ SAVE/UPDATE ATTENDANCE ------------------
 export async function POST(req: Request) {
-  try {
-    // Pass request to getServerSession to read cookies
-    
-const session = await getServerSession(authConfig)
+  log.info("POST /attendance called");
 
-    if (!session?.user || !["ADMIN", "STAFF"].includes(session.user.role)) {
+  try {
+    const session = await getServerSession(authConfig);
+
+    if (!session?.user) {
+      log.warn("Unauthorized access");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    log.info("User attempting to mark attendance", {
+      userId: session.user.id,
+      role: session.user.role,
+    });
+
+    if (!["ADMIN", "STAFF"].includes(session.user.role)) {
+      log.warn("User does not have permission", session.user);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await req.json().catch(() => null);
+    log.debug("Incoming payload", body);
+
     if (!body || !body.classId || !Array.isArray(body.records)) {
+      log.warn("Invalid payload", body);
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
     const date = new Date(body.date || new Date());
-    date.setHours(0, 0, 0, 0); // normalize date for upsert
+    date.setHours(0, 0, 0, 0);
+
+    log.info("Normalized attendance date", { date });
 
     const created = await db.$transaction(async (tx) => {
       const results = [];
+
       for (const record of body.records) {
-        const attendance = await tx.attendance.upsert({
+        const att = await tx.attendance.upsert({
           where: {
             studentId_date: { studentId: String(record.studentId), date },
           },
@@ -75,14 +109,21 @@ const session = await getServerSession(authConfig)
             markedById: session.user.id,
           },
         });
-        results.push(attendance);
+
+        results.push(att);
       }
+
       return results;
     });
 
+    log.info("Attendance updated", {
+      count: created.length,
+      classId: body.classId,
+    });
+
     return NextResponse.json({ success: true, data: created }, { status: 201 });
-  } catch (err) {
-    console.error("POST /attendance error:", err);
+  } catch (err: any) {
+    log.error("POST /attendance error", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
