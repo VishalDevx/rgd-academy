@@ -3,7 +3,7 @@ import { db } from "@/lib/prisma";
 import { authConfig } from "@/app/api/auth/[...nextauth]/route";
 import getServerSession from "next-auth/next"
 export async function GET() {
-  const staff = await db.staff.findMany({ include: { user: true }, orderBy: { joinDate: "desc" } } as any);
+  const staff = await db.staff.findMany({ include: { user: true, }, orderBy: { joinDate: "desc" } } as any);
   return NextResponse.json(staff as any);
 }
 
