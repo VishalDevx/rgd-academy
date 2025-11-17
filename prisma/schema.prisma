@@ -32,7 +32,10 @@ enum AttendanceStatus {
   LATE
   LEAVE
 }
-
+enum TransactionType{
+  CREDIT
+  DEBIT
+}
 enum NotificationType {
   ANNOUNCEMENT
   FEE_REMINDER
@@ -337,6 +340,7 @@ model Expense {
   id          String   @id @default(cuid())
   title       String
   description String?
+  transaction TransactionType
   amount      Decimal  @db.Decimal(12,2)
   date        DateTime @default(now())
   createdById String
