@@ -1,6 +1,5 @@
 import { db } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import {
   Card,
@@ -19,6 +18,7 @@ import {
 } from "@/app/components/ui/table";
 import { Badge } from "@/app/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
+import { Button } from "@/app/components/ui/button";
 
 export default async function StudentProfilePage({ params }: { params: { id: string } }) {
   const { id } = params;
@@ -42,11 +42,12 @@ export default async function StudentProfilePage({ params }: { params: { id: str
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <Card className="flex flex-col sm:flex-row items-center sm:items-start gap-6 p-6">
+      <Card className="flex flex-col sm:flex-row items-center sm:items-start gap-6 p-6 relative">
         <Avatar className="w-36 h-36">
           <AvatarImage src={student.profileImg || "/default-avatar.png"} alt={user.name} />
           <AvatarFallback>{user.name[0]}</AvatarFallback>
         </Avatar>
+
         <div className="text-center sm:text-left flex-1 space-y-2">
           <h1 className="text-3xl font-bold text-gray-800">{user.name}</h1>
           <p className="text-gray-600">{user.email}</p>
@@ -59,6 +60,11 @@ export default async function StudentProfilePage({ params }: { params: { id: str
             <span className="font-medium">{student.gender || "N/A"}</span>
           </p>
         </div>
+
+        {/* Edit Button */}
+        <Link href={`/admin/students/${student.id}/edit`} className="absolute top-4 right-4">
+          <Button variant="outline">Edit</Button>
+        </Link>
       </Card>
 
       {/* Tabs */}
@@ -80,12 +86,14 @@ export default async function StudentProfilePage({ params }: { params: { id: str
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-600">
               <p><strong>DOB:</strong> {student.dob ? new Date(student.dob).toDateString() : "N/A"}</p>
               <p><strong>Address:</strong> {student.address || "N/A"}</p>
-              <p>
-                <strong>Active:</strong>{" "}
-                {student.active ? <Badge variant="outline">Yes</Badge> : <Badge variant="destructive">No</Badge>}
-              </p>
-              <p><strong>Phone:</strong> {user.phone || "N/A"}</p>
-              <p><strong>Adhar No:</strong> {user.adharNo || "N/A"}</p>
+              <p><strong>Active:</strong> {student.active ? <Badge variant="outline">Yes</Badge> : <Badge variant="destructive">No</Badge>}</p>
+              <p><strong>Aadhar No:</strong> {user.adharNo || "N/A"}</p>
+              <p><strong>Contact No:</strong> {student.contactNo}</p>
+              <p><strong>Father's Name:</strong> {student.fatherName}</p>
+              <p><strong>Mother's Name:</strong> {student.motherName}</p>
+              <p><strong>Occupation:</strong> {student.occupation}</p>
+              <p><strong>Religion:</strong> {student.religion}</p>
+              <p><strong>Caste:</strong> {student.caste}</p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -99,6 +107,8 @@ export default async function StudentProfilePage({ params }: { params: { id: str
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-600">
               <p><strong>Class:</strong> {cls?.name || "N/A"}</p>
               <p><strong>Admission Date:</strong> {student.admissionDate.toDateString()}</p>
+              <p><strong>UDISE No:</strong> {student.udiseCode}</p>
+              <p><strong>Admission No:</strong> {student.admissionNo}</p>
               <p><strong>Total Fees Paid:</strong> ₹{totalFeesPaid.toFixed(2)}</p>
             </CardContent>
           </Card>
