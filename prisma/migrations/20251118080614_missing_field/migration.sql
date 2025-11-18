@@ -11,6 +11,9 @@ CREATE TYPE "FeeStatus" AS ENUM ('PENDING', 'PAID', 'PARTIAL');
 CREATE TYPE "AttendanceStatus" AS ENUM ('PRESENT', 'ABSENT', 'LATE', 'LEAVE');
 
 -- CreateEnum
+CREATE TYPE "TransactionType" AS ENUM ('CREDIT', 'DEBIT');
+
+-- CreateEnum
 CREATE TYPE "NotificationType" AS ENUM ('ANNOUNCEMENT', 'FEE_REMINDER', 'RESULT_PUBLISHED', 'ATTENDANCE_ALERT', 'GENERAL');
 
 -- CreateEnum
@@ -19,29 +22,59 @@ CREATE TYPE "Grade" AS ENUM ('NURSERY', 'LKG', 'UKG', 'ONE', 'TWO', 'THREE', 'FO
 -- CreateEnum
 CREATE TYPE "PaymentMethod" AS ENUM ('CASH', 'ONLINE', 'CARD', 'UPI');
 
+-- CreateEnum
+CREATE TYPE "SubscriptionTier" AS ENUM ('BASIC', 'PRO', 'ENTERPRISE');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
-    "passwordHash" TEXT NOT NULL,
+    "passwordHash" TEXT,
     "name" TEXT NOT NULL,
     "role" "Role" NOT NULL,
     "phone" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "image" TEXT,
+    "emailVerified" TIMESTAMP(3),
+    "adharNo" TEXT NOT NULL,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Account" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "provider" TEXT NOT NULL,
+    "providerAccountId" TEXT NOT NULL,
+    "refresh_token" TEXT,
+    "access_token" TEXT,
+    "expires_at" INTEGER,
+    "token_type" TEXT,
+    "scope" TEXT,
+    "id_token" TEXT,
+    "session_state" TEXT,
+
+    CONSTRAINT "Account_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Session" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
-    "refreshToken" TEXT NOT NULL,
-    "expiresAt" TIMESTAMP(3) NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expires" TIMESTAMP(3) NOT NULL,
+    "sessionToken" TEXT NOT NULL,
 
     CONSTRAINT "Session_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "VerificationToken" (
+    "identifier" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "expires" TIMESTAMP(3) NOT NULL
 );
 
 -- CreateTable
@@ -55,6 +88,10 @@ CREATE TABLE "SchoolSettings" (
     "logoUrl" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "faviconUrl" TEXT,
+    "featureFlags" JSONB,
+    "primaryColor" TEXT,
+    "tier" "SubscriptionTier" NOT NULL DEFAULT 'BASIC',
 
     CONSTRAINT "SchoolSettings_pkey" PRIMARY KEY ("id")
 );
@@ -107,6 +144,14 @@ CREATE TABLE "Student" (
     "address" TEXT,
     "classId" TEXT,
     "active" BOOLEAN NOT NULL DEFAULT true,
+    "profileImg" TEXT,
+    "fatherName" TEXT,
+    "motherName" TEXT,
+    "occupation" TEXT NOT NULL DEFAULT '',
+    "religion" TEXT NOT NULL DEFAULT '',
+    "caste" TEXT NOT NULL DEFAULT '',
+    "udiseCode" TEXT,
+    "contactNo" TEXT,
 
     CONSTRAINT "Student_pkey" PRIMARY KEY ("id")
 );
@@ -192,6 +237,7 @@ CREATE TABLE "Expense" (
     "amount" DECIMAL(12,2) NOT NULL,
     "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdById" TEXT NOT NULL,
+    "transaction" "TransactionType" NOT NULL,
 
     CONSTRAINT "Expense_pkey" PRIMARY KEY ("id")
 );
@@ -201,8 +247,8 @@ CREATE TABLE "Announcement" (
     "id" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "content" TEXT NOT NULL,
-    "createdBy" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdBy" TEXT NOT NULL,
 
     CONSTRAINT "Announcement_pkey" PRIMARY KEY ("id")
 );
@@ -236,8 +282,8 @@ CREATE TABLE "Leave" (
     "fromDate" TIMESTAMP(3) NOT NULL,
     "toDate" TIMESTAMP(3) NOT NULL,
     "reason" TEXT NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'PENDING',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "status" TEXT NOT NULL DEFAULT 'PENDING',
 
     CONSTRAINT "Leave_pkey" PRIMARY KEY ("id")
 );
@@ -271,10 +317,22 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 CREATE UNIQUE INDEX "User_phone_key" ON "User"("phone");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "User_adharNo_key" ON "User"("adharNo");
+
+-- CreateIndex
 CREATE INDEX "User_role_idx" ON "User"("role");
 
 -- CreateIndex
-CREATE INDEX "Session_userId_idx" ON "Session"("userId");
+CREATE UNIQUE INDEX "Account_provider_providerAccountId_key" ON "Account"("provider", "providerAccountId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Session_sessionToken_key" ON "Session"("sessionToken");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "VerificationToken_token_key" ON "VerificationToken"("token");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "VerificationToken_identifier_token_key" ON "VerificationToken"("identifier", "token");
 
 -- CreateIndex
 CREATE INDEX "Class_teacherId_idx" ON "Class"("teacherId");
@@ -305,6 +363,9 @@ CREATE UNIQUE INDEX "Student_userId_key" ON "Student"("userId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Student_admissionNo_key" ON "Student"("admissionNo");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Student_udiseCode_key" ON "Student"("udiseCode");
 
 -- CreateIndex
 CREATE INDEX "Student_classId_idx" ON "Student"("classId");
@@ -379,6 +440,9 @@ CREATE INDEX "AuditLog_entity_entityId_idx" ON "AuditLog"("entity", "entityId");
 CREATE INDEX "_NotificationToStudent_B_index" ON "_NotificationToStudent"("B");
 
 -- AddForeignKey
+ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -394,28 +458,28 @@ ALTER TABLE "Subject" ADD CONSTRAINT "Subject_teacherId_fkey" FOREIGN KEY ("teac
 ALTER TABLE "Staff" ADD CONSTRAINT "Staff_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Student" ADD CONSTRAINT "Student_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Student" ADD CONSTRAINT "Student_classId_fkey" FOREIGN KEY ("classId") REFERENCES "Class"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Student" ADD CONSTRAINT "Student_classId_fkey" FOREIGN KEY ("classId") REFERENCES "Class"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Student" ADD CONSTRAINT "Student_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Attendance" ADD CONSTRAINT "Attendance_classId_fkey" FOREIGN KEY ("classId") REFERENCES "Class"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Attendance" ADD CONSTRAINT "Attendance_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Attendance" ADD CONSTRAINT "Attendance_markedById_fkey" FOREIGN KEY ("markedById") REFERENCES "Staff"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Attendance" ADD CONSTRAINT "Attendance_markedById_fkey" FOREIGN KEY ("markedById") REFERENCES "Staff"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Attendance" ADD CONSTRAINT "Attendance_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "FeeStructure" ADD CONSTRAINT "FeeStructure_classId_fkey" FOREIGN KEY ("classId") REFERENCES "Class"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "FeePayment" ADD CONSTRAINT "FeePayment_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "FeePayment" ADD CONSTRAINT "FeePayment_feeStructureId_fkey" FOREIGN KEY ("feeStructureId") REFERENCES "FeeStructure"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "FeePayment" ADD CONSTRAINT "FeePayment_feeStructureId_fkey" FOREIGN KEY ("feeStructureId") REFERENCES "FeeStructure"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "FeePayment" ADD CONSTRAINT "FeePayment_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Exam" ADD CONSTRAINT "Exam_classId_fkey" FOREIGN KEY ("classId") REFERENCES "Class"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -424,10 +488,10 @@ ALTER TABLE "Exam" ADD CONSTRAINT "Exam_classId_fkey" FOREIGN KEY ("classId") RE
 ALTER TABLE "Exam" ADD CONSTRAINT "Exam_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "Staff"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Result" ADD CONSTRAINT "Result_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Result" ADD CONSTRAINT "Result_examId_fkey" FOREIGN KEY ("examId") REFERENCES "Exam"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Result" ADD CONSTRAINT "Result_examId_fkey" FOREIGN KEY ("examId") REFERENCES "Exam"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Result" ADD CONSTRAINT "Result_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Result" ADD CONSTRAINT "Result_subjectId_fkey" FOREIGN KEY ("subjectId") REFERENCES "Subject"("id") ON DELETE CASCADE ON UPDATE CASCADE;

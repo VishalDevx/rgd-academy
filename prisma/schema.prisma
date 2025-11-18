@@ -7,7 +7,327 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ----------------- ENUMS -----------------
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  passwordHash  String?
+  name          String
+  role          Role
+  phone         String?        @unique
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  image         String?
+  emailVerified DateTime?
+  adharNo       String         @unique
+  accounts      Account[]
+  announcements Announcement[]
+  AuditLog      AuditLog[]
+  expenses      Expense[]
+  notifications Notification[]
+  sessions      Session[]
+  staff         Staff?
+  student       Student?
+
+  @@index([role])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  expires      DateTime
+  sessionToken String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model SchoolSettings {
+  id           String           @id @default(cuid())
+  name         String
+  address      String?
+  contactEmail String?
+  contactPhone String?
+  academicYear String?
+  logoUrl      String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  faviconUrl   String?
+  featureFlags Json?
+  primaryColor String?
+  tier         SubscriptionTier @default(BASIC)
+}
+
+model Class {
+  id            String         @id @default(cuid())
+  name          String
+  grade         Grade
+  section       String?
+  gradeCode     String?
+  teacherId     String?
+  createdAt     DateTime       @default(now())
+  attendances   Attendance[]
+  teacher       Staff?         @relation("ClassTeacher", fields: [teacherId], references: [id])
+  exams         Exam[]
+  feeStructures FeeStructure[]
+  students      Student[]
+  subjects      Subject[]
+
+  @@index([teacherId])
+  @@index([grade, section])
+}
+
+model Subject {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  classId   String
+  teacherId String?
+  results   Result[]
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher   Staff?   @relation(fields: [teacherId], references: [id])
+
+  @@index([classId])
+  @@index([teacherId])
+}
+
+model Staff {
+  id          String       @id @default(cuid())
+  userId      String       @unique
+  designation String
+  salary      Float?
+  joinDate    DateTime     @default(now())
+  active      Boolean      @default(true)
+  Attendance  Attendance[]
+  classes     Class[]      @relation("ClassTeacher")
+  exams       Exam[]       @relation("ExamCreatedBy")
+  leaves      Leave[]
+  results     Result[]
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjects    Subject[]
+
+  @@index([userId])
+  @@index([designation])
+}
+
+model Student {
+  id            String         @id @default(cuid())
+  userId        String         @unique
+  admissionNo   String         @unique
+  rollNumber    String
+  admissionDate DateTime       @default(now())
+  dob           DateTime?
+  gender        Gender?
+  address       String?
+  classId       String?
+  active        Boolean        @default(true)
+  profileImg    String?
+  fatherName    String?
+  motherName    String?
+  occupation    String         @default("")
+  religion      String         @default("")
+  caste         String         @default("")
+  udiseCode     String?        @unique
+  contactNo     String?
+  attendance    Attendance[]
+  fees          FeePayment[]
+  results       Result[]
+  class         Class?         @relation(fields: [classId], references: [id])
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notifications Notification[] @relation("NotificationToStudent")
+
+  @@unique([classId, rollNumber])
+  @@index([classId])
+  @@index([active])
+}
+
+model Attendance {
+  id         String           @id @default(cuid())
+  classId    String
+  studentId  String
+  date       DateTime
+  status     AttendanceStatus
+  markedById String
+  createdAt  DateTime         @default(now())
+  class      Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  markedBy   Staff            @relation(fields: [markedById], references: [id])
+  student    Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, date])
+  @@index([classId, date])
+  @@index([markedById])
+}
+
+model FeeStructure {
+  id           String       @id @default(cuid())
+  classId      String
+  name         String?
+  tuitionFee   Decimal      @db.Decimal(12, 2)
+  examFee      Decimal?     @db.Decimal(12, 2)
+  transportFee Decimal?     @db.Decimal(12, 2)
+  miscFee      Decimal?     @db.Decimal(12, 2)
+  total        Decimal      @db.Decimal(12, 2)
+  createdAt    DateTime     @default(now())
+  payments     FeePayment[]
+  class        Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@index([classId])
+}
+
+model FeePayment {
+  id                String       @id @default(cuid())
+  studentId         String
+  feeStructureId    String
+  amountPaid        Decimal      @db.Decimal(12, 2)
+  status            FeeStatus    @default(PENDING)
+  paymentDate       DateTime?
+  razorpayOrder     String?      @unique
+  razorpayPaymentId String?
+  receiptUrl        String?
+  createdAt         DateTime     @default(now())
+  feeStructure      FeeStructure @relation(fields: [feeStructureId], references: [id], onDelete: Cascade)
+  student           Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([feeStructureId])
+}
+
+model Exam {
+  id          String   @id @default(cuid())
+  name        String
+  classId     String
+  startDate   DateTime
+  endDate     DateTime
+  createdById String
+  createdAt   DateTime @default(now())
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  createdBy   Staff    @relation("ExamCreatedBy", fields: [createdById], references: [id])
+  results     Result[]
+
+  @@index([classId])
+  @@index([createdById])
+}
+
+model Result {
+  id         String   @id @default(cuid())
+  studentId  String
+  examId     String
+  subjectId  String
+  marks      Float
+  maxMarks   Float
+  grade      String?
+  remarks    String?
+  uploadedBy String?
+  createdAt  DateTime @default(now())
+  exam       Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject    Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  uploader   Staff?   @relation(fields: [uploadedBy], references: [id])
+
+  @@index([studentId])
+  @@index([examId])
+  @@index([subjectId])
+}
+
+model Expense {
+  id          String          @id @default(cuid())
+  title       String
+  description String?
+  amount      Decimal         @db.Decimal(12, 2)
+  date        DateTime        @default(now())
+  createdById String
+  transaction TransactionType
+  createdBy   User            @relation(fields: [createdById], references: [id])
+
+  @@index([createdById])
+}
+
+model Announcement {
+  id           String                   @id @default(cuid())
+  title        String
+  content      String
+  createdAt    DateTime                 @default(now())
+  createdBy    String
+  creator      User                     @relation(fields: [createdBy], references: [id])
+  visibleRoles AnnouncementVisibility[]
+}
+
+model AnnouncementVisibility {
+  id             String       @id @default(cuid())
+  announcementId String
+  role           Role
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, role])
+  @@index([announcementId])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Student   Student[]        @relation("NotificationToStudent")
+
+  @@index([userId])
+  @@index([type])
+}
+
+model Leave {
+  id        String   @id @default(cuid())
+  staffId   String
+  fromDate  DateTime
+  toDate    DateTime
+  reason    String
+  createdAt DateTime @default(now())
+  status    String   @default("PENDING")
+  staff     Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  oldValue  Json?
+  newValue  Json?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entity, entityId])
+}
+
 enum Role {
   ADMIN
   STAFF
@@ -32,10 +352,12 @@ enum AttendanceStatus {
   LATE
   LEAVE
 }
-enum TransactionType{
+
+enum TransactionType {
   CREDIT
   DEBIT
 }
+
 enum NotificationType {
   ANNOUNCEMENT
   FEE_REMINDER
@@ -71,357 +393,4 @@ enum SubscriptionTier {
   BASIC
   PRO
   ENTERPRISE
-}
-
-// ----------------- AUTH (NextAuth) -----------------
-
-model User {
-  id           String         @id @default(cuid())
-  name         String
-  email        String         @unique
-  passwordHash String?
-  role         Role
-  phone        String?        @unique
-  image        String?
-  emailVerified DateTime?
-  adharNo      String       @unique
- 
-
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-
-  // Relations
-  accounts      Account[]
-  sessions      Session[]
-  student       Student?
-  staff         Staff?
-  notifications Notification[]
-  announcements Announcement[]
-  expenses      Expense[]
-  AuditLog      AuditLog[]
-
-  @@index([role])
-}
-
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
-
-// ----------------- SCHOOL SETTINGS -----------------
-model SchoolSettings {
-  id           String   @id @default(cuid())
-  name         String
-  address      String?
-  contactEmail String?
-  contactPhone String?
-  academicYear String?
-  logoUrl      String?
-  faviconUrl   String?
-  primaryColor String?
-  tier         SubscriptionTier @default(BASIC)
-  featureFlags Json?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-}
-
-// ----------------- CLASS / SUBJECTS -----------------
-model Class {
-  id            String         @id @default(cuid())
-  name          String
-  grade         Grade
-  section       String?
-  gradeCode     String?
-  teacherId     String?
-  createdAt     DateTime        @default(now())
-
-  teacher       Staff?          @relation("ClassTeacher", fields: [teacherId], references: [id])
-  students      Student[]
-  subjects      Subject[]
-  exams         Exam[]
-  attendances   Attendance[]
-  feeStructures FeeStructure[]
-
-  @@index([teacherId])
-  @@index([grade, section])
-}
-
-model Subject {
-  id        String   @id @default(cuid())
-  name      String
-  code      String   @unique
-  classId   String
-  teacherId String?
-
-  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
-  teacher   Staff?   @relation(fields: [teacherId], references: [id])
-  results   Result[]
-
-  @@index([classId])
-  @@index([teacherId])
-}
-
-// ----------------- STAFF -----------------
-model Staff {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  designation  String
-  salary       Float?
-  joinDate     DateTime @default(now())
-  active       Boolean  @default(true)
-
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  classes      Class[]  @relation("ClassTeacher")
-  subjects     Subject[]
-  exams        Exam[]   @relation("ExamCreatedBy")
-  results      Result[]
-  leaves       Leave[]
-  Attendance   Attendance[]
-
-  @@index([userId])
-  @@index([designation])
-}
-
-// ----------------- STUDENTS -----------------
-model Student {
-  id            String      @id @default(cuid())
-  userId        String      @unique
-  admissionNo   String      @unique
-  rollNumber    String
-  admissionDate DateTime    @default(now())
-  profileImg    String?
-  dob           DateTime?
-  fatherName    String?
-  motherName    String?
-  occupation    String
-  religion      String
-  caste         String
-  udiseCode     String? @unique
-  contactNo     String?
-  gender        Gender?
-  address       String?
-  classId       String?
-  active        Boolean     @default(true)
-
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  class         Class?      @relation(fields: [classId], references: [id])
-  fees          FeePayment[]
-  attendance    Attendance[]
-  results       Result[]
-  notifications Notification[]
-
-  @@unique([classId, rollNumber])
-  @@index([classId])
-  @@index([active])
-}
-
-// ----------------- ATTENDANCE -----------------
-model Attendance {
-  id         String           @id @default(cuid())
-  classId    String
-  studentId  String
-  date       DateTime
-  status     AttendanceStatus
-  markedById String
-  createdAt  DateTime         @default(now())
-
-  class      Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
-  student    Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  markedBy   Staff            @relation(fields: [markedById], references: [id])
-
-  @@unique([studentId, date])
-  @@index([classId, date])
-  @@index([markedById])
-}
-
-// ----------------- FEES -----------------
-model FeeStructure {
-  id           String   @id @default(cuid())
-  classId      String
-  name         String?
-  tuitionFee   Decimal  @db.Decimal(12,2)
-  examFee      Decimal? @db.Decimal(12,2)
-  transportFee Decimal? @db.Decimal(12,2)
-  miscFee      Decimal? @db.Decimal(12,2)
-  total        Decimal  @db.Decimal(12,2)
-  createdAt    DateTime @default(now())
-
-  class        Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
-  payments     FeePayment[]
-
-  @@index([classId])
-}
-
-model FeePayment {
-  id                String    @id @default(cuid())
-  studentId         String
-  feeStructureId    String
-  amountPaid        Decimal   @db.Decimal(12,2)
-  status            FeeStatus @default(PENDING)
-  paymentDate       DateTime?
-  razorpayOrder     String?   @unique
-  razorpayPaymentId String?
-  receiptUrl        String?
-  createdAt         DateTime  @default(now())
-
-  student        Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  feeStructure   FeeStructure @relation(fields: [feeStructureId], references: [id], onDelete: Cascade)
-
-  @@index([studentId])
-  @@index([feeStructureId])
-}
-
-// ----------------- EXAMS -----------------
-model Exam {
-  id          String   @id @default(cuid())
-  name        String
-  classId     String
-  startDate   DateTime
-  endDate     DateTime
-  createdById String
-  createdAt   DateTime @default(now())
-
-  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
-  createdBy   Staff    @relation("ExamCreatedBy", fields: [createdById], references: [id])
-  results     Result[]
-
-  @@index([classId])
-  @@index([createdById])
-}
-
-model Result {
-  id          String   @id @default(cuid())
-  studentId   String
-  examId      String
-  subjectId   String
-  marks       Float
-  maxMarks    Float
-  grade       String?
-  remarks     String?
-  uploadedBy  String?
-  createdAt   DateTime @default(now())
-
-  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  exam        Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
-  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  uploader    Staff?   @relation(fields: [uploadedBy], references: [id])
-
-  @@index([studentId])
-  @@index([examId])
-  @@index([subjectId])
-}
-
-// ----------------- EXPENSES -----------------
-model Expense {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  transaction TransactionType
-  amount      Decimal  @db.Decimal(12,2)
-  date        DateTime @default(now())
-  createdById String
-
-  createdBy   User     @relation(fields: [createdById], references: [id])
-  @@index([createdById])
-}
-
-// ----------------- ANNOUNCEMENTS / NOTIFICATIONS -----------------
-model Announcement {
-  id            String                      @id @default(cuid())
-  title         String
-  content       String
-  createdBy     String
-  createdAt     DateTime                    @default(now())
-
-  creator       User                        @relation(fields: [createdBy], references: [id])
-  visibleRoles  AnnouncementVisibility[]
-}
-
-model AnnouncementVisibility {
-  id             String       @id @default(cuid())
-  announcementId String
-  role           Role
-
-  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
-
-  @@index([announcementId])
-  @@unique([announcementId, role])
-}
-
-model Notification {
-  id        String            @id @default(cuid())
-  userId    String
-  type      NotificationType
-  title     String
-  message   String
-  read      Boolean           @default(false)
-  createdAt DateTime          @default(now())
-
-  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([type])
-  Student Student[]
-}
-
-// ----------------- LEAVE -----------------
-model Leave {
-  id        String   @id @default(cuid())
-  staffId   String
-  fromDate  DateTime
-  toDate    DateTime
-  reason    String
-  status    String   @default("PENDING")
-  createdAt DateTime @default(now())
-
-  staff     Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
-
-  @@index([staffId])
-}
-
-// ----------------- AUDIT LOGS -----------------
-model AuditLog {
-  id        String   @id @default(cuid())
-  userId    String?
-  action    String
-  entity    String
-  entityId  String?
-  oldValue  Json?
-  newValue  Json?
-  createdAt DateTime @default(now())
-
-  user      User?    @relation(fields: [userId], references: [id])
-  @@index([userId])
-  @@index([entity, entityId])
 }

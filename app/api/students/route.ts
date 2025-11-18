@@ -4,7 +4,6 @@ import { getServerSession } from "next-auth/next";
 import { authConfig } from "../auth/[...nextauth]/route";
 import { createClient } from "@supabase/supabase-js";
 
-// ✅ Initialize Supabase client
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -14,16 +13,13 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
-    // ✅ Auth check
     const session = await getServerSession(authConfig);
     if (!session?.user || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // ✅ Parse form data
     const form = await req.formData();
 
-    // ✅ Extract fields
     const name = form.get("name") as string | null;
     const email = form.get("email") as string | null;
     const adharNo = form.get("adharNo") as string | null;
@@ -34,9 +30,19 @@ export async function POST(req: Request) {
     const address = form.get("address") as string | null;
     const classId = form.get("classId") as string | null;
     const passwordHash = form.get("passwordHash") as string | null;
+
+    // 🔥 Newly added fields
+    const fatherName = form.get("fatherName") as string | null;
+    const motherName = form.get("motherName") as string | null;
+    const occupation = form.get("occupation") as string | null;
+    const religion = form.get("religion") as string | null;
+    const caste = form.get("caste") as string | null;
+    const udiseCode = form.get("udiseCode") as string | null;
+    const contactNo = form.get("contactNo") as string | null;
+
     const file = form.get("file") as File | null;
 
-    // ✅ Validate required fields
+    // Validate required fields
     const required = { name, email, adharNo, admissionNo, rollNumber };
     for (const [key, value] of Object.entries(required)) {
       if (!value) {
@@ -44,17 +50,17 @@ export async function POST(req: Request) {
       }
     }
 
-    // ✅ Upload profile image (if provided)
+    // Upload image
     let profileImgUrl = "";
     if (file) {
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
 
-      const fileExt = file.name.split(".").pop();
-      const fileName = `students/${Date.now()}-${name}.${fileExt}`;
+      const ext = file.name.split(".").pop();
+      const fileName = `students/${Date.now()}-${name}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("rgd-school") // ✅ correct bucket
+        .from("rgd-school")
         .upload(fileName, buffer, {
           cacheControl: "3600",
           upsert: false,
@@ -62,21 +68,21 @@ export async function POST(req: Request) {
         });
 
       if (uploadError) {
-        console.error("Supabase upload error:", uploadError);
+        console.error("Upload error", uploadError);
         return NextResponse.json(
-          { error: "Failed to upload image" },
+          { error: "Image upload failed" },
           { status: 500 }
         );
       }
 
-      const { data: publicData } = supabase.storage
-        .from("rgd-school") // ✅ same bucket here
+      const { data } = supabase.storage
+        .from("rgd-school")
         .getPublicUrl(fileName);
 
-      profileImgUrl = publicData.publicUrl;
+      profileImgUrl = data.publicUrl;
     }
 
-    // ✅ Create user + student in a transaction
+    // Transaction
     const created = await db.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
@@ -84,7 +90,7 @@ export async function POST(req: Request) {
           email: email!.toLowerCase(),
           role: "STUDENT",
           adharNo: adharNo!,
-          passwordHash: passwordHash,
+          passwordHash,
         },
       });
 
@@ -101,6 +107,13 @@ export async function POST(req: Request) {
               : null,
           address,
           profileImg: profileImgUrl,
+          fatherName:fatherName,
+          motherName:motherName,
+          occupation: occupation!,
+          religion: religion!,
+          caste: caste!,
+          udiseCode,
+          contactNo,
         },
       });
 

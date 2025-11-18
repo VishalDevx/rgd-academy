@@ -3,6 +3,18 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/app/components/ui/card";
+import { Input } from "@/app/components/ui/input";
+import { Textarea } from "@/app/components/ui/textarea";
+import { Label } from "@/app/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
+import { Button } from "@/app/components/ui/button";
+
 interface ClassItem {
   id: string;
   name: string;
@@ -23,13 +35,20 @@ export default function NewStudentPage() {
     dob: "",
     gender: "",
     address: "",
+    caste: "",
+    religion: "",
+    occupation: "",
+    fatherName: "",
+    motherName: "",
+    udiseCode: "",
+    contactNo: "",
   });
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // Fetch available classes
+  // Fetch classes
   useEffect(() => {
     fetch("/api/classes")
       .then(async (res) => {
@@ -39,11 +58,9 @@ export default function NewStudentPage() {
       .catch(console.error);
   }, []);
 
-  // Handle form input changes
   const onChange = (key: keyof typeof form, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
 
-  // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (selected) {
@@ -52,7 +69,6 @@ export default function NewStudentPage() {
     }
   };
 
-  // Form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -71,169 +87,233 @@ export default function NewStudentPage() {
       if (!res.ok) throw new Error(await res.text());
       router.push("/admin/students");
     } catch (err: any) {
-      setError(err.message ?? "Failed to create student");
+      setError(err.message || "Failed to create student");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white rounded-2xl shadow-md">
-      <h1 className="text-2xl font-semibold mb-6 text-gray-800">Add New Student</h1>
+    <Card className="max-w-4xl mx-auto mt-10">
+      <CardHeader>
+        <CardTitle>Add New Student</CardTitle>
+      </CardHeader>
 
-      <form className="space-y-6" onSubmit={handleSubmit}>
-        {/* Grid fields */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700">Full Name</label>
-            <input
-              className="w-full border border-gray-300 rounded-lg p-2.5 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={form.name}
-              onChange={(e) => onChange("name", e.target.value)}
-              required
-            />
-          </div>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
 
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700">Email</label>
-            <input
-              type="email"
-              className="w-full border border-gray-300 rounded-lg p-2.5 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={form.email}
-              onChange={(e) => onChange("email", e.target.value)}
-              required
-            />
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700">Aadhar No</label>
-            <input
-              className="w-full border border-gray-300 rounded-lg p-2.5 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={form.adharNo}
-              onChange={(e) => onChange("adharNo", e.target.value)}
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700">Admission No</label>
-            <input
-              className="w-full border border-gray-300 rounded-lg p-2.5 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={form.admissionNo}
-              onChange={(e) => onChange("admissionNo", e.target.value)}
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700">Roll Number</label>
-            <input
-              className="w-full border border-gray-300 rounded-lg p-2.5 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={form.rollNumber}
-              onChange={(e) => onChange("rollNumber", e.target.value)}
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700">Class</label>
-            <select
-              className="w-full border border-gray-300 rounded-lg p-2.5 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={form.classId}
-              onChange={(e) => onChange("classId", e.target.value)}
-            >
-              <option value="">Unassigned</option>
-              {classes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.grade})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700">Date of Birth</label>
-            <input
-              type="date"
-              className="w-full border border-gray-300 rounded-lg p-2.5 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={form.dob}
-              onChange={(e) => onChange("dob", e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700">Gender</label>
-            <select
-              className="w-full border border-gray-300 rounded-lg p-2.5 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={form.gender}
-              onChange={(e) => onChange("gender", e.target.value)}
-            >
-              <option value="">Select</option>
-              <option value="MALE">Male</option>
-              <option value="FEMALE">Female</option>
-              <option value="OTHER">Other</option>
-            </select>
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium mb-1 text-gray-700">Address</label>
-            <textarea
-              className="w-full border border-gray-300 rounded-lg p-2.5 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={form.address}
-              onChange={(e) => onChange("address", e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Image upload */}
-        <div>
-          <label className="block text-sm font-medium mb-1 text-gray-700">Profile Image</label>
-          <div className="flex items-center gap-4">
-            {preview ? (
-              <img
-                src={preview}
-                alt="Preview"
-                className="w-20 h-20 object-cover rounded-full border border-gray-300"
+            {/* Name */}
+            <div>
+              <Label>Full Name</Label>
+              <Input
+                value={form.name}
+                onChange={(e) => onChange("name", e.target.value)}
+                required
               />
-            ) : (
-              <div className="w-20 h-20 rounded-full border border-dashed border-gray-400 flex items-center justify-center text-gray-400 text-sm">
-                No image
-              </div>
-            )}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="text-sm text-gray-700"
-            />
+            </div>
+
+            {/* Email */}
+            <div>
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={form.email}
+                onChange={(e) => onChange("email", e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Aadhar */}
+            <div>
+              <Label>Aadhar No</Label>
+              <Input
+                value={form.adharNo}
+                onChange={(e) => onChange("adharNo", e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Admission */}
+            <div>
+              <Label>Admission No</Label>
+              <Input
+                value={form.admissionNo}
+                onChange={(e) => onChange("admissionNo", e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Roll */}
+            <div>
+              <Label>Roll Number</Label>
+              <Input
+                value={form.rollNumber}
+                onChange={(e) => onChange("rollNumber", e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Father */}
+            <div>
+              <Label>Father Name</Label>
+              <Input
+                value={form.fatherName}
+                onChange={(e) => onChange("fatherName", e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Mother */}
+            <div>
+              <Label>Mother Name</Label>
+              <Input
+                value={form.motherName}
+                onChange={(e) => onChange("motherName", e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Udise */}
+            <div>
+              <Label>UDISE Code</Label>
+              <Input
+                value={form.udiseCode}
+                onChange={(e) => onChange("udiseCode", e.target.value)}
+                required
+              />
+            </div>
+            {/* Religion */}
+         <div>
+              <Label>Religion</Label>
+              <Input
+                value={form.religion}
+                onChange={(e) => onChange("religion", e.target.value)}
+                required
+              />
+            </div>
+            {/* caste */}
+            <div>
+              <Label>Caste</Label>
+              <Input
+                value={form.caste}
+                onChange={(e) => onChange("caste", e.target.value)}
+                required
+              />
+            </div>
+            {/* Contact */}
+            <div>
+              <Label>Contact No</Label>
+              <Input
+                value={form.contactNo}
+                onChange={(e) => onChange("contactNo", e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Occupation */}
+            <div>
+              <Label>Occupation</Label>
+              <Input
+                value={form.occupation}
+                onChange={(e) => onChange("occupation", e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Class */}
+            <div>
+              <Label>Class</Label>
+              <Select
+                onValueChange={(v) => onChange("classId", v)}
+                value={form.classId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name} ({c.grade})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* DOB */}
+            <div>
+              <Label>DOB</Label>
+              <Input
+                type="date"
+                value={form.dob}
+                onChange={(e) => onChange("dob", e.target.value)}
+              />
+            </div>
+
+            {/* Gender */}
+            <div>
+              <Label>Gender</Label>
+              <Select
+                value={form.gender}
+                onValueChange={(v) => onChange("gender", v)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="MALE">Male</SelectItem>
+                  <SelectItem value="FEMALE">Female</SelectItem>
+                  <SelectItem value="OTHER">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Address */}
+            <div className="md:col-span-2">
+              <Label>Address</Label>
+              <Textarea
+                value={form.address}
+                onChange={(e) => onChange("address", e.target.value)}
+              />
+            </div>
           </div>
-        </div>
 
-        {/* Error */}
-        {error && <p className="text-sm text-red-600">{error}</p>}
+          {/* Image Upload */}
+          <div>
+            <Label>Profile Image</Label>
+            <div className="flex items-center gap-4 mt-2">
+              {preview ? (
+                <img
+                  src={preview}
+                  className="w-20 h-20 rounded-full object-cover border"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full border border-dashed flex items-center justify-center text-sm text-muted-foreground">
+                  No Image
+                </div>
+              )}
 
-        {/* Buttons */}
-        <div className="flex justify-end gap-3">
-          <button
-            type="button"
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
-            onClick={() => router.back()}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={submitting}
-            className={`px-4 py-2 rounded-lg text-white font-medium transition ${
-              submitting
-                ? "bg-blue-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700"
-            }`}
-          >
-            {submitting ? "Creating..." : "Create Student"}
-          </button>
-        </div>
-      </form>
-    </div>
+              <Input type="file" accept="image/*" onChange={handleFileChange} />
+            </div>
+          </div>
+
+          {/* Error */}
+          {error && <p className="text-red-600 text-sm">{error}</p>}
+
+          {/* Buttons */}
+          <div className="flex justify-end gap-4">
+            <Button variant="outline" type="button" onClick={() => router.back()}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? "Creating..." : "Create Student"}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
