@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, TransactionType } from "@prisma/client";
 import bcrypt from "bcrypt";
 
 const db = new PrismaClient();
@@ -59,6 +59,9 @@ async function main() {
       rollNumber: "2200170100060",
       dob: new Date("2007-08-15"),
       classId: class9A.id,
+      occupation:"Labours",
+      religion:"Hindu",
+      caste:"SC",
     },
   });
 
@@ -85,9 +88,9 @@ async function main() {
   // --- EXPENSES ---
   await db.expense.createMany({
     data: [
-      { title: "Electricity Bill", amount: "8500.00" as any, date: new Date(), createdById: admin.id },
-      { title: "Books & Supplies", amount: "12000.00" as any, date: new Date(), createdById: admin.id },
-      { title: "Repairs & Maintenance", amount: "6000.00" as any, date: new Date(), createdById: admin.id },
+      { title: "Electricity Bill", amount: "8500.00" as any, date: new Date(), createdById: admin.id ,transaction:TransactionType.CREDIT},
+      { title: "Books & Supplies", amount: "12000.00" as any, date: new Date(), createdById: admin.id,transaction:TransactionType.DEBIT },
+      { title: "Repairs & Maintenance", amount: "6000.00" as any, date: new Date(), createdById: admin.id ,transaction:TransactionType.DEBIT},
     ],
   } as any);
 

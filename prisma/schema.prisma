@@ -222,6 +222,13 @@ model Student {
   admissionDate DateTime    @default(now())
   profileImg    String?
   dob           DateTime?
+  fatherName    String?
+  motherName    String?
+  occupation    String
+  religion      String
+  caste         String
+  udiseCode     String? @unique
+  contactNo     String?
   gender        Gender?
   address       String?
   classId       String?
