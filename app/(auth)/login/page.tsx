@@ -23,6 +23,7 @@ interface LoginForm {
 }
 
 export default function LoginPage() {
+  console.log("DATABASE_URL:", process.env.DATABASE_URL);
   const [role, setRole] = useState<Role>("STAFF");
   const [form, setForm] = useState<LoginForm>({
     email: "",
