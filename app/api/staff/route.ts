@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { authConfig } from "@/app/api/auth/[...nextauth]/route";
-import getServerSession from "next-auth/next";
+import { getServerSession } from "next-auth";
 import { logger } from "@/app/lib/logger";
 
 const log = logger("staff-route");
@@ -15,8 +15,6 @@ export async function GET() {
       include: { user: true },
       orderBy: { joinDate: "desc" },
     });
-
-    log.info("Staff list fetched", { count: staff.length });
 
     return NextResponse.json({ success: true, data: staff });
   } catch (err: any) {
@@ -32,30 +30,19 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authConfig);
 
-    if (!session?.user) {
-      log.warn("Unauthorized request - no session");
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-
-    if (session.user.role !== "ADMIN") {
-      log.warn("Unauthorized - insufficient permissions", {
-        userId: session.user.id,
-        role: session.user.role,
-      });
+    if (!session?.user || session.user.role !== "ADMIN") {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
     const body = await req.json().catch(() => null);
 
     if (!body) {
-      log.warn("Invalid payload received in /staff POST");
       return new NextResponse("Invalid payload", { status: 400 });
     }
 
-    log.info("Incoming staff payload", {
-      email: body.email,
-      designation: body.designation,
-    });
+    const classIds: string[] = Array.isArray(body.classIds)
+      ? body.classIds
+      : [];
 
     const created = await db.$transaction(async (tx) => {
       const user = await tx.user.create({
@@ -63,8 +50,8 @@ export async function POST(req: Request) {
           name: String(body.name),
           email: String(body.email).toLowerCase(),
           role: "STAFF",
-          adharNo: body.adharNo ? String(body.adharNo) : `STAFF-${Date.now()}`,
-          passwordHash: body.passwordHash ?? null,
+          adharNo: String(body.adharNo ?? `STAFF-${Date.now()}`),
+          passwordHash: body.passwordHash,
         },
       });
 
@@ -77,12 +64,14 @@ export async function POST(req: Request) {
         },
       });
 
-      return { user, staff };
-    });
+      if (classIds.length > 0) {
+        await tx.class.updateMany({
+          where: { id: { in: classIds } },
+          data: { teacherId: staff.id },
+        });
+      }
 
-    log.info("Staff creation successful", {
-      userId: created.user.id,
-      email: created.user.email,
+      return { user, staff };
     });
 
     return NextResponse.json({ success: true, data: created }, { status: 201 });
