@@ -190,6 +190,7 @@ CREATE TABLE "FeePayment" (
     "studentId" TEXT NOT NULL,
     "feeStructureId" TEXT NOT NULL,
     "amountPaid" DECIMAL(12,2) NOT NULL,
+    "remainAmount" DECIMAL(12,2) NOT NULL,
     "status" "FeeStatus" NOT NULL DEFAULT 'PENDING',
     "paymentDate" TIMESTAMP(3),
     "razorpayOrder" TEXT,

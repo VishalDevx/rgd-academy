@@ -80,8 +80,8 @@ async function main() {
 
   await db.feePayment.createMany({
     data: [
-      { studentId: studentProfile.id, feeStructureId: fee10.id, amountPaid: "10000.00" as any, status: "PARTIAL" },
-      { studentId: studentProfile.id, feeStructureId: fee10.id, amountPaid: "17000.00" as any, status: "PAID" },
+      { studentId: studentProfile.id, feeStructureId: fee10.id, amountPaid: "10000.00" as any, status: "PARTIAL" ,remainAmount:"17000"},
+      { studentId: studentProfile.id, feeStructureId: fee10.id, amountPaid: "17000.00" as any, status: "PAID",remainAmount:"0" },
     ],
   } as any);
 

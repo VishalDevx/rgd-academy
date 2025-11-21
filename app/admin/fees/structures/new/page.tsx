@@ -6,8 +6,19 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/app/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/app/components/ui/card";
 import { toast } from "sonner";
 
 interface FeeStructureForm {
@@ -38,13 +49,17 @@ export default function NewFeeStructurePage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    // Fetch classes from API
-    fetch("/api/classes")
-      .then((res) => res.json())
-      .then((data: ClassType[]) => setClasses(data))
-      .catch(() => toast.error("Failed to load classes"));
-  }, []);
+useEffect(() => {
+  fetch("/api/classes")
+    .then((res) => res.json())
+    .then((response) => {
+      if (!response.success || !Array.isArray(response.data)) {
+        throw new Error("Invalid data format");
+      }
+      setClasses(response.data); // <-- extract the array
+    })
+    .catch(() => toast.error("Failed to load classes"));
+}, []);
 
   const onChange = (key: keyof FeeStructureForm, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -167,7 +182,11 @@ export default function NewFeeStructurePage() {
 
             {/* Buttons */}
             <div className="flex justify-end gap-2">
-              <Button variant="outline" type="button" onClick={() => router.back()}>
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => router.back()}
+              >
                 Cancel
               </Button>
               <Button type="submit" disabled={submitting}>
