@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import StudentForm from "@/app/components/StudentForm";
 
 export default async function EditStudentPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+  const { id } = await params;
 
   const student = await db.student.findUnique({
     where: { id },

@@ -21,7 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar"
 import { Button } from "@/app/components/ui/button";
 
 export default async function StudentProfilePage({ params }: { params: { id: string } }) {
-  const { id } = params;
+  const { id } =  await params;
 
   const student = await db.student.findUnique({
     where: { id },
