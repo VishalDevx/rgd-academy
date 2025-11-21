@@ -13,22 +13,38 @@ export default async function StaffClassesPage() {
     redirect("/login");
   }
 
-  // fetch staff classes + subjects
+  // Fetch the staff record linked to the logged-in user
+  const staff = await db.staff.findUnique({
+    where: { userId: session.user.id },
+  });
+
+  if (!staff) {
+    return (
+      <div className="p-6">
+        <Card className="border-dashed">
+          <CardContent className="p-6 text-center text-muted-foreground">
+            No staff record found for your account.
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Fetch classes assigned to this staff
   const classes = await db.class.findMany({
-    where: { teacherId: session.user.id },
+    where: { teacherId: staff.id },
     include: {
       subjects: true,
       students: true,
     },
+    orderBy: { createdAt: "desc" },
   });
 
   return (
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold">My Classes</h1>
-        <p className="text-sm text-muted-foreground">
-          {session.user.name}
-        </p>
+        <p className="text-sm text-muted-foreground">{session.user.name}</p>
       </div>
 
       {/* No Classes assigned */}
@@ -55,13 +71,11 @@ export default async function StaffClassesPage() {
 
             <CardContent className="space-y-2">
               <p className="text-sm">
-                <span className="font-medium">Section:</span>{" "}
-                {cls.section || "N/A"}
+                <span className="font-medium">Section:</span> {cls.section || "N/A"}
               </p>
 
               <p className="text-sm">
-                <span className="font-medium">Students:</span>{" "}
-                {cls.students.length}
+                <span className="font-medium">Students:</span> {cls.students.length}
               </p>
 
               <div>

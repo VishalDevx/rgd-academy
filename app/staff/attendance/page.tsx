@@ -1,5 +1,3 @@
-
-
 import * as React from "react";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
@@ -102,18 +100,37 @@ export default async function StaffAttendancePage() {
     redirect("/login");
   }
 
+  // Fetch staff record
+  const staff = await db.staff.findUnique({
+    where: { userId: session.user.id },
+  });
+
+  if (!staff) {
+    return (
+      <div className="p-6">
+        <Card className="border-dashed">
+          <CardContent className="p-6 text-center text-muted-foreground">
+            No staff record found for your account.
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Fetch classes assigned to this staff
   const classes = await db.class.findMany({
-    where: { teacherId: session.user.id },
+    where: { teacherId: staff.id },
     include: {
       students: { include: { user: true } },
     },
+    orderBy: { createdAt: "desc" },
   });
 
   return (
     <StaffAttendanceUI
       classes={classes}
       staffName={session.user.name ?? "Staff"}
-      staffId={session.user.id}
+      staffId={staff.id}
     />
   );
 }
