@@ -21,7 +21,16 @@ export default async function AdminClassesPage() {
   const session = await getServerSession(authConfig);
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
-  const classes = await db.class.findMany({ orderBy: { createdAt: "desc" } });
+  const classes = await db.class.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      teacher: {
+        include: {
+          user: { select: { name: true } },
+        },
+      },
+    },
+  });
 
   return (
     <div className="p-6">
@@ -43,14 +52,17 @@ export default async function AdminClassesPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Grade</TableHead>
                 <TableHead>Section</TableHead>
+                <TableHead>Class Teacher</TableHead>
               </TableRow>
             </TableHeader>
+
             <TableBody>
               {classes.map((c) => (
                 <TableRow key={c.id}>
                   <TableCell>{c.name}</TableCell>
                   <TableCell>{c.grade}</TableCell>
                   <TableCell>{c.section ?? "-"}</TableCell>
+                  <TableCell>{c.teacher?.user?.name || "-"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

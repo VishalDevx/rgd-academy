@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { JSX, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardHeader,
@@ -12,122 +12,66 @@ import { Label } from "@/app/components/ui/label";
 import { Input } from "@/app/components/ui/input";
 import { Button } from "@/app/components/ui/button";
 import { Alert, AlertDescription } from "@/app/components/ui/alert";
+import { Checkbox } from "@/app/components/ui/checkbox";
 
-type SchoolClass = {
-  id: string;
-  name: string;
-  grade: string;
-  section?: string | null;
-};
-
-type FormState = {
-  name: string;
-  email: string;
-  adharNo: string;
-  designation: string;
-  salary: string; // keep as string for controlled input
-  classId: string; // single class assignment
-};
-
-export default function NewStaffPage(): JSX.Element {
+export default function NewStaffPage() {
   const router = useRouter();
 
-  const [classes, setClasses] = useState<SchoolClass[]>([]);
-  const [loadingClasses, setLoadingClasses] = useState<boolean>(true);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [loadingClasses, setLoadingClasses] = useState(true);
 
-  const [form, setForm] = useState<FormState>({
+  const [form, setForm] = useState({
     name: "",
     email: "",
     adharNo: "",
     designation: "",
     salary: "",
-    classId: "",
+    classIds: [] as string[],
   });
 
-  const [submitting, setSubmitting] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  // typed setter
-  const onChange = (k: keyof FormState, v: string): void => {
-    setForm((prev) => ({ ...prev, [k]: v }));
-  };
+  const onChange = (k: keyof typeof form, v: any) =>
+    setForm((f) => ({ ...f, [k]: v }));
 
-  // load classes for the dropdown
+  // -------------------------
+  // Fetch classes for dropdown
+  // -------------------------
   useEffect(() => {
-    let mounted = true;
-
     const load = async () => {
       try {
         const res = await fetch("/api/classes");
-        if (!res.ok) throw new Error(`Failed to load classes: ${res.status}`);
-        const json = await res.json();
-        const data: SchoolClass[] = Array.isArray(json?.data) ? json.data : [];
-        if (mounted) setClasses(data);
-      } catch (err: unknown) {
-        // log but don't prevent the form
-        // eslint-disable-next-line no-console
-        console.error("Failed to fetch classes:", err);
+        const data = await res.json();
+        setClasses(data.data ?? []);
+      } catch (err) {
+        console.error(err);
       } finally {
-        if (mounted) setLoadingClasses(false);
+        setLoadingClasses(false);
       }
     };
-
     load();
-
-    return () => {
-      mounted = false;
-    };
   }, []);
 
-  const validate = (values: FormState): string | null => {
-    if (!values.name.trim()) return "Name is required";
-    if (!values.email.trim()) return "Email is required";
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(values.email)) return "Invalid email";
-    if (!values.designation.trim()) return "Designation is required";
-    if (values.salary && isNaN(Number(values.salary))) return "Salary must be a number";
-    // If you require a class assignment make it mandatory:
-    // if (!values.classId) return "Please assign a class";
-    return null;
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+  // -------------------------
+  // Submit
+  // -------------------------
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-
-    const validationError = validate(form);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
     setSubmitting(true);
+    setError("");
 
     try {
-      const payload = {
-        name: form.name.trim(),
-        email: form.email.trim(),
-        adharNo: form.adharNo.trim() || undefined,
-        designation: form.designation.trim(),
-        salary: form.salary ? Number(form.salary) : undefined,
-        classId: form.classId || undefined,
-      } as Record<string, unknown>;
-
       const res = await fetch("/api/staff", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(form),
       });
 
-      if (!res.ok) {
-        const text = await res.text().catch(() => null);
-        throw new Error(text || `Server returned ${res.status}`);
-      }
-
-      // success — navigate back to staff list
+      if (!res.ok) throw new Error(await res.text());
       router.push("/admin/staff");
-    } catch (err: unknown) {
-      if (err instanceof Error) setError(err.message);
-      else setError("Something went wrong");
+    } catch (err: any) {
+      setError(err.message ?? "Failed");
     } finally {
       setSubmitting(false);
     }
@@ -141,12 +85,13 @@ export default function NewStaffPage(): JSX.Element {
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6" aria-label="Create new staff">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            
+            {/* FORM FIELDS */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-1">
-                <Label htmlFor="name">Name</Label>
+                <Label>Name</Label>
                 <Input
-                  id="name"
                   value={form.name}
                   onChange={(e) => onChange("name", e.target.value)}
                   required
@@ -154,10 +99,8 @@ export default function NewStaffPage(): JSX.Element {
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="email">Email</Label>
+                <Label>Email</Label>
                 <Input
-                  id="email"
-                  type="email"
                   value={form.email}
                   onChange={(e) => onChange("email", e.target.value)}
                   required
@@ -165,18 +108,16 @@ export default function NewStaffPage(): JSX.Element {
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="adharNo">Aadhar No</Label>
+                <Label>Aadhar No</Label>
                 <Input
-                  id="adharNo"
                   value={form.adharNo}
                   onChange={(e) => onChange("adharNo", e.target.value)}
                 />
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="designation">Designation</Label>
+                <Label>Designation</Label>
                 <Input
-                  id="designation"
                   value={form.designation}
                   onChange={(e) => onChange("designation", e.target.value)}
                   required
@@ -184,34 +125,46 @@ export default function NewStaffPage(): JSX.Element {
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="salary">Salary</Label>
+                <Label>Salary</Label>
                 <Input
-                  id="salary"
-                  type="number"
                   value={form.salary}
                   onChange={(e) => onChange("salary", e.target.value)}
                 />
               </div>
             </div>
 
-            <div className="space-y-1">
-              <Label htmlFor="class">Assign Class (Class Teacher)</Label>
+            {/* CLASS ASSIGNMENT */}
+            <div>
+              <Label>Assign Classes</Label>
+
               {loadingClasses ? (
                 <p className="text-sm text-muted-foreground">Loading classes…</p>
               ) : (
-                <select
-                  id="class"
-                  className="border rounded p-2 w-full"
-                  value={form.classId}
-                  onChange={(e) => onChange("classId", e.target.value)}
-                >
-                  <option value="">-- No class (optional) --</option>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
                   {classes.map((cls) => (
-                    <option key={cls.id} value={cls.id}>
-                      {cls.name} ({cls.grade}{cls.section ? ` - ${cls.section}` : ""})
-                    </option>
+                    <label
+                      key={cls.id}
+                      className="flex items-center space-x-2 border p-2 rounded"
+                    >
+                      <Checkbox
+                        checked={form.classIds.includes(cls.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            onChange("classIds", [...form.classIds, cls.id]);
+                          } else {
+                            onChange(
+                              "classIds",
+                              form.classIds.filter((x) => x !== cls.id)
+                            );
+                          }
+                        }}
+                      />
+                      <span>
+                        {cls.name} ({cls.grade} - {cls.section})
+                      </span>
+                    </label>
                   ))}
-                </select>
+                </div>
               )}
             </div>
 
