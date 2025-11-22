@@ -43,7 +43,7 @@ const StaffAttendanceUI: React.FC<StaffAttendanceUIProps> = ({ classes, staffNam
         </Card>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 ">
         {classes.map((cls) => (
           <Card key={cls.id} className="hover:shadow-sm transition">
             <CardHeader>
