@@ -103,7 +103,7 @@ model Class {
 
 model Subject {
   id        String   @id @default(cuid())
-  name      String
+  name     String
   code      String   @unique
   classId   String
   teacherId String?
@@ -396,3 +396,4 @@ enum SubscriptionTier {
   PRO
   ENTERPRISE
 }
+
