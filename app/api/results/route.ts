@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { authConfig } from "@/app/api/auth/[...nextauth]/route";
-import getServerSession from "next-auth/next"
+import {getServerSession} from "next-auth/next"
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const examId = searchParams.get("examId");
