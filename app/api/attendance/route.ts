@@ -1,36 +1,34 @@
+// app/api/attendance/route.ts
 import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { authConfig } from "../auth/[...nextauth]/route";
-import getServerSession from "next-auth/next";
+import {getServerSession} from "next-auth/next";
 import { logger } from "@/app/lib/logger";
 
 const log = logger("attendance-route");
 
 // ------------------ GET ATTENDANCE ------------------
 export async function GET(req: Request) {
+  const cookies = req.headers.get("cookie");
+log.info("Cookies in request", cookies);
+
   const url = new URL(req.url);
   const classId = url.searchParams.get("classId");
   const dateStr = url.searchParams.get("date");
 
   log.info("GET /attendance called", { classId, dateStr });
 
+  if (!classId || !dateStr) {
+    log.warn("Missing required query params", { classId, dateStr });
+    return NextResponse.json({ error: "Missing classId or date" }, { status: 400 });
+  }
+
+  const startDate = new Date(dateStr);
+  startDate.setHours(0, 0, 0, 0);
+  const endDate = new Date(startDate);
+  endDate.setDate(startDate.getDate() + 1);
+
   try {
-    if (!classId || !dateStr) {
-      log.warn("Missing required query params", { classId, dateStr });
-      return NextResponse.json(
-        { error: "Missing classId or date" },
-        { status: 400 }
-      );
-    }
-
-    const startDate = new Date(dateStr);
-    startDate.setHours(0, 0, 0, 0);
-
-    const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + 1);
-
-    log.debug("Date window", { startDate, endDate });
-
     const items = await db.attendance.findMany({
       where: {
         classId,
@@ -44,12 +42,7 @@ export async function GET(req: Request) {
       orderBy: { date: "asc" },
     });
 
-    log.info("Attendance fetched", {
-      count: items.length,
-      classId,
-      dateStr,
-    });
-
+    log.info("Attendance fetched", { count: items.length, classId, dateStr });
     return NextResponse.json({ success: true, data: items });
   } catch (err: any) {
     log.error("GET /attendance error", err);
@@ -69,19 +62,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    log.info("User attempting to mark attendance", {
-      userId: session.user.id,
-      role: session.user.role,
-    });
+    log.info("User attempting to mark attendance", { userId: session.user.id, role: session.user.role });
 
     if (!["ADMIN", "STAFF"].includes(session.user.role)) {
       log.warn("User does not have permission", session.user);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json().catch(() => null);
-    log.debug("Incoming payload", body);
+    const staff = await db.staff.findUnique({
+      where: { userId: session.user.id },
+    });
 
+    if (!staff) {
+      log.error("Staff record not found for user", session.user.id);
+      return NextResponse.json({ error: "Staff record not found" }, { status: 404 });
+    }
+
+    const body = await req.json().catch(() => null);
     if (!body || !body.classId || !Array.isArray(body.records)) {
       log.warn("Invalid payload", body);
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
@@ -90,11 +87,8 @@ export async function POST(req: Request) {
     const date = new Date(body.date || new Date());
     date.setHours(0, 0, 0, 0);
 
-    log.info("Normalized attendance date", { date });
-
     const created = await db.$transaction(async (tx) => {
       const results = [];
-
       for (const record of body.records) {
         const att = await tx.attendance.upsert({
           where: {
@@ -106,21 +100,15 @@ export async function POST(req: Request) {
             studentId: String(record.studentId),
             date,
             status: record.status,
-            markedById: session.user.id,
+            markedById: staff.id, // <-- Correct FK
           },
         });
-
         results.push(att);
       }
-
       return results;
     });
 
-    log.info("Attendance updated", {
-      count: created.length,
-      classId: body.classId,
-    });
-
+    log.info("Attendance updated", { count: created.length, classId: body.classId });
     return NextResponse.json({ success: true, data: created }, { status: 201 });
   } catch (err: any) {
     log.error("POST /attendance error", err);
