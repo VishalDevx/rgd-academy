@@ -26,24 +26,32 @@ export default function NewAnnouncementPage() {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-    try {
-      const res = await fetch("/api/announcements", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      router.push("/admin/announcements");
-    } catch (err: any) {
-      setError(err.message ?? "Failed");
-    } finally {
-      setSubmitting(false);
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setSubmitting(true);
+  setError("");
+
+  try {
+    const res = await fetch("/api/announcements", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+
+    if (!res.ok) throw new Error(await res.text());
+
+    router.push("/admin/announcements");
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      setError(err.message);
+    } else {
+      setError("Failed");
     }
-  };
+  } finally {
+    setSubmitting(false);
+  }
+};
+
 
   return (
     <div className="flex justify-center p-6">

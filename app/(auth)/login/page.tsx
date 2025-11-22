@@ -1,17 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import {
-  Mail,
-  Lock,
-  IdCard,
-  UserCog,
-  Users,
-  GraduationCap,
-  Quote,
-} from "lucide-react";
+import { Mail, Lock, IdCard, UserCog, Users, GraduationCap, Quote } from "lucide-react";
 import { StudyAnimation } from "@/app/components/StudyAnimation";
 
 type Role = "ADMIN" | "STAFF" | "STUDENT";
@@ -23,24 +15,16 @@ interface LoginForm {
 }
 
 export default function LoginPage() {
-  console.log("DATABASE_URL:", process.env.DATABASE_URL);
   const [role, setRole] = useState<Role>("STAFF");
-  const [form, setForm] = useState<LoginForm>({
-    email: "",
-    password: "",
-    aadharNo: "",
-  });
+  const [form, setForm] = useState<LoginForm>({ email: "", password: "", aadharNo: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showAdmin, setShowAdmin] = useState(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  useEffect(() => {
-    const allowAdmin = searchParams.get("admin") === "true";
-    setShowAdmin(allowAdmin);
-  }, [searchParams]);
+  // Derived state: no need for useEffect
+  const showAdmin = searchParams.get("admin") === "true";
 
   const handleRoleChange = (newRole: Role) => {
     setRole(newRole);
@@ -49,7 +33,7 @@ export default function LoginPage() {
   };
 
   const handleChange = (key: keyof LoginForm, value: string) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm(prev => ({ ...prev, [key]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,25 +86,21 @@ export default function LoginPage() {
     }
   };
 
-  const roles: { type: Role; label: string; icon: any }[] = [
-    ...(showAdmin
-      ? [{ type: "ADMIN" as Role, label: "Admin", icon: UserCog }]
-      : []),
-    { type: "STAFF", label: "Staff", icon: Users },
-    { type: "STUDENT", label: "Student", icon: GraduationCap },
+  // Properly typed icons and roles
+  const roles: { type: Role; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
+    ...(showAdmin ? [{ type: "ADMIN" as Role, label: "Admin", icon: UserCog }] : []),
+    { type: "STAFF" as Role, label: "Staff", icon: Users },
+    { type: "STUDENT" as Role, label: "Student", icon: GraduationCap },
   ];
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
       {/* Left Animation / Quote */}
-      <div className="hidden md:flex w-1/2 flex-col items-center justify-center relative bg-gradient-to-br from-blue-white to-white p-10">
+      <div className="hidden md:flex w-1/2 flex-col items-center justify-center relative bg-linear-to-br from-blue-white to-white p-10">
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')]"></div>
-
-        {/* ✅ Custom animated SVG component */}
         <div className="relative z-10">
           <StudyAnimation />
         </div>
-
         <div className="text-center mt-8 relative z-10">
           <Quote size={40} className="mx-auto mb-4 text-blue-400" />
           <h2 className="text-2xl font-semibold text-gray-700 leading-snug">
@@ -133,12 +113,10 @@ export default function LoginPage() {
       {/* Right Login Form */}
       <div className="flex-1 flex items-center justify-center px-6 py-10">
         <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl shadow-lg p-8">
-          <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">
-            🎓 School Portal
-          </h1>
+          <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">🎓 School Portal</h1>
 
           <div className="flex justify-center gap-3 mb-8 flex-wrap">
-            {roles.map((r) => (
+            {roles.map(r => (
               <button
                 key={r.type}
                 onClick={() => handleRoleChange(r.type)}
@@ -162,7 +140,7 @@ export default function LoginPage() {
                   type="email"
                   placeholder="Email"
                   value={form.email}
-                  onChange={(e) => handleChange("email", e.target.value)}
+                  onChange={e => handleChange("email", e.target.value)}
                   required
                   className="w-full pl-10 pr-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
                 />
@@ -174,7 +152,7 @@ export default function LoginPage() {
                   type="text"
                   placeholder="Aadhar Number"
                   value={form.aadharNo}
-                  onChange={(e) => handleChange("aadharNo", e.target.value)}
+                  onChange={e => handleChange("aadharNo", e.target.value)}
                   required
                   className="w-full pl-10 pr-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
                 />
@@ -187,15 +165,13 @@ export default function LoginPage() {
                 type="password"
                 placeholder="Password"
                 value={form.password}
-                onChange={(e) => handleChange("password", e.target.value)}
+                onChange={e => handleChange("password", e.target.value)}
                 required
                 className="w-full pl-10 pr-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
               />
             </div>
 
-            {error && (
-              <p className="text-red-500 text-center font-medium">{error}</p>
-            )}
+            {error && <p className="text-red-500 text-center font-medium">{error}</p>}
 
             <button
               type="submit"
