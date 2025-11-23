@@ -1,18 +1,25 @@
 import { getServerSession } from "next-auth";
 import { redirect, notFound } from "next/navigation";
-import { authConfig } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/app/lib/auth";
 import { db } from "@/lib/prisma";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import Link from "next/link";
 
-export default async function StaffClassDetailPage({ params }: any) {
-  const session = await getServerSession(authConfig);
+// PageProps with Promise-wrapped params
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function StaffClassDetailPage({ params }: PageProps) {
+  const { id } = await params; // await because params is a Promise
+
+  const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== "STAFF") redirect("/login");
 
   const cls = await db.class.findFirst({
-    where: { id: params.id, teacherId: session.user.id },
+    where: { id, teacherId: session.user.id },
     include: {
       students: { include: { user: true } },
       subjects: true,
@@ -26,41 +33,40 @@ export default async function StaffClassDetailPage({ params }: any) {
       <div>
         <h1 className="text-2xl font-bold">{cls.name}</h1>
         <p className="text-sm text-muted-foreground">
-          Grade {cls.grade} • Section {cls.section || "N/A"}
+          Grade {cls.grade} • Section {cls.section ?? "N/A"}
         </p>
       </div>
 
-      {/* Subjects */}
       <Card>
         <CardHeader>
           <CardTitle>Subjects</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          {cls.subjects.map((s) => (
-            <Badge key={s.id} variant="outline">{s.name}</Badge>
+          {cls.subjects.map((subject) => (
+            <Badge key={subject.id} variant="outline">
+              {subject.name}
+            </Badge>
           ))}
         </CardContent>
       </Card>
 
-      {/* Students List */}
       <Card>
         <CardHeader>
           <CardTitle>Students ({cls.students.length})</CardTitle>
         </CardHeader>
-        
         <CardContent className="space-y-2">
-          {cls.students.map((s) => (
+          {cls.students.map((student) => (
             <div
-              key={s.id}
+              key={student.id}
               className="flex items-center justify-between border rounded p-2"
             >
               <div>
-                <p className="font-medium">{s.user.name}</p>
-                <p className="text-xs text-muted-foreground">{s.user.email}</p>
+                <p className="font-medium">{student.user.name}</p>
+                <p className="text-xs text-muted-foreground">{student.user.email}</p>
               </div>
 
               <Link
-                href={`/staff/attendance/${cls.id}/${s.id}`}
+                href={`/staff/attendance/${cls.id}/${student.id}`}
                 className="text-blue-600 text-sm"
               >
                 Mark Attendance →

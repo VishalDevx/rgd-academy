@@ -2,22 +2,20 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
+type Role = "ADMIN" | "STAFF" | "STUDENT";
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Ignore static, API, and Next internals
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/api") ||
-    pathname.includes(".")
-  ) {
+  // Ignore static files, API, and Next internals
+  if (pathname.startsWith("/_next") || pathname.startsWith("/api") || pathname.includes(".")) {
     return NextResponse.next();
   }
 
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET! });
-  const role = token?.role ?? null;
+  const role: Role | "" = (token?.role as Role) ?? "";
 
-  // 🚫 If not authenticated and trying to access protected routes
+  // 🚫 Redirect unauthenticated users from protected routes
   const isProtectedRoute =
     pathname.startsWith("/admin") ||
     pathname.startsWith("/staff") ||
@@ -29,10 +27,8 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // ✅ Prevent infinite redirect loops
-  // Allow /login to render freely even if token exists
+  // ✅ Allow /login freely, redirect logged-in users
   if (pathname === "/login") {
-    // If token exists, redirect only if the referer is not already /login
     const referer = req.headers.get("referer") || "";
     if (token && !referer.includes("/login")) {
       const dashboard =
@@ -46,7 +42,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // 🔒 Role-based access control
+  // 🔒 Role-based access
   if (pathname.startsWith("/admin") && role !== "ADMIN") {
     return NextResponse.redirect(new URL("/unauthorized", req.url));
   }
@@ -62,7 +58,6 @@ export async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
-// ✅ Run middleware only on protected routes (no /login)
 export const config = {
   matcher: ["/admin/:path*", "/staff/:path*", "/student/:path*"],
 };

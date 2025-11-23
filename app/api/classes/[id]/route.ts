@@ -1,23 +1,30 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
-import { authConfig } from "@/app/api/auth/[...nextauth]/route";
-import getServerSession from "next-auth/next"
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  const item = await db.class.findUnique({ where: { id: params.id } });
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/lib/auth";
+
+// GET class by ID
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const item = await db.class.findUnique({ where: { id } });
   if (!item) return new NextResponse("Not found", { status: 404 });
   return NextResponse.json(item);
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-const session = await getServerSession(authConfig)
+// PATCH class (ADMIN only)
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const session = await getServerSession(authOptions);
+
   if (!session?.user || session.user.role !== "ADMIN") {
     return new NextResponse("Unauthorized", { status: 401 });
   }
-  const body = await req.json().catch(() => null);
+
+  const body = await request.json().catch(() => null);
   if (!body) return new NextResponse("Invalid payload", { status: 400 });
 
   const updated = await db.class.update({
-    where: { id: params.id },
+    where: { id },
     data: {
       name: body.name ?? undefined,
       grade: body.grade ?? undefined,
@@ -26,18 +33,19 @@ const session = await getServerSession(authConfig)
       teacherId: body.teacherId ?? undefined,
     },
   });
+
   return NextResponse.json(updated);
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
- const session = await getServerSession(authConfig)
+// DELETE class (ADMIN only)
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const session = await getServerSession(authOptions);
+
   if (!session?.user || session.user.role !== "ADMIN") {
     return new NextResponse("Unauthorized", { status: 401 });
   }
-  await db.class.delete({ where: { id: params.id } });
+
+  await db.class.delete({ where: { id } });
   return new NextResponse(null, { status: 204 });
 }
-
-
-
-

@@ -19,8 +19,9 @@ export default function NewExpensePage() {
       const res = await fetch("/api/expenses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
       if (!res.ok) throw new Error(await res.text());
       router.push("/admin/expenses");
-    } catch (err: any) {
-      setError(err.message ?? "Failed");
+    } catch (err:unknown) {
+     const message = err instanceof Error ? err.message :"Error saving the expense"
+     setError(message)
     } finally {
       setSubmitting(false);
     }

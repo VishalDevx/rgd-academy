@@ -2,6 +2,8 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+
 
 interface Student {
   id: string;
@@ -90,11 +92,14 @@ export default function StudentsTable({ students }: { students: Student[] }) {
               >
                 <td className="p-3">
                   {s.profileImg ? (
-                    <img
-                      src={s.profileImg}
-                      alt={s.user.name}
-                      className="w-10 h-10 rounded-full object-cover border border-gray-300"
-                    />
+                <Image
+  src={s.profileImg}
+  alt={s.user.name}
+  width={40}
+  height={40}
+  className="w-10 h-10 rounded-full object-cover border border-gray-300"
+/>
+
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs">
                       N/A

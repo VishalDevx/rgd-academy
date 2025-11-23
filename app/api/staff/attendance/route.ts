@@ -1,26 +1,50 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
+import type { AttendanceStatus } from "@prisma/client";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") return res.status(405).end();
+interface AttendanceRecord {
+  studentId: string;
+  status: AttendanceStatus;
+}
 
-  const { classId, date, records, staffId } = req.body;
+interface AttendanceBody {
+  classId: string;
+  date: string;
+  staffId: string;
+  records: AttendanceRecord[];
+}
 
-  if (!classId || !date || !records || !staffId) {
-    return res.status(400).json({ message: "Missing fields" });
+export async function POST(req: NextRequest) {
+  const body: AttendanceBody = await req.json().catch(() => null);
+  if (
+    !body ||
+    !body.classId ||
+    !body.date ||
+    !body.staffId ||
+    !Array.isArray(body.records) ||
+    body.records.length === 0
+  ) {
+    return NextResponse.json({ message: "Invalid payload" }, { status: 400 });
   }
 
-  // Avoid duplicate attendance for the same student/date
-  await db.attendance.createMany({
-    data: records.map((r: any) => ({
-      classId,
-      studentId: r.studentId,
-      date,
-      status: r.status,
-      markedById: staffId,
-    })),
-    skipDuplicates: true,
-  });
+  try {
+    await db.attendance.createMany({
+      data: body.records.map((r) => ({
+        classId: body.classId,
+        studentId: r.studentId,
+        date: new Date(body.date),
+        status: r.status,
+        markedById: body.staffId,
+      })),
+      skipDuplicates: true,
+    });
 
-  return res.status(200).json({ message: "Attendance saved" });
+    return NextResponse.json({ message: "Attendance saved" });
+  } catch (err: unknown) {
+    console.error("Attendance save error:", err);
+    return NextResponse.json(
+      { message: err instanceof Error ? err.message : "Internal Server Error" },
+      { status: 500 }
+    );
+  }
 }

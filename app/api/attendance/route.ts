@@ -1,30 +1,43 @@
 // app/api/attendance/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
-import { authConfig } from "../auth/[...nextauth]/route";
-import {getServerSession} from "next-auth/next";
+import { authOptions } from "@/app/lib/auth";
+import { getServerSession } from "next-auth/next";
 import { logger } from "@/app/lib/logger";
+import type { AttendanceStatus } from "@prisma/client";
 
 const log = logger("attendance-route");
 
-// ------------------ GET ATTENDANCE ------------------
-export async function GET(req: Request) {
-  const cookies = req.headers.get("cookie");
-log.info("Cookies in request", cookies);
+// ------------------ TYPES ------------------
 
-  const url = new URL(req.url);
+interface AttendanceRecordInput {
+  studentId: string;
+  status: AttendanceStatus;
+}
+
+
+interface RawAttendanceRecord {
+  studentId: unknown;
+  status: unknown;
+}
+
+// ------------------ GET ATTENDANCE ------------------
+
+export async function GET(_request: NextRequest) {
+  const url = new URL(_request.url);
   const classId = url.searchParams.get("classId");
   const dateStr = url.searchParams.get("date");
 
-  log.info("GET /attendance called", { classId, dateStr });
-
   if (!classId || !dateStr) {
-    log.warn("Missing required query params", { classId, dateStr });
-    return NextResponse.json({ error: "Missing classId or date" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing classId or date" },
+      { status: 400 }
+    );
   }
 
   const startDate = new Date(dateStr);
   startDate.setHours(0, 0, 0, 0);
+
   const endDate = new Date(startDate);
   endDate.setDate(startDate.getDate() + 1);
 
@@ -42,30 +55,20 @@ log.info("Cookies in request", cookies);
       orderBy: { date: "asc" },
     });
 
-    log.info("Attendance fetched", { count: items.length, classId, dateStr });
     return NextResponse.json({ success: true, data: items });
-  } catch (err: any) {
+  } catch (err: unknown) {
     log.error("GET /attendance error", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
 
 // ------------------ SAVE/UPDATE ATTENDANCE ------------------
-export async function POST(req: Request) {
-  log.info("POST /attendance called");
 
+export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
 
-    if (!session?.user) {
-      log.warn("Unauthorized access");
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    log.info("User attempting to mark attendance", { userId: session.user.id, role: session.user.role });
-
-    if (!["ADMIN", "STAFF"].includes(session.user.role)) {
-      log.warn("User does not have permission", session.user);
+    if (!session?.user || !["ADMIN", "STAFF"].includes(session.user.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -74,43 +77,73 @@ export async function POST(req: Request) {
     });
 
     if (!staff) {
-      log.error("Staff record not found for user", session.user.id);
-      return NextResponse.json({ error: "Staff record not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Staff record not found" },
+        { status: 404 }
+      );
     }
 
-    const body = await req.json().catch(() => null);
-    if (!body || !body.classId || !Array.isArray(body.records)) {
-      log.warn("Invalid payload", body);
-      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    // Parse payload
+    const raw = await request.json().catch(() => null);
+
+    if (!raw || typeof raw.classId !== "string" || !Array.isArray(raw.records)) {
+      return NextResponse.json(
+        { error: "Invalid payload" },
+        { status: 400 }
+      );
     }
 
-    const date = new Date(body.date || new Date());
+    // Validate and normalize each record
+    const records: AttendanceRecordInput[] = raw.records.map(
+      (r: RawAttendanceRecord) => {
+        if (typeof r.studentId !== "string") {
+          throw new Error("Invalid studentId");
+        }
+
+        const status = String(r.status).toUpperCase();
+        if (!["PRESENT", "ABSENT", "LEAVE"].includes(status)) {
+          throw new Error(`Invalid attendance status: ${r.status}`);
+        }
+
+        return {
+          studentId: r.studentId,
+          status: status as AttendanceStatus,
+        };
+      }
+    );
+
+    const date = new Date(raw.date || new Date());
     date.setHours(0, 0, 0, 0);
 
     const created = await db.$transaction(async (tx) => {
-      const results = [];
-      for (const record of body.records) {
+      const results: typeof records = [];
+
+      for (const record of records) {
         const att = await tx.attendance.upsert({
           where: {
-            studentId_date: { studentId: String(record.studentId), date },
+            studentId_date: {
+              studentId: record.studentId,
+              date,
+            },
           },
           update: { status: record.status },
           create: {
-            classId: String(body.classId),
-            studentId: String(record.studentId),
+            classId: raw.classId,
+            studentId: record.studentId,
             date,
             status: record.status,
-            markedById: staff.id, // <-- Correct FK
+            markedById: staff.id,
           },
         });
-        results.push(att);
+
+        results.push({ studentId: att.studentId, status: att.status });
       }
+
       return results;
     });
 
-    log.info("Attendance updated", { count: created.length, classId: body.classId });
     return NextResponse.json({ success: true, data: created }, { status: 201 });
-  } catch (err: any) {
+  } catch (err: unknown) {
     log.error("POST /attendance error", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }

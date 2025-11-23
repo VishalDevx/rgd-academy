@@ -1,13 +1,13 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authConfig } from "@/app/api/auth/[...nextauth]/route";
 import { db } from "@/lib/prisma";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
+import { authOptions } from "@/app/lib/auth";
 
 export default async function StaffClassesPage() {
-  const session = await getServerSession(authConfig);
+  const session = await getServerSession(authOptions);
 
   if (!session?.user || session.user.role !== "STAFF") {
     redirect("/login");

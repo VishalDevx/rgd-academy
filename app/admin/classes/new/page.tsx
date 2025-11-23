@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select";
+import { toast } from "sonner";
 
 type Staff = {
   id: string;
@@ -103,8 +104,11 @@ export default function NewClassPage() {
       if (!res.ok) throw new Error(await res.text());
 
       router.push("/admin/classes");
-    } catch (err: any) {
-      setError(err.message || "Failed");
+    } catch (err: unknown) {
+        const message =
+    err instanceof Error ? err.message : "Error saving class";
+
+  toast.error(message);
     } finally {
       setSubmitting(false);
     }

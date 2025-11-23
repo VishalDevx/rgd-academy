@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
-import { authConfig } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/app/lib/auth";
 import { createClient } from "@supabase/supabase-js";
+import type { Gender } from "@prisma/client";
 
 export const runtime = "nodejs";
 
@@ -12,100 +13,95 @@ const supabase = createClient(
 );
 
 export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: studentId } = await params;
+
   try {
-    const session = await getServerSession(authConfig);
+    // ---------------- AUTH CHECK ----------------
+    const session = await getServerSession(authOptions);
     if (!session?.user || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const studentId = params.id;
     const form = await req.formData();
 
-    // Fields (optional except critical ones)
-    const name = form.get("name") as string | null;
-    const email = form.get("email") as string | null;
-    const fatherName = form.get("fatherName") as string | null;
-    const motherName = form.get("motherName") as string | null;
-    const occupation = form.get("occupation") as string | null;
-    const religion = form.get("religion") as string | null;
-    const caste = form.get("caste") as string | null;
-    const udiseCode = form.get("udiseCode") as string | null;
-    const contactNo = form.get("contactNo") as string | null;
-    const address = form.get("address") as string | null;
-    const gender = form.get("gender") as string | null;
-    const dob = form.get("dob") as string | null;
+    // ---------------- FIELD PARSERS ----------------
+    const getStringField = (key: string): string | undefined => {
+      const value = form.get(key);
+      return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
+    };
 
-    const file = form.get("file") as File | null;
+    const dobRaw = getStringField("dob");
+    const genderRaw = getStringField("gender");
 
+    const genderEnum: Gender | undefined =
+      genderRaw && ["MALE", "FEMALE", "OTHER"].includes(genderRaw.toUpperCase())
+        ? (genderRaw.toUpperCase() as Gender)
+        : undefined;
+
+    // ---------------- IMAGE UPLOAD ----------------
     let profileImgUrl: string | undefined;
-
-    if (file) {
-      const ext = file.name.split(".").pop();
+    const file = form.get("file");
+    if (file instanceof File && file.size > 0) {
+      const ext = file.name.split(".").pop() || "jpg";
       const fileName = `students/${Date.now()}.${ext}`;
-
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
+      const buffer = Buffer.from(await file.arrayBuffer());
 
       const { error: uploadError } = await supabase.storage
         .from("rgd-school")
-        .upload(fileName, buffer, {
-          contentType: file.type,
-        });
+        .upload(fileName, buffer, { contentType: file.type });
 
       if (uploadError) {
-        return NextResponse.json(
-          { error: "Image upload failed" },
-          { status: 500 }
-        );
+        console.error("Supabase upload error:", uploadError);
+        return NextResponse.json({ error: "Image upload failed" }, { status: 500 });
       }
 
-      const { data } = supabase.storage
-        .from("rgd-school")
-        .getPublicUrl(fileName);
-
+      const { data } = supabase.storage.from("rgd-school").getPublicUrl(fileName);
       profileImgUrl = data.publicUrl;
     }
 
-    const updated = await db.student.update({
+    // ---------------- UPDATE STUDENT ----------------
+    const updatedStudent = await db.student.update({
       where: { id: studentId },
       data: {
-        admissionNo: form.get("admissionNo")?.toString(),
-        rollNumber: form.get("rollNumber")?.toString(),
-        classId: form.get("classId")?.toString() ?? undefined,
-        dob: dob ? new Date(dob) : undefined,
-        gender: gender ? (gender.toUpperCase() as any) : undefined,
-        address: address ?? undefined,
-        profileImg: profileImgUrl ?? undefined,
-
-        fatherName: fatherName ?? undefined,
-        motherName: motherName ?? undefined,
-        occupation: occupation ?? undefined,
-        religion: religion ?? undefined,
-        caste: caste ?? undefined,
-        udiseCode: udiseCode ?? undefined,
-        contactNo: contactNo ?? undefined,
+        admissionNo: getStringField("admissionNo"),
+        rollNumber: getStringField("rollNumber"),
+        classId: getStringField("classId"),
+        dob: dobRaw ? new Date(dobRaw) : undefined,
+        gender: genderEnum,
+        address: getStringField("address"),
+        profileImg: profileImgUrl,
+        fatherName: getStringField("fatherName"),
+        motherName: getStringField("motherName"),
+        occupation: getStringField("occupation"),
+        religion: getStringField("religion"),
+        caste: getStringField("caste"),
+        udiseCode: getStringField("udiseCode"),
+        contactNo: getStringField("contactNo"),
       },
     });
 
-    // Update user table separately
+    // ---------------- UPDATE CONNECTED USER ----------------
+    const name = getStringField("name");
+    const email = getStringField("email");
+
     if (name || email) {
       await db.user.update({
-        where: { id: updated.userId },
+        where: { id: updatedStudent.userId },
         data: {
-          name: name ?? undefined,
-          email: email?.toLowerCase() ?? undefined,
+          name,
+          email: email ? email.toLowerCase() : undefined,
         },
       });
     }
 
-    return NextResponse.json(updated, { status: 200 });
-  } catch (err: any) {
+    return NextResponse.json(updatedStudent, { status: 200 });
+  } catch (err: unknown) {
     console.error("Error updating student:", err);
     return NextResponse.json(
-      { error: err.message || "Internal Server Error" },
+      { error: err instanceof Error ? err.message : "Internal Server Error" },
       { status: 500 }
     );
   }

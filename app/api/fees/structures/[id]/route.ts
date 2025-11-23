@@ -1,20 +1,23 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
-import { authConfig } from "@/app/api/auth/[...nextauth]/route";
 import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/lib/auth";
+import { promises } from "dns";
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_request: NextRequest, { params }: { params:Promise<{ id: string }> }) {
+  const {id} = await params;
   const item = await db.feeStructure.findUnique({
-    where: { id: params.id },
+    where: { id: (await params).id },
     include: { class: true },
   });
   if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(item);
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authConfig);
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  const {id} = await params;
   if (!session?.user || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -23,7 +26,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (!body) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
 
   const updated = await db.feeStructure.update({
-    where: { id: params.id },
+    where: { id: (await params).id },
     data: {
       name: body.name ?? undefined,
       classId: body.classId ?? undefined,
@@ -43,12 +46,13 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   return NextResponse.json(updated);
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authConfig);
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const {id} = await params
+  const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  await db.feeStructure.delete({ where: { id: params.id } });
+  await db.feeStructure.delete({ where: { id: (await params).id } });
   return NextResponse.json({ success: true }, { status: 204 });
 }

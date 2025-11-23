@@ -60,23 +60,27 @@ export default function AdminAttendancePage() {
         status: records[s.id] || "PRESENT",
       })),
     };
+try {
+  const res = await fetch("/api/attendance", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
 
-    try {
-      const res = await fetch("/api/attendance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+  if (!res.ok) {
+    throw new Error("Failed to save attendance");
+  }
 
-      if (!res.ok) throw new Error("Failed to save attendance");
+  toast.success("Attendance saved successfully!");
+} catch (err: unknown) {
+  const message =
+    err instanceof Error ? err.message : "Error saving attendance";
 
-      toast.success("Attendance saved successfully!");
-    } catch (err: any) {
-      toast.error(err.message || "Error saving attendance");
-    } finally {
-      setSaving(false);
-    }
-  };
+  toast.error(message);
+} finally {
+  setSaving(false);
+}
+  }
 
   return (
     <div className="p-6 space-y-6">

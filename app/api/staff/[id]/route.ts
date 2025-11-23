@@ -1,36 +1,71 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
-import { authConfig } from "@/app/api/auth/[...nextauth]/route";
-import getServerSession from "next-auth/next"
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/lib/auth";
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  const item = await db.staff.findUnique({ where: { id: params.id }, include: { user: true } } as any);
-  if (!item) return new NextResponse("Not found", { status: 404 });
-  return NextResponse.json(item as any);
+interface StaffPatchBody {
+  designation?: string;
+  salary?: number;
+  joinDate?: string;
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authConfig);
-  if (!session?.user || session.user.role !== "ADMIN") return new NextResponse("Unauthorized", { status: 401 });
-  const body = await req.json().catch(() => null);
+// GET staff by ID
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+
+  const item = await db.staff.findUnique({
+    where: { id },
+    include: { user: true },
+  });
+
+  if (!item) return new NextResponse("Not found", { status: 404 });
+
+  return NextResponse.json(item);
+}
+
+// PATCH staff by ID
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+
+  const session = await getServerSession(authOptions);
+  if (!session?.user || session.user.role !== "ADMIN") {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+
+  const body = (await request.json().catch(() => null)) as StaffPatchBody | null;
   if (!body) return new NextResponse("Invalid payload", { status: 400 });
 
   const updated = await db.staff.update({
-    where: { id: params.id },
+    where: { id },
     data: {
-      designation: body.designation ?? undefined,
-      salary: body.salary ?? undefined,
+      designation: body.designation,
+      salary: body.salary,
       joinDate: body.joinDate ? new Date(body.joinDate) : undefined,
     },
   });
+
   return NextResponse.json(updated);
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authConfig);
-  if (!session?.user || session.user.role !== "ADMIN") return new NextResponse("Unauthorized", { status: 401 });
-  await db.staff.delete({ where: { id: params.id } });
+// DELETE staff by ID
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+
+  const session = await getServerSession(authOptions);
+  if (!session?.user || session.user.role !== "ADMIN") {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+
+  await db.staff.delete({ where: { id } });
+
   return new NextResponse(null, { status: 204 });
 }
-
-

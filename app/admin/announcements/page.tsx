@@ -2,20 +2,25 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { getServerSession } from "next-auth/next";
-import { authConfig } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
 import { Card, CardHeader, CardTitle, CardContent } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
+import { Announcement } from "@prisma/client";
+import { authOptions } from "@/app/lib/auth";
+
+type AnnouncementWithRoles = Announcement & {
+  visibleRoles: { role: string }[];
+};
 
 export default async function AdminAnnouncementsPage() {
-  const session = await getServerSession(authConfig);
+  const session = await getServerSession(authOptions);
 
   if (!session?.user || session.user.role !== "ADMIN") {
     redirect("/login");
   }
 
-  const items = await db.announcement.findMany({
+  const items: AnnouncementWithRoles[] = await db.announcement.findMany({
     include: { visibleRoles: true },
     orderBy: { createdAt: "desc" },
   });
@@ -30,7 +35,7 @@ export default async function AdminAnnouncementsPage() {
       </div>
 
       <div className="space-y-4">
-        {items.map((a: any) => (
+        {items.map((a) => (
           <Card key={a.id} className="shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg font-semibold">{a.title}</CardTitle>
@@ -38,10 +43,12 @@ export default async function AdminAnnouncementsPage() {
                 {new Date(a.createdAt).toLocaleString()}
               </span>
             </CardHeader>
+
             <CardContent>
               <p className="text-sm text-gray-700">{a.content}</p>
+
               <p className="text-xs text-muted-foreground mt-2">
-                Visible to: {a.visibleRoles.map((v: any) => v.role).join(", ") || "All"}
+                Visible to: {a.visibleRoles.map((v) => v.role).join(", ") || "All"}
               </p>
             </CardContent>
           </Card>

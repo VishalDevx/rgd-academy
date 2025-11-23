@@ -14,48 +14,74 @@ import { Button } from "@/app/components/ui/button";
 import { Alert, AlertDescription } from "@/app/components/ui/alert";
 import { Checkbox } from "@/app/components/ui/checkbox";
 
+// ---------------------------------------------
+// TYPES (STOP USING unknown[] OR any)
+// ---------------------------------------------
+type ClassItem = {
+  id: string;
+  name: string;
+  grade: string;
+  section: string | null;
+};
+
+type StaffForm = {
+  name: string;
+  email: string;
+  adharNo: string;
+  designation: string;
+  salary: string;
+  classIds: string[];
+};
+
 export default function NewStaffPage() {
   const router = useRouter();
 
-  const [classes, setClasses] = useState<any[]>([]);
+  const [classes, setClasses] = useState<ClassItem[]>([]);
   const [loadingClasses, setLoadingClasses] = useState(true);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<StaffForm>({
     name: "",
     email: "",
     adharNo: "",
     designation: "",
     salary: "",
-    classIds: [] as string[],
+    classIds: [],
   });
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const onChange = (k: keyof typeof form, v: any) =>
-    setForm((f) => ({ ...f, [k]: v }));
+  const onChange = <K extends keyof StaffForm>(key: K, value: StaffForm[K]) => {
+    setForm((f) => ({ ...f, [key]: value }));
+  };
 
-  // -------------------------
-  // Fetch classes for dropdown
-  // -------------------------
+  // ---------------------------------------------
+  // Fetch classes
+  // ---------------------------------------------
   useEffect(() => {
     const load = async () => {
       try {
         const res = await fetch("/api/classes");
-        const data = await res.json();
-        setClasses(data.data ?? []);
+        const json = await res.json();
+
+        if (Array.isArray(json.data)) {
+          setClasses(json.data as ClassItem[]);
+        } else {
+          setClasses([]);
+        }
       } catch (err) {
-        console.error(err);
+        console.error("Failed loading classes:", err);
       } finally {
         setLoadingClasses(false);
       }
     };
+
     load();
   }, []);
 
-  // -------------------------
-  // Submit
-  // -------------------------
+  // ---------------------------------------------
+  // Submit Staff
+  // ---------------------------------------------
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -68,15 +94,24 @@ export default function NewStaffPage() {
         body: JSON.stringify(form),
       });
 
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || "Failed creating staff");
+      }
+
       router.push("/admin/staff");
-    } catch (err: any) {
-      setError(err.message ?? "Failed");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Unexpected error occurred";
+      setError(message);
     } finally {
       setSubmitting(false);
     }
   };
 
+  // ---------------------------------------------
+  // UI
+  // ---------------------------------------------
   return (
     <div className="flex justify-center py-8">
       <Card className="w-full max-w-2xl shadow-md border border-blue-200">
@@ -86,8 +121,7 @@ export default function NewStaffPage() {
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            
-            {/* FORM FIELDS */}
+            {/* FORM SECTION */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-1">
                 <Label>Name</Label>
@@ -160,7 +194,7 @@ export default function NewStaffPage() {
                         }}
                       />
                       <span>
-                        {cls.name} ({cls.grade} - {cls.section})
+                        {cls.name} ({cls.grade} - {cls.section ?? "-"})
                       </span>
                     </label>
                   ))}
@@ -174,6 +208,7 @@ export default function NewStaffPage() {
               </Alert>
             )}
 
+            {/* BUTTONS */}
             <div className="flex justify-end gap-3">
               <Button variant="outline" type="button" onClick={() => router.back()}>
                 Cancel

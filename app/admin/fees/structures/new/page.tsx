@@ -81,8 +81,8 @@ useEffect(() => {
 
       toast.success("Fee structure created successfully!");
       router.push("/admin/fees");
-    } catch (err: any) {
-      const msg = err.message || "Failed to create fee structure";
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message :"Error in the fee saving";
       setError(msg);
       toast.error(msg);
     } finally {

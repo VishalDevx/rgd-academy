@@ -1,11 +1,11 @@
 import StaffAttendanceUI from "@/app/components/StaffAttendanceUI";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authConfig } from "@/app/api/auth/[...nextauth]/route";
 import { db } from "@/lib/prisma";
+import { authOptions } from "@/app/lib/auth";
 
 export default async function StaffAttendancePage() {
-  const session = await getServerSession(authConfig);
+  const session = await getServerSession(authOptions);
 
   if (!session?.user || session.user.role !== "STAFF") {
     redirect("/login");

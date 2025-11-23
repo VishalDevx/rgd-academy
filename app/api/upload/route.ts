@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authConfig } from "../auth/[...nextauth]/route";
 import { supabase } from "@/app/lib/supabaseClient";
+import { authOptions } from "@/app/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request) {
-  const session = await getServerSession(authConfig);
+export async function POST(req: NextRequest) {
+  const session = await getServerSession(authOptions);
   if (!session?.user || !["ADMIN", "STAFF"].includes(session.user.role)) {
     return new NextResponse("Unauthorized", { status: 401 });
   }

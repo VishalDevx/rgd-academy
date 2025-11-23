@@ -1,19 +1,21 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
-import { authConfig } from "../auth/[...nextauth]/route";
+import { authOptions } from "@/app/lib/auth";
 import { createClient } from "@supabase/supabase-js";
+
+export const dynamic = "force-dynamic";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-export const dynamic = "force-dynamic";
+type Gender = "MALE" | "FEMALE" | "OTHER" | null;
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -25,13 +27,13 @@ export async function POST(req: Request) {
     const adharNo = form.get("adharNo") as string | null;
     const admissionNo = form.get("admissionNo") as string | null;
     const rollNumber = form.get("rollNumber") as string | null;
+
     const dob = form.get("dob") as string | null;
     const gender = form.get("gender") as string | null;
     const address = form.get("address") as string | null;
     const classId = form.get("classId") as string | null;
     const passwordHash = form.get("passwordHash") as string | null;
 
-    // 🔥 Newly added fields
     const fatherName = form.get("fatherName") as string | null;
     const motherName = form.get("motherName") as string | null;
     const occupation = form.get("occupation") as string | null;
@@ -50,7 +52,6 @@ export async function POST(req: Request) {
       }
     }
 
-    // Upload image
     let profileImgUrl = "";
     if (file) {
       const bytes = await file.arrayBuffer();
@@ -68,7 +69,6 @@ export async function POST(req: Request) {
         });
 
       if (uploadError) {
-        console.error("Upload error", uploadError);
         return NextResponse.json(
           { error: "Image upload failed" },
           { status: 500 }
@@ -88,11 +88,16 @@ export async function POST(req: Request) {
         data: {
           name: name!,
           email: email!.toLowerCase(),
-          role: "STUDENT",
           adharNo: adharNo!,
+          role: "STUDENT",
           passwordHash,
         },
       });
+
+      const parsedGender: Gender =
+        gender && ["MALE", "FEMALE", "OTHER"].includes(gender.toUpperCase())
+          ? (gender.toUpperCase() as Gender)
+          : null;
 
       const student = await tx.student.create({
         data: {
@@ -101,17 +106,14 @@ export async function POST(req: Request) {
           rollNumber: rollNumber!,
           classId: classId || null,
           dob: dob ? new Date(dob) : null,
-          gender:
-            gender && ["MALE", "FEMALE", "OTHER"].includes(gender.toUpperCase())
-              ? (gender.toUpperCase() as any)
-              : null,
+          gender: parsedGender,
           address,
           profileImg: profileImgUrl,
-          fatherName:fatherName,
-          motherName:motherName,
-          occupation: occupation!,
-          religion: religion!,
-          caste: caste!,
+          fatherName,
+          motherName,
+          occupation: occupation ?? undefined,
+          religion: religion ?? undefined,
+          caste: caste ?? undefined,
           udiseCode,
           contactNo,
         },
@@ -121,45 +123,28 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(created, { status: 201 });
-  } catch (err: any) {
-    console.error("Error creating student:", err);
-    return NextResponse.json(
-      { error: err.message || "Internal Server Error" },
-      { status: 500 }
-    );
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Internal Server Error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 export async function GET() {
   try {
-    const session = await getServerSession(authConfig);
+    const session = await getServerSession(authOptions);
     if (!session?.user || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const students = await db.student.findMany({
-      orderBy: { admissionDate: "desc" }, // FIXED
+      orderBy: { admissionDate: "desc" },
       include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            adharNo: true,
-            role: true,
-            createdAt: true,
-          },
-        },
-        class: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+        user: true,
+        class: true,
       },
     });
 
-    const data = students.map((s) => ({
+    const data = students.map((s: typeof students[number]) => ({
       id: s.id,
       admissionNo: s.admissionNo,
       rollNumber: s.rollNumber,
@@ -168,17 +153,14 @@ export async function GET() {
       gender: s.gender,
       address: s.address,
       profileImg: s.profileImg,
-      class: s.class, // exists now
-      user: s.user,   // exists now
+      class: s.class,
+      user: s.user,
       active: s.active,
     }));
 
     return NextResponse.json(data, { status: 200 });
-  } catch (err: any) {
-    console.error("GET students error:", err);
-    return NextResponse.json(
-      { error: err.message || "Internal Server Error" },
-      { status: 500 }
-    );
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Internal Server Error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

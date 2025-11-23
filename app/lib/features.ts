@@ -12,7 +12,9 @@ export type FeatureKey =
   | "multiCampus"
   | "multiLanguage";
 
-const defaultTierMatrix: Record<string, FeatureKey[]> = {
+export type Tier = "BASIC" | "PRO" | "ENTERPRISE";
+
+const defaultTierMatrix: Record<Tier, FeatureKey[]> = {
   BASIC: ["events"],
   PRO: ["library", "transport", "hostel", "events", "advancedReports", "mobileApps"],
   ENTERPRISE: [
@@ -29,19 +31,26 @@ const defaultTierMatrix: Record<string, FeatureKey[]> = {
   ],
 };
 
-export async function getSchoolSettings() {
-  // For now we assume single-tenant; extend to multi-tenant later
-  const settings = await db.schoolSettings.findFirst();
-  return settings;
+export interface SchoolSettings {
+  id: string;
+  tier: Tier;
+  featureFlags?: {
+    overrides?: FeatureKey[];
+  } | null;
+  // Add other fields if needed
 }
 
-export async function isFeatureEnabled(feature: FeatureKey) {
+export async function getSchoolSettings(): Promise<SchoolSettings | null> {
+  return db.schoolSettings.findFirst() as Promise<SchoolSettings | null>;
+}
+
+export async function isFeatureEnabled(feature: FeatureKey): Promise<boolean> {
   const settings = await getSchoolSettings();
-  const tier = settings?.tier ?? "BASIC";
-  const overrides = (settings?.featureFlags as any)?.overrides as FeatureKey[] | undefined;
-  if (overrides && overrides.includes(feature)) return true;
-  const allowed = defaultTierMatrix[tier] ?? [];
-  return allowed.includes(feature);
+  const tier: Tier = settings?.tier ?? "BASIC";
+
+  const overrides: FeatureKey[] = settings?.featureFlags?.overrides ?? [];
+
+  if (overrides.includes(feature)) return true;
+
+  return defaultTierMatrix[tier].includes(feature);
 }
-
-

@@ -2,7 +2,6 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/prisma";
-import { authConfig } from "@/app/api/auth/[...nextauth]/route";
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
@@ -14,11 +13,12 @@ import {
   TableBody,
   TableCell,
 } from "@/app/components/ui/table";
+import { authOptions } from "@/app/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminClassesPage() {
-  const session = await getServerSession(authConfig);
+  const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
   const classes = await db.class.findMany({

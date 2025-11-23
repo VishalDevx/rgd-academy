@@ -1,28 +1,47 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
-import { authConfig } from "@/app/api/auth/[...nextauth]/route";
-import getServerSession from "next-auth/next"
-export async function GET() {
-  const items = await db.expense.findMany({ include: { createdBy: true }, orderBy: { date: "desc" } } as any);
-  return NextResponse.json(items as any);
+import { getServerSession } from "next-auth";
+import { TransactionType } from "@prisma/client";
+import { authOptions } from "@/app/lib/auth";
+
+interface CreateExpenseBody {
+  title: string;
+  description?: string | null;
+  amount: number | string;
+  date?: string | null;
+  transaction?: TransactionType;  // allow user to send it
 }
 
-export async function POST(req: Request) {
-  const session = await getServerSession(authConfig);
-  if (!session?.user || session.user.role !== "ADMIN") return new NextResponse("Unauthorized", { status: 401 });
-  const b = await req.json().catch(() => null);
-  if (!b || !b.title || b.amount == null) return new NextResponse("Invalid payload", { status: 400 });
+export async function POST(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user || session.user.role !== "ADMIN") {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+
+  const body: CreateExpenseBody | null = await req.json().catch(() => null);
+
+  if (!body || !body.title || body.amount == null) {
+    return new NextResponse("Invalid payload", { status: 400 });
+  }
+
+  const normalizedAmount = Number(body.amount);
+  if (Number.isNaN(normalizedAmount)) {
+    return new NextResponse("Invalid amount", { status: 400 });
+  }
 
   const created = await db.expense.create({
     data: {
-      title: String(b.title),
-      description: b.description ? String(b.description) : null,
-      amount: String(Number(b.amount).toFixed(2)) as any,
-      date: b.date ? new Date(b.date) : undefined,
+      title: body.title,
+      description: body.description ?? null,
+      amount: normalizedAmount.toFixed(2),
+
+      transaction: body.transaction ?? TransactionType.DEBIT, // default
+
+      date: body.date ? new Date(body.date) : new Date(),
       createdById: session.user.id,
     },
   });
+
   return NextResponse.json(created, { status: 201 });
 }
-
-

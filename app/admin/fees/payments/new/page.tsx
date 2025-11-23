@@ -72,10 +72,11 @@ export default function NewFeePaymentPage() {
 
       toast.success("Payment recorded successfully!");
       router.push("/admin/fees");
-    } catch (err: any) {
-      const msg = err.message || "Failed to save payment";
-      setError(msg);
-      toast.error(msg);
+    } catch (err: unknown) {
+     const message =
+    err instanceof Error ? err.message : "Error saving FeePayments";
+
+  toast.error(message);
     } finally {
       setSubmitting(false);
     }

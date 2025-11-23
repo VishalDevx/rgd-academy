@@ -1,14 +1,14 @@
 import { getServerSession } from "next-auth/next";
-import { authConfig } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/prisma";
 import StudentsTable from "./StudentTables";
+import { authOptions } from "@/app/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminStudentsPage() {
-  const session = await getServerSession(authConfig);
+  const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
   const students = await db.student.findMany({

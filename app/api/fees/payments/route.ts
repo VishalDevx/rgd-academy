@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
-import { authConfig } from "@/app/api/auth/[...nextauth]/route";
 import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/lib/auth";
 
 export async function GET() {
   const items = await db.feePayment.findMany({
@@ -12,8 +12,8 @@ export async function GET() {
   return NextResponse.json(items);
 }
 
-export async function POST(req: Request) {
-  const session = await getServerSession(authConfig);
+export async function POST(req: NextRequest) {
+  const session = await getServerSession(authOptions);
   if (!session?.user || !["ADMIN", "STAFF"].includes(session.user.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -28,6 +28,7 @@ export async function POST(req: Request) {
   if (!fee) return NextResponse.json({ error: "Fee structure not found" }, { status: 404 });
 
   const amountPaid = Number(body.amountPaid);
+  const remainAmount = Math.max(Number(fee.total) - amountPaid, 0);
   let status: "PENDING" | "PARTIAL" | "PAID" = "PENDING";
   if (amountPaid >= Number(fee.total)) status = "PAID";
   else if (amountPaid > 0) status = "PARTIAL";
@@ -38,6 +39,7 @@ export async function POST(req: Request) {
       feeStructureId: String(body.feeStructureId),
       amountPaid: new Prisma.Decimal(amountPaid.toFixed(2)),
       status,
+       remainAmount: new Prisma.Decimal(remainAmount.toFixed(2)),
       paymentDate: body.paymentDate ? new Date(body.paymentDate) : new Date(),
       razorpayOrder: body.razorpayOrder ?? null,
       razorpayPaymentId: body.razorpayPaymentId ?? null,

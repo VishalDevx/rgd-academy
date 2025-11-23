@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -23,7 +25,7 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Derived state: no need for useEffect
+  // Show admin role if query param ?admin=true
   const showAdmin = searchParams.get("admin") === "true";
 
   const handleRoleChange = (newRole: Role) => {
@@ -86,12 +88,15 @@ export default function LoginPage() {
     }
   };
 
-  // Properly typed icons and roles
-  const roles: { type: Role; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
-    ...(showAdmin ? [{ type: "ADMIN" as Role, label: "Admin", icon: UserCog }] : []),
-    { type: "STAFF" as Role, label: "Staff", icon: Users },
-    { type: "STUDENT" as Role, label: "Student", icon: GraduationCap },
-  ];
+const ROLE_ADMIN: Role = "ADMIN";
+const ROLE_STAFF: Role = "STAFF";
+const ROLE_STUDENT: Role = "STUDENT";
+
+const roles = [
+  ...(showAdmin ? [{ type: ROLE_ADMIN, label: "Admin", icon: UserCog }] : []),
+  { type: ROLE_STAFF, label: "Staff", icon: Users },
+  { type: ROLE_STUDENT, label: "Student", icon: GraduationCap },
+];
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">

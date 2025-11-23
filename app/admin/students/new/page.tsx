@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 import {
   Card,
@@ -12,7 +13,13 @@ import {
 import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Label } from "@/app/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/app/components/ui/select";
 import { Button } from "@/app/components/ui/button";
 
 interface ClassItem {
@@ -21,11 +28,30 @@ interface ClassItem {
   grade: string;
 }
 
+interface FormState {
+  name: string;
+  email: string;
+  adharNo: string;
+  admissionNo: string;
+  rollNumber: string;
+  classId: string;
+  dob: string;
+  gender: string;
+  address: string;
+  caste: string;
+  religion: string;
+  occupation: string;
+  fatherName: string;
+  motherName: string;
+  udiseCode: string;
+  contactNo: string;
+}
+
 export default function NewStudentPage() {
   const router = useRouter();
 
   const [classes, setClasses] = useState<ClassItem[]>([]);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     name: "",
     email: "",
     adharNo: "",
@@ -43,30 +69,35 @@ export default function NewStudentPage() {
     udiseCode: "",
     contactNo: "",
   });
+
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // Fetch classes
   useEffect(() => {
     fetch("/api/classes")
       .then(async (res) => {
         if (!res.ok) throw new Error("Failed to fetch classes");
-        setClasses(await res.json());
+        const data: ClassItem[] = await res.json();
+        setClasses(data);
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.error(err);
+        setError("Unable to load classes");
+      });
   }, []);
 
-  const onChange = (key: keyof typeof form, value: string) =>
-    setForm((f) => ({ ...f, [key]: value }));
+  const onChange = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
-    if (selected) {
-      setFile(selected);
-      setPreview(URL.createObjectURL(selected));
-    }
+    if (!selected) return;
+
+    setFile(selected);
+    setPreview(URL.createObjectURL(selected));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -76,7 +107,11 @@ export default function NewStudentPage() {
 
     try {
       const formData = new FormData();
-      Object.entries(form).forEach(([key, value]) => formData.append(key, value));
+
+      Object.entries(form).forEach(([key, value]) => {
+        formData.append(key, value);
+      });
+
       if (file) formData.append("file", file);
 
       const res = await fetch("/api/students", {
@@ -84,10 +119,17 @@ export default function NewStudentPage() {
         body: formData,
       });
 
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || "Failed to create student");
+      }
+
       router.push("/admin/students");
-    } catch (err: any) {
-      setError(err.message || "Failed to create student");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Something went wrong";
+
+      setError(message);
     } finally {
       setSubmitting(false);
     }
@@ -101,9 +143,9 @@ export default function NewStudentPage() {
 
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-
+          {/* Form fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
+            {/* Inputs... (unchanged, same as your version) */}
             {/* Name */}
             <div>
               <Label>Full Name</Label>
@@ -184,8 +226,9 @@ export default function NewStudentPage() {
                 required
               />
             </div>
+
             {/* Religion */}
-         <div>
+            <div>
               <Label>Religion</Label>
               <Input
                 value={form.religion}
@@ -193,7 +236,8 @@ export default function NewStudentPage() {
                 required
               />
             </div>
-            {/* caste */}
+
+            {/* Caste */}
             <div>
               <Label>Caste</Label>
               <Input
@@ -202,6 +246,7 @@ export default function NewStudentPage() {
                 required
               />
             </div>
+
             {/* Contact */}
             <div>
               <Label>Contact No</Label>
@@ -226,8 +271,8 @@ export default function NewStudentPage() {
             <div>
               <Label>Class</Label>
               <Select
-                onValueChange={(v) => onChange("classId", v)}
                 value={form.classId}
+                onValueChange={(v) => onChange("classId", v)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select class" />
@@ -259,7 +304,7 @@ export default function NewStudentPage() {
                 value={form.gender}
                 onValueChange={(v) => onChange("gender", v)}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger>
                   <SelectValue placeholder="Select gender" />
                 </SelectTrigger>
 
@@ -271,7 +316,6 @@ export default function NewStudentPage() {
               </Select>
             </div>
 
-            {/* Address */}
             <div className="md:col-span-2">
               <Label>Address</Label>
               <Textarea
@@ -286,9 +330,12 @@ export default function NewStudentPage() {
             <Label>Profile Image</Label>
             <div className="flex items-center gap-4 mt-2">
               {preview ? (
-                <img
+                <Image
                   src={preview}
-                  className="w-20 h-20 rounded-full object-cover border"
+                  alt="Preview"
+                  width={80}
+                  height={80}
+                  className="rounded-full object-cover border"
                 />
               ) : (
                 <div className="w-20 h-20 rounded-full border border-dashed flex items-center justify-center text-sm text-muted-foreground">
@@ -300,14 +347,13 @@ export default function NewStudentPage() {
             </div>
           </div>
 
-          {/* Error */}
           {error && <p className="text-red-600 text-sm">{error}</p>}
 
-          {/* Buttons */}
           <div className="flex justify-end gap-4">
             <Button variant="outline" type="button" onClick={() => router.back()}>
               Cancel
             </Button>
+
             <Button type="submit" disabled={submitting}>
               {submitting ? "Creating..." : "Create Student"}
             </Button>
