@@ -7,7 +7,6 @@ type Role = "ADMIN" | "STAFF" | "STUDENT";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Ignore static files, API, and Next internals
   if (pathname.startsWith("/_next") || pathname.startsWith("/api") || pathname.includes(".")) {
     return NextResponse.next();
   }
@@ -15,7 +14,6 @@ export async function middleware(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET! });
   const role: Role | "" = (token?.role as Role) ?? "";
 
-  // 🚫 Redirect unauthenticated users from protected routes
   const isProtectedRoute =
     pathname.startsWith("/admin") ||
     pathname.startsWith("/staff") ||
@@ -27,7 +25,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // ✅ Allow /login freely, redirect logged-in users
+
   if (pathname === "/login") {
     const referer = req.headers.get("referer") || "";
     if (token && !referer.includes("/login")) {
@@ -42,7 +40,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // 🔒 Role-based access
+
   if (pathname.startsWith("/admin") && role !== "ADMIN") {
     return NextResponse.redirect(new URL("/unauthorized", req.url));
   }
