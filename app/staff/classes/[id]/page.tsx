@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 import { redirect, notFound } from "next/navigation";
-import { authOptions } from "@/app/lib/auth";
+import { authOption } from "@/app/lib/auth";
 import { db } from "@/lib/prisma";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
@@ -15,7 +15,7 @@ interface PageProps {
 export default async function StaffClassDetailPage({ params }: PageProps) {
   const { id } = await params; // await because params is a Promise
 
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOption);
   if (!session?.user || session.user.role !== "STAFF") redirect("/login");
 
   const cls = await db.class.findFirst({

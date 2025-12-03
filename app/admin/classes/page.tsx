@@ -13,12 +13,12 @@ import {
   TableBody,
   TableCell,
 } from "@/app/components/ui/table";
-import { authOptions } from "@/app/lib/auth";
+import { authOption } from "@/app/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminClassesPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOption);
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
   const classes = await db.class.findMany({

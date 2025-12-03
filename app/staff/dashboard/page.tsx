@@ -1,10 +1,10 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/app/lib/auth";
+import { authOption } from "@/app/lib/auth";
 
 
 export default async function StaffDashboardPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOption);
 
   if (!session?.user || session.user.role !== "STAFF") {
     redirect("/login");

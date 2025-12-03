@@ -1,10 +1,10 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import StudentPasswordManager from "@/app/components/StudentPasswordManager";
-import { authOptions } from "@/app/lib/auth";
+import { authOption } from "@/app/lib/auth";
 
 export default async function AdminDashboardPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOption);
 
   if (!session?.user || session.user.role !== "ADMIN") {
     redirect("/login");

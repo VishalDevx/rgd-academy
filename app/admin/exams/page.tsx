@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/app/components/ui/table";
-import { authOptions } from "@/app/lib/auth";
+import { authOption } from "@/app/lib/auth";
 
 // ---- Proper Type ----
 type ExamWithClass = {
@@ -30,7 +30,7 @@ type ExamWithClass = {
 };
 
 export default async function AdminExamsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOption);
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
   // Prisma already knows the shapes, but we cast to our stricter type

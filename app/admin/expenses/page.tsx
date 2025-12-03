@@ -4,10 +4,10 @@ import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
 import ExpenseDashboard from "@/app/components/charts/ExpenseCharts";
-import { authOptions } from "@/app/lib/auth";
+import { authOption} from "@/app/lib/auth";
 
 export default async function AdminExpensesPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOption);
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
   // ---------------- FETCH EXPENSES ----------------

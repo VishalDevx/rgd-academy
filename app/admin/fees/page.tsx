@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { authOptions } from "@/app/lib/auth";
+import { authOption } from "@/app/lib/auth";
 import { db } from "@/lib/prisma";
 import { Decimal } from "@prisma/client/runtime/library";
 
@@ -112,7 +112,7 @@ function normalizePayment(raw: FeePaymentRaw): PaymentRecord {
 // --------------------------
 
 export default async function AdminFeesPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOption);
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
   const [structuresRaw, paymentsRaw] = await Promise.all([

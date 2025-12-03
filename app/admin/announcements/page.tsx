@@ -7,14 +7,14 @@ import { db } from "@/lib/prisma";
 import { Card, CardHeader, CardTitle, CardContent } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Announcement } from "@prisma/client";
-import { authOptions } from "@/app/lib/auth";
+import { authOption } from "@/app/lib/auth";
 
 type AnnouncementWithRoles = Announcement & {
   visibleRoles: { role: string }[];
 };
 
 export default async function AdminAnnouncementsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOption);
 
   if (!session?.user || session.user.role !== "ADMIN") {
     redirect("/login");

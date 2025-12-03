@@ -1,9 +1,9 @@
-import { authOptions } from "@/app/lib/auth";
+import { authOption } from "@/app/lib/auth";
 import { db } from "@/lib/prisma";
 import {getServerSession} from "next-auth/next"
 import { redirect } from "next/navigation";
 export default async function ResultsPage(){
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOption);
     if(!session?.user || session.user.role!=="STAFF"){
         redirect("/login")
     }
