@@ -3,7 +3,7 @@ import { db } from "@/lib/prisma";
 
 import { getServerSession } from "next-auth/next";
 import { Prisma } from "@prisma/client";
-import { authOptions } from "@/app/lib/auth";
+import { authOption } from "@/app/lib/auth";
 
 // ---------- Types ----------
 interface FeeStructureBody {
@@ -33,7 +33,7 @@ export async function GET() {
 
 // ---------- POST ----------
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOption);
 
   if (!session?.user || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

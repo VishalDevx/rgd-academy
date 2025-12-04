@@ -3,7 +3,7 @@ import { db } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { AnnouncementPayloadSchema } from "@/app/lib/schemas/annoucement.schema.";
 import type { Role } from "@prisma/client";
-import { authOptions } from "@/app/lib/auth";
+import { authOption } from "@/app/lib/auth";
 
 // GET all announcements
 export async function GET(_request: NextRequest) {
@@ -17,7 +17,7 @@ export async function GET(_request: NextRequest) {
 
 // POST new announcement (ADMIN/STAFF only)
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOption);
 
   if (!session?.user || !["ADMIN", "STAFF"].includes(session.user.role)) {
     return new NextResponse("Unauthorized", { status: 401 });

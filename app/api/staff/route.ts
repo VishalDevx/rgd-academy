@@ -3,7 +3,7 @@ import { db } from "@/lib/prisma";
 
 import { getServerSession } from "next-auth/next";
 import { logger } from "@/app/lib/logger";
-import { authOptions } from "@/app/lib/auth";
+import { authOption } from "@/app/lib/auth";
 
 const log = logger("staff-route");
 
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   log.info("POST /staff called");
 
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOption);
     if (!session?.user || session.user.role !== "ADMIN") {
       return new NextResponse("Unauthorized", { status: 401 });
     }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/lib/auth";
+import { authOption } from "@/app/lib/auth";
 import { createClient } from "@supabase/supabase-js";
 import type { Gender } from "@prisma/client";
 
@@ -20,7 +20,7 @@ export async function PUT(
 
   try {
     // ---------------- AUTH CHECK ----------------
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOption);
     if (!session?.user || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

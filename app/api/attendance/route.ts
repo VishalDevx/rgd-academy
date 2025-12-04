@@ -1,7 +1,7 @@
 // app/api/attendance/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
-import { authOptions } from "@/app/lib/auth";
+import { authOption } from "@/app/lib/auth";
 import { getServerSession } from "next-auth/next";
 import { logger } from "@/app/lib/logger";
 import type { AttendanceStatus } from "@prisma/client";
@@ -66,7 +66,7 @@ export async function GET(_request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOption);
 
     if (!session?.user || !["ADMIN", "STAFF"].includes(session.user.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

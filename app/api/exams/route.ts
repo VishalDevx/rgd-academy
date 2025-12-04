@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/lib/auth";
+import { authOption } from "@/app/lib/auth";
 
 // ---- Types ----
 interface CreateExamBody {
@@ -23,7 +23,7 @@ export async function GET() {
 
 // ---- POST ----
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOption);
 
   if (!session?.user || !["ADMIN", "STAFF"].includes(session.user.role)) {
     return new NextResponse("Unauthorized", { status: 401 });

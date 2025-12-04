@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 
-interface Student {
+ export interface Student {
   id: string;
   profileImg: string | null;
   user: { name: string; email: string };
