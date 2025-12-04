@@ -28,6 +28,11 @@ interface ClassItem {
   grade: string;
 }
 
+// Define the expected API response
+interface ClassesApiResponse {
+  classes: ClassItem[];
+}
+
 interface FormState {
   name: string;
   email: string;
@@ -76,16 +81,20 @@ export default function NewStudentPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("/api/classes")
-      .then(async (res) => {
+    const fetchClasses = async () => {
+      try {
+        const res = await fetch("/api/classes");
         if (!res.ok) throw new Error("Failed to fetch classes");
-        const data: ClassItem[] = await res.json();
-        setClasses(data);
-      })
-      .catch((err) => {
+
+        const data: ClassesApiResponse = await res.json();
+        setClasses(Array.isArray(data.classes) ? data.classes : []);
+      } catch (err) {
         console.error(err);
         setError("Unable to load classes");
-      });
+      }
+    };
+
+    fetchClasses();
   }, []);
 
   const onChange = <K extends keyof FormState>(key: K, value: FormState[K]) => {
@@ -107,11 +116,9 @@ export default function NewStudentPage() {
 
     try {
       const formData = new FormData();
-
       Object.entries(form).forEach(([key, value]) => {
         formData.append(key, value);
       });
-
       if (file) formData.append("file", file);
 
       const res = await fetch("/api/students", {
@@ -126,9 +133,7 @@ export default function NewStudentPage() {
 
       router.push("/admin/students");
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Something went wrong";
-
+      const message = err instanceof Error ? err.message : "Something went wrong";
       setError(message);
     } finally {
       setSubmitting(false);
@@ -143,10 +148,7 @@ export default function NewStudentPage() {
 
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Form fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Inputs... (unchanged, same as your version) */}
-            {/* Name */}
             <div>
               <Label>Full Name</Label>
               <Input
@@ -156,7 +158,6 @@ export default function NewStudentPage() {
               />
             </div>
 
-            {/* Email */}
             <div>
               <Label>Email</Label>
               <Input
@@ -167,7 +168,6 @@ export default function NewStudentPage() {
               />
             </div>
 
-            {/* Aadhar */}
             <div>
               <Label>Aadhar No</Label>
               <Input
@@ -177,7 +177,6 @@ export default function NewStudentPage() {
               />
             </div>
 
-            {/* Admission */}
             <div>
               <Label>Admission No</Label>
               <Input
@@ -187,7 +186,6 @@ export default function NewStudentPage() {
               />
             </div>
 
-            {/* Roll */}
             <div>
               <Label>Roll Number</Label>
               <Input
@@ -197,7 +195,6 @@ export default function NewStudentPage() {
               />
             </div>
 
-            {/* Father */}
             <div>
               <Label>Father Name</Label>
               <Input
@@ -207,7 +204,6 @@ export default function NewStudentPage() {
               />
             </div>
 
-            {/* Mother */}
             <div>
               <Label>Mother Name</Label>
               <Input
@@ -217,7 +213,6 @@ export default function NewStudentPage() {
               />
             </div>
 
-            {/* Udise */}
             <div>
               <Label>UDISE Code</Label>
               <Input
@@ -227,7 +222,6 @@ export default function NewStudentPage() {
               />
             </div>
 
-            {/* Religion */}
             <div>
               <Label>Religion</Label>
               <Input
@@ -237,7 +231,6 @@ export default function NewStudentPage() {
               />
             </div>
 
-            {/* Caste */}
             <div>
               <Label>Caste</Label>
               <Input
@@ -247,7 +240,6 @@ export default function NewStudentPage() {
               />
             </div>
 
-            {/* Contact */}
             <div>
               <Label>Contact No</Label>
               <Input
@@ -257,7 +249,6 @@ export default function NewStudentPage() {
               />
             </div>
 
-            {/* Occupation */}
             <div>
               <Label>Occupation</Label>
               <Input
@@ -267,7 +258,6 @@ export default function NewStudentPage() {
               />
             </div>
 
-            {/* Class */}
             <div>
               <Label>Class</Label>
               <Select
@@ -287,7 +277,6 @@ export default function NewStudentPage() {
               </Select>
             </div>
 
-            {/* DOB */}
             <div>
               <Label>DOB</Label>
               <Input
@@ -297,7 +286,6 @@ export default function NewStudentPage() {
               />
             </div>
 
-            {/* Gender */}
             <div>
               <Label>Gender</Label>
               <Select
@@ -307,7 +295,6 @@ export default function NewStudentPage() {
                 <SelectTrigger>
                   <SelectValue placeholder="Select gender" />
                 </SelectTrigger>
-
                 <SelectContent>
                   <SelectItem value="MALE">Male</SelectItem>
                   <SelectItem value="FEMALE">Female</SelectItem>
@@ -325,7 +312,6 @@ export default function NewStudentPage() {
             </div>
           </div>
 
-          {/* Image Upload */}
           <div>
             <Label>Profile Image</Label>
             <div className="flex items-center gap-4 mt-2">
@@ -342,7 +328,6 @@ export default function NewStudentPage() {
                   No Image
                 </div>
               )}
-
               <Input type="file" accept="image/*" onChange={handleFileChange} />
             </div>
           </div>
@@ -353,7 +338,6 @@ export default function NewStudentPage() {
             <Button variant="outline" type="button" onClick={() => router.back()}>
               Cancel
             </Button>
-
             <Button type="submit" disabled={submitting}>
               {submitting ? "Creating..." : "Create Student"}
             </Button>
