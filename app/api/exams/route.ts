@@ -21,7 +21,6 @@ export async function GET() {
   return NextResponse.json(exams);
 }
 
-// ---- POST ----
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOption);
 
@@ -29,18 +28,22 @@ export async function POST(req: NextRequest) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
-  const body: CreateExamBody | null = await req
-    .json()
-    .catch(() => null);
+  const body: CreateExamBody | null = await req.json().catch(() => null);
 
-  if (
-    !body ||
-    !body.name ||
-    !body.classId ||
-    !body.startDate ||
-    !body.endDate
-  ) {
+  if (!body?.name || !body?.classId || !body?.startDate || !body?.endDate) {
     return new NextResponse("Invalid payload", { status: 400 });
+  }
+
+  // Verify user exists
+  const user = await db.user.findUnique({ where: { id: session.user.id } });
+  if (!user) {
+    return new NextResponse("User not found", { status: 400 });
+  }
+
+  // Verify class exists
+  const classExists = await db.class.findUnique({ where: { id: body.classId } });
+  if (!classExists) {
+    return new NextResponse("Class not found", { status: 400 });
   }
 
   const newExam = await db.exam.create({

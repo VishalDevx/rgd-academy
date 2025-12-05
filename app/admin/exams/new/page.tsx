@@ -9,20 +9,48 @@ import { Button } from "@/app/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { toast } from "sonner";
 
+interface ClassType {
+  id: string;
+  name: string;
+}
+
+interface ExamForm {
+  name: string;
+  classId: string;
+  startDate: string;
+  endDate: string;
+}
+
 export default function NewExamPage() {
   const router = useRouter();
-  const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
-  const [form, setForm] = useState({ name: "", classId: "", startDate: "", endDate: "" });
+  const [classes, setClasses] = useState<ClassType[]>([]);
+  const [form, setForm] = useState<ExamForm>({ name: "", classId: "", startDate: "", endDate: "" });
   const [submitting, setSubmitting] = useState(false);
 
+  // Fetch classes from API
   useEffect(() => {
-    fetch("/api/classes")
-      .then((res) => res.json())
-      .then((data) => setClasses(data))
-      .catch(() => toast.error("Failed to load classes"));
+    const fetchClasses = async () => {
+      try {
+        const res = await fetch("/api/classes");
+        if (!res.ok) throw new Error("Failed to fetch classes");
+
+        const data: ClassType[] = (await res.json())?.data ?? [];
+        setClasses(data);
+
+        // Auto-select first class if available
+        if (data.length > 0 && !form.classId) {
+          setForm((prev) => ({ ...prev, classId: data[0].id }));
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to load classes");
+      }
+    };
+
+    fetchClasses();
   }, []);
 
-  const onChange = (key: keyof typeof form, value: string) => {
+  const onChange = (key: keyof ExamForm, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -42,10 +70,8 @@ export default function NewExamPage() {
       toast.success("Exam created successfully!");
       router.push("/admin/exams");
     } catch (err: unknown) {
-      const message =
-    err instanceof Error ? err.message : "Error saving exam";
-
-  toast.error(message);
+      const message = err instanceof Error ? err.message : "Error saving exam";
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -62,7 +88,7 @@ export default function NewExamPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Exam Name */}
               <div>
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">Exam Name</Label>
                 <Input
                   id="name"
                   placeholder="Enter exam name"
@@ -76,7 +102,7 @@ export default function NewExamPage() {
               <div>
                 <Label htmlFor="classId">Class</Label>
                 <Select
-                  value={form.classId}
+                  value={form.classId || undefined}
                   onValueChange={(val) => onChange("classId", val)}
                   required
                 >

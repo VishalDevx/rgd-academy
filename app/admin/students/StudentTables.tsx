@@ -3,9 +3,19 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/app/components/ui/table";
+import { Input } from "@/app/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
+import { Badge } from "@/app/components/ui/badge";
 
-
- export interface Student {
+export interface Student {
   id: string;
   profileImg: string | null;
   user: { name: string; email: string };
@@ -39,82 +49,84 @@ export default function StudentsTable({ students }: { students: Student[] }) {
   }, [students, query, selectedClass]);
 
   return (
-    <div>
+    <div className="space-y-4">
       {/* Search & Filter */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
-        <div className="flex items-center gap-3">
-          <input
-            type="text"
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex gap-3">
+          <Input
+            placeholder="Search students..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search students..."
-            className="px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm w-64"
+            className="w-64"
           />
-          <select
-            value={selectedClass}
-            onChange={(e) => setSelectedClass(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 text-sm"
-          >
-            {classList.map((cls) => (
-              <option key={cls} value={cls}>
-                {cls === "all" ? "All Classes" : cls}
-              </option>
-            ))}
-          </select>
+          <Select value={selectedClass} onValueChange={setSelectedClass}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Select Class" />
+            </SelectTrigger>
+            <SelectContent>
+              {classList.map((cls) => (
+                <SelectItem key={cls} value={cls ?? ""}>
+                  {cls === "all" ? "All Classes" : cls}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           {filtered.length} result{filtered.length !== 1 && "s"} found
         </p>
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-200">
-        <table className="min-w-full text-sm text-gray-700">
-          <thead className="bg-gray-100 text-xs uppercase tracking-wider text-gray-600">
-            <tr>
-              <th className="p-3 text-left">Profile</th>
-              <th className="p-3 text-left">Name</th>
-              <th className="p-3 text-left">Email</th>
-              <th className="p-3 text-left">Admission No</th>
-              <th className="p-3 text-left">Roll No</th>
-              <th className="p-3 text-left">Class</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((s, i) => (
-              <tr
+      <div className="overflow-x-auto border rounded-xl shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Profile</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Admission No</TableHead>
+              <TableHead>Roll No</TableHead>
+              <TableHead>Class</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.map((s) => (
+              <TableRow
                 key={s.id}
-                className={`border-t cursor-pointer ${
-                  i % 2 === 0 ? "bg-white" : "bg-gray-50"
-                } hover:bg-blue-50 transition`}
+                className="cursor-pointer hover:bg-accent/50"
                 onClick={() => router.push(`/admin/students/${s.id}`)}
               >
-                <td className="p-3">
+                <TableCell>
                   {s.profileImg ? (
-                <Image
-  src={s.profileImg}
-  alt={s.user.name}
-  width={40}
-  height={40}
-  className="w-10 h-10 rounded-full object-cover border border-gray-300"
-/>
-
+                    <Image
+                      src={s.profileImg}
+                      alt={s.user.name}
+                      width={40}
+                      height={40}
+                      className="w-10 h-10 rounded-full object-cover border border-border"
+                    />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs">
+                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-xs text-muted-foreground">
                       N/A
                     </div>
                   )}
-                </td>
-                <td className="p-3 font-medium text-gray-900">{s.user.name}</td>
-                <td className="p-3">{s.user.email}</td>
-                <td className="p-3">{s.admissionNo}</td>
-                <td className="p-3">{s.rollNumber}</td>
-                <td className="p-3">{s.class?.name || "-"}</td>
-              </tr>
+                </TableCell>
+                <TableCell>{s.user.name}</TableCell>
+                <TableCell>{s.user.email}</TableCell>
+                <TableCell>{s.admissionNo}</TableCell>
+                <TableCell>{s.rollNumber}</TableCell>
+                <TableCell>
+                  {s.class?.name ? (
+                    <Badge variant="secondary">{s.class.name}</Badge>
+                  ) : (
+                    "-"
+                  )}
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

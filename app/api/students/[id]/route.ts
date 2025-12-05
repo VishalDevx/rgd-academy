@@ -106,3 +106,73 @@ export async function PUT(
     );
   }
 }
+
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: studentId } = await params;
+
+  try {
+    // ---------------- AUTH CHECK ----------------
+    const session = await getServerSession(authOption);
+    if (!session?.user || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // ---------------- FETCH STUDENT ----------------
+    const student = await db.student.findUnique({
+      where: { id: studentId },
+      include: {
+        user: { select: { id: true, name: true, email: true, adharNo: true } },
+        class: { select: { id: true, name: true, grade: true, section: true } },
+        fees: {
+          select: {
+            id: true,
+            amountPaid: true,
+            status: true,
+            paymentDate: true,
+            remainAmount : true,
+            feeStructure: { select: { name: true } },
+          },
+        },
+        results: {
+          select: {
+            id: true,
+            marks: true,
+            maxMarks: true,
+            grade: true,
+            remarks: true,
+            exam: { select: { name: true } },
+            subject: { select: { name: true } },
+          },
+        },
+        attendance: {
+          select: {
+            id: true,
+            date: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    if (!student) {
+      return NextResponse.json(
+        { error: "Student not found" },
+        { status: 404 }
+      );
+    }
+
+    // Return FLAT student object, not wrapped in `data:`
+    return NextResponse.json(student, { status: 200 });
+
+  } catch (err: unknown) {
+    console.error("Error fetching student:", err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}
