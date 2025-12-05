@@ -28,9 +28,8 @@ interface ClassItem {
   grade: string;
 }
 
-// Define the expected API response
-interface ClassesApiResponse {
-  classes: ClassItem[];
+interface ApiResponse {
+  data: ClassItem[];
 }
 
 interface FormState {
@@ -56,6 +55,12 @@ export default function NewStudentPage() {
   const router = useRouter();
 
   const [classes, setClasses] = useState<ClassItem[]>([]);
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+
   const [form, setForm] = useState<FormState>({
     name: "",
     email: "",
@@ -75,26 +80,24 @@ export default function NewStudentPage() {
     contactNo: "",
   });
 
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-
   useEffect(() => {
-    const fetchClasses = async () => {
+    const loadClasses = async () => {
       try {
         const res = await fetch("/api/classes");
-        if (!res.ok) throw new Error("Failed to fetch classes");
+        if (!res.ok) throw new Error("Failed fetching classes");
 
-        const data: ClassesApiResponse = await res.json();
-        setClasses(Array.isArray(data.classes) ? data.classes : []);
+        const json: ApiResponse = await res.json();
+        console.log("API:", json);
+
+        const list = json?.data ?? [];
+        setClasses(list);
       } catch (err) {
         console.error(err);
         setError("Unable to load classes");
       }
     };
 
-    fetchClasses();
+    loadClasses();
   }, []);
 
   const onChange = <K extends keyof FormState>(key: K, value: FormState[K]) => {
@@ -116,9 +119,7 @@ export default function NewStudentPage() {
 
     try {
       const formData = new FormData();
-      Object.entries(form).forEach(([key, value]) => {
-        formData.append(key, value);
-      });
+      Object.entries(form).forEach(([k, v]) => formData.append(k, v));
       if (file) formData.append("file", file);
 
       const res = await fetch("/api/students", {
@@ -132,9 +133,8 @@ export default function NewStudentPage() {
       }
 
       router.push("/admin/students");
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Something went wrong";
-      setError(message);
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
     } finally {
       setSubmitting(false);
     }
@@ -149,124 +149,42 @@ export default function NewStudentPage() {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>Full Name</Label>
-              <Input
-                value={form.name}
-                onChange={(e) => onChange("name", e.target.value)}
-                required
-              />
-            </div>
 
-            <div>
-              <Label>Email</Label>
-              <Input
-                type="email"
-                value={form.email}
-                onChange={(e) => onChange("email", e.target.value)}
-                required
-              />
-            </div>
+            {/* BASIC INPUTS */}
+            {[
+              ["Full Name", "name"],
+              ["Email", "email"],
+              ["Aadhar No", "adharNo"],
+              ["Admission No", "admissionNo"],
+              ["Roll Number", "rollNumber"],
+              ["Father Name", "fatherName"],
+              ["Mother Name", "motherName"],
+              ["UDISE Code", "udiseCode"],
+              ["Religion", "religion"],
+              ["Caste", "caste"],
+              ["Contact No", "contactNo"],
+              ["Occupation", "occupation"]
+            ].map(([label, key]) => (
+              <div key={key}>
+                <Label>{label}</Label>
+                <Input
+                  value={(form as any)[key]}
+                  onChange={(e) => onChange(key as any, e.target.value)}
+                  required
+                />
+              </div>
+            ))}
 
-            <div>
-              <Label>Aadhar No</Label>
-              <Input
-                value={form.adharNo}
-                onChange={(e) => onChange("adharNo", e.target.value)}
-                required
-              />
-            </div>
-
-            <div>
-              <Label>Admission No</Label>
-              <Input
-                value={form.admissionNo}
-                onChange={(e) => onChange("admissionNo", e.target.value)}
-                required
-              />
-            </div>
-
-            <div>
-              <Label>Roll Number</Label>
-              <Input
-                value={form.rollNumber}
-                onChange={(e) => onChange("rollNumber", e.target.value)}
-                required
-              />
-            </div>
-
-            <div>
-              <Label>Father Name</Label>
-              <Input
-                value={form.fatherName}
-                onChange={(e) => onChange("fatherName", e.target.value)}
-                required
-              />
-            </div>
-
-            <div>
-              <Label>Mother Name</Label>
-              <Input
-                value={form.motherName}
-                onChange={(e) => onChange("motherName", e.target.value)}
-                required
-              />
-            </div>
-
-            <div>
-              <Label>UDISE Code</Label>
-              <Input
-                value={form.udiseCode}
-                onChange={(e) => onChange("udiseCode", e.target.value)}
-                required
-              />
-            </div>
-
-            <div>
-              <Label>Religion</Label>
-              <Input
-                value={form.religion}
-                onChange={(e) => onChange("religion", e.target.value)}
-                required
-              />
-            </div>
-
-            <div>
-              <Label>Caste</Label>
-              <Input
-                value={form.caste}
-                onChange={(e) => onChange("caste", e.target.value)}
-                required
-              />
-            </div>
-
-            <div>
-              <Label>Contact No</Label>
-              <Input
-                value={form.contactNo}
-                onChange={(e) => onChange("contactNo", e.target.value)}
-                required
-              />
-            </div>
-
-            <div>
-              <Label>Occupation</Label>
-              <Input
-                value={form.occupation}
-                onChange={(e) => onChange("occupation", e.target.value)}
-                required
-              />
-            </div>
-
+            {/* CLASS DROPDOWN */}
             <div>
               <Label>Class</Label>
               <Select
-                value={form.classId}
                 onValueChange={(v) => onChange("classId", v)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select class" />
                 </SelectTrigger>
+
                 <SelectContent>
                   {classes.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
@@ -277,6 +195,7 @@ export default function NewStudentPage() {
               </Select>
             </div>
 
+            {/* DOB */}
             <div>
               <Label>DOB</Label>
               <Input
@@ -286,10 +205,10 @@ export default function NewStudentPage() {
               />
             </div>
 
+            {/* GENDER */}
             <div>
               <Label>Gender</Label>
               <Select
-                value={form.gender}
                 onValueChange={(v) => onChange("gender", v)}
               >
                 <SelectTrigger>
@@ -303,6 +222,7 @@ export default function NewStudentPage() {
               </Select>
             </div>
 
+            {/* ADDRESS */}
             <div className="md:col-span-2">
               <Label>Address</Label>
               <Textarea
@@ -312,6 +232,7 @@ export default function NewStudentPage() {
             </div>
           </div>
 
+          {/* IMAGE */}
           <div>
             <Label>Profile Image</Label>
             <div className="flex items-center gap-4 mt-2">
@@ -328,6 +249,7 @@ export default function NewStudentPage() {
                   No Image
                 </div>
               )}
+
               <Input type="file" accept="image/*" onChange={handleFileChange} />
             </div>
           </div>
