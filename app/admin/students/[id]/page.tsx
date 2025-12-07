@@ -274,11 +274,11 @@ export default function StudentProfilePage() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-600 text-sm">
                         <p>
                           <strong>Amount Paid:</strong> ₹
-                          {fee.amountPaid.toFixed(2)}
+                          {fee.amountPaid}
                         </p>
                         <p>
                           <strong>Remaining Amount:</strong> ₹
-                          {fee.remainAmount.toFixed(2)}
+                          {fee.remainAmount}
                         </p>
                         <p>
                           <strong>Payment Date:</strong>{" "}
