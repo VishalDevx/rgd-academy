@@ -38,3 +38,16 @@ return NextResponse.json({ success: true, data: created }, { status: 201 });
     return new NextResponse("Internal Server Error", { status: 500 });  
     }
 }
+
+export async function GET(req:NextRequest){
+    try {
+        const subjects = await db.subject.findMany({
+        })
+     return NextResponse.json({ success: true, data: subjects });
+    } catch (error) {
+        return NextResponse.json(
+      { success: false, error: "Failed to fetch classes" },
+      { status: 500 }
+    );
+    }
+}
