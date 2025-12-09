@@ -9,7 +9,11 @@ import { toast } from "sonner";
 
 interface Student {
   id: string;
-  user: { name: string };
+  admissionNo: string;
+  rollNumber: string;
+  admissionDate: string;
+  dob: string;
+  user: { name: string; email: string };
   classId: string;
 }
 
@@ -21,27 +25,54 @@ export default function AdminAttendancePage() {
   const [records, setRecords] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
-  // Fetch classes
+  const loadClasses = async () => {
+    try {
+      const res = await fetch("/api/classes");
+      const json = await res.json();
+
+      console.log("CLASSES RAW:", json);
+
+      if (!Array.isArray(json?.data)) {
+        toast.error("Invalid classes response");
+        return;
+      }
+
+      setClasses(json.data);
+    } catch {
+      toast.error("Failed to load classes");
+    }
+  };
+
+  const loadStudents = async (classId: string) => {
+    try {
+      const res = await fetch(`/api/students?classId=${classId}`);
+      const json = await res.json();
+
+      console.log("STUDENTS API RAW:", json);
+
+      if (!Array.isArray(json?.data)) {
+        toast.error("Invalid students response");
+        return;
+      }
+
+      const list = json.data as Student[];
+      setStudents(list);
+
+      const initial: Record<string, string> = {};
+      list.forEach((s) => (initial[s.id] = "PRESENT"));
+      setRecords(initial);
+    } catch {
+      toast.error("Failed to load students");
+    }
+  };
+
   useEffect(() => {
-    fetch("/api/classes")
-      .then((res) => res.json())
-      .then((data) => setClasses(data))
-      .catch(() => toast.error("Failed to load classes"));
+    loadClasses();
   }, []);
 
-  // Fetch students when class changes
   useEffect(() => {
     if (!selectedClass) return;
-
-    fetch(`/api/students?classId=${selectedClass}`)
-      .then((res) => res.json())
-      .then((data: Student[]) => {
-        setStudents(data);
-        const initialRecords: Record<string, string> = {};
-        data.forEach((s) => (initialRecords[s.id] = "PRESENT"));
-        setRecords(initialRecords);
-      })
-      .catch(() => toast.error("Failed to load students"));
+    loadStudents(selectedClass);
   }, [selectedClass]);
 
   const setStatus = (studentId: string, status: string) => {
@@ -50,6 +81,7 @@ export default function AdminAttendancePage() {
 
   const submitAttendance = async () => {
     if (!selectedClass) return;
+
     setSaving(true);
 
     const payload = {
@@ -60,27 +92,23 @@ export default function AdminAttendancePage() {
         status: records[s.id] || "PRESENT",
       })),
     };
-try {
-  const res = await fetch("/api/attendance", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
 
-  if (!res.ok) {
-    throw new Error("Failed to save attendance");
-  }
+    try {
+      const res = await fetch("/api/attendance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-  toast.success("Attendance saved successfully!");
-} catch (err: unknown) {
-  const message =
-    err instanceof Error ? err.message : "Error saving attendance";
+      if (!res.ok) throw new Error("Failed to save attendance");
 
-  toast.error(message);
-} finally {
-  setSaving(false);
-}
-  }
+      toast.success("Attendance saved successfully!");
+    } catch (err) {
+      toast.error("Error saving attendance");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -90,6 +118,7 @@ try {
         <CardHeader>
           <CardTitle>Mark Attendance</CardTitle>
         </CardHeader>
+
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-4 items-end">
             <div className="flex-1 min-w-[200px]">
@@ -118,11 +147,7 @@ try {
               />
             </div>
 
-            <Button
-              onClick={submitAttendance}
-              disabled={saving || !selectedClass}
-              className="self-start"
-            >
+            <Button onClick={submitAttendance} disabled={saving || !selectedClass}>
               {saving ? "Saving..." : "Save Attendance"}
             </Button>
           </div>

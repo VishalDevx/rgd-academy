@@ -1,5 +1,11 @@
+import Link from "next/link";
+
+
 export default function ResultPage(){
     return <div>
-         hello World
+         <Link 
+         href="/admin/results/new"
+         >
+         </Link>
     </div>
 }
