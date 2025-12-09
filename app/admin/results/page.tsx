@@ -2,7 +2,7 @@ import Link from "next/link";
 
 
 export default function ResultPage(){
-    return <div>
+    return <div className="">
          <Link 
          href="/admin/results/new"
          >
