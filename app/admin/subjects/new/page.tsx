@@ -30,17 +30,16 @@ export default function NewSubjectPage() {
 
   const [classes, setClasses] = useState<ClassType[]>([]);
   const [teachers, setTeachers] = useState<Staff[]>([]);
-
   const [loading, setLoading] = useState(true);
 
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [classId, setClassId] = useState("");
-  const [teacherId, setTeacherId] = useState("");
+  const [teacherId, setTeacherId] = useState("none");
 
   const [submitting, setSubmitting] = useState(false);
 
-  // Load classes + staff
+  // Load classes + teachers
   useEffect(() => {
     async function loadData() {
       try {
@@ -54,7 +53,6 @@ export default function NewSubjectPage() {
 
         setClasses(cJson?.data || []);
         setTeachers(tJson?.data || []);
-
       } catch (err) {
         console.error(err);
       } finally {
@@ -77,7 +75,7 @@ export default function NewSubjectPage() {
           name,
           code,
           classId,
-          teacherId: teacherId || null,
+          teacherId: teacherId === "none" ? null : teacherId,
         }),
       });
 
@@ -85,7 +83,6 @@ export default function NewSubjectPage() {
 
       toast.success("Subject created");
       router.push("/admin/subjects");
-
     } catch (err: any) {
       toast.error(err.message || "Failed to create subject");
     } finally {
@@ -102,8 +99,8 @@ export default function NewSubjectPage() {
 
         <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit}>
-            
-            {/* Subject Name */}
+
+            {/* Name */}
             <div>
               <Label>Name</Label>
               <Input
@@ -113,7 +110,7 @@ export default function NewSubjectPage() {
               />
             </div>
 
-            {/* Subject Code */}
+            {/* Code */}
             <div>
               <Label>Code</Label>
               <Input
@@ -133,10 +130,12 @@ export default function NewSubjectPage() {
 
                 <SelectContent>
                   {loading ? (
-                    <div className="p-2 text-sm text-muted-foreground">Loading…</div>
+                    <div className="p-2 text-sm text-muted-foreground">
+                      Loading…
+                    </div>
                   ) : (
                     classes.map((c) => (
-                      <SelectItem value={c.id} key={c.id}>
+                      <SelectItem key={c.id} value={c.id}>
                         {c.name}
                       </SelectItem>
                     ))
@@ -154,10 +153,11 @@ export default function NewSubjectPage() {
                 </SelectTrigger>
 
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  {/* MUST NOT be empty string */}
+                  <SelectItem value="none">None</SelectItem>
 
                   {teachers.map((t) => (
-                    <SelectItem value={t.id} key={t.id}>
+                    <SelectItem key={t.id} value={t.id}>
                       {t.user.name}
                     </SelectItem>
                   ))}
@@ -165,10 +165,12 @@ export default function NewSubjectPage() {
               </Select>
             </div>
 
+            {/* Buttons */}
             <div className="flex gap-3 justify-end">
               <Button type="button" variant="outline" onClick={() => router.back()}>
                 Cancel
               </Button>
+
               <Button type="submit" disabled={submitting}>
                 {submitting ? "Creating..." : "Create"}
               </Button>
