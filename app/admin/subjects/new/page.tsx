@@ -15,6 +15,7 @@ import {
 } from "@/app/components/ui/select";
 import { toast } from "sonner";
 
+
 type ClassType = {
   id: string;
   name: string;
@@ -25,7 +26,8 @@ type Staff = {
   user: { name: string };
 };
 
-export default function NewSubjectPage() {
+export  default  function NewSubjectPage() {
+ 
   const router = useRouter();
 
   const [classes, setClasses] = useState<ClassType[]>([]);
