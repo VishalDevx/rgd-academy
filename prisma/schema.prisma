@@ -96,6 +96,7 @@ model Class {
   feeStructures FeeStructure[]
   students      Student[]
   subjects      Subject[]
+  dateSheet ExamDateSheet[]
 
   @@index([teacherId])
   @@index([grade, section])
@@ -105,12 +106,12 @@ model Subject {
   id        String   @id @default(cuid())
   name     String
   code      String   @unique
-  classId   String
+  classId   String?
   teacherId String?
   results   Result[]
-  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  class     Class?    @relation(fields: [classId], references: [id], onDelete: Cascade)
   teacher   Staff?   @relation(fields: [teacherId], references: [id])
-
+  dateSheet ExamDateSheet[]
   @@index([classId])
   @@index([teacherId])
 }
@@ -228,10 +229,30 @@ model Exam {
   class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
   createdBy   Staff    @relation("ExamCreatedBy", fields: [createdById], references: [id])
   results     Result[]
-
+dateSheet ExamDateSheet[]
   @@index([classId])
   @@index([createdById])
 }
+model ExamDateSheet {
+  id        String   @id @default(cuid())
+  examId    String
+  classId   String
+  subjectId String
+  examDate  DateTime
+  startTime DateTime
+  endTime   DateTime
+  room      String?
+
+  exam      Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@index([examId])
+  @@index([classId])
+  @@index([subjectId])
+  @@unique([examId, subjectId])
+}
+
 
 model Result {
   id         String   @id @default(cuid())
