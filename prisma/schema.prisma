@@ -28,7 +28,7 @@ model User {
   sessions      Session[]
   staff         Staff?
   student       Student?
-
+  exam          Exam[]     @relation("ExamCreatedBy")
   @@index([role])
 }
 
@@ -125,7 +125,7 @@ model Staff {
   active      Boolean      @default(true)
   Attendance  Attendance[]
   classes     Class[]      @relation("ClassTeacher")
-  exams       Exam[]       @relation("ExamCreatedBy")
+ 
   leaves      Leave[]
   results     Result[]
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -227,7 +227,7 @@ model Exam {
   createdById String
   createdAt   DateTime @default(now())
   class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
-  createdBy   Staff    @relation("ExamCreatedBy", fields: [createdById], references: [id])
+createdBy   User    @relation("ExamCreatedBy",fields: [createdById], references: [id])
   results     Result[]
 dateSheet ExamDateSheet[]
   @@index([classId])

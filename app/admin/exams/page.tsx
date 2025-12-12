@@ -34,10 +34,11 @@ export default async function AdminExamsPage() {
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
   // Prisma already knows the shapes, but we cast to our stricter type
-  const exams = (await db.exam.findMany({
-    include: { class: true },
-    orderBy: { startDate: "desc" },
-  })) as ExamWithClass[];
+const exams = await db.exam.findMany({
+  include: { class: true },
+  orderBy: { startDate: "desc" },
+}) as ExamWithClass[];
+
 
   return (
     <div className="p-6 space-y-6">

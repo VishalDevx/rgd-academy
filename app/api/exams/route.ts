@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth/next";
 import { authOption } from "@/app/lib/auth";
 
 // ---- Types ----
@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
 
   // Verify user exists
   const user = await db.user.findUnique({ where: { id: session.user.id } });
+  console.log(session.user)
   if (!user) {
     return new NextResponse("User not found", { status: 400 });
   }
