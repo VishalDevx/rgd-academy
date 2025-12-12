@@ -17,10 +17,11 @@ import {
   FileText,
   ClipboardList,
   BarChart3,
-
+TriangleRight,
   Settings,
   LogsIcon,
-  UserRoundPen
+  UserRoundPen,
+  CalendarCheck2
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/app/components/ui/button";
@@ -52,7 +53,9 @@ const icons = {
   results: BarChart3,
   settings:Settings,
   logs:LogsIcon,
-  user:UserRoundPen
+  user:UserRoundPen,
+  subject:TriangleRight,
+  DateSheet:CalendarCheck2
 };
 
 export function Sidebar({ role, collapsed = false, onToggleCollapsed }: SidebarProps) {

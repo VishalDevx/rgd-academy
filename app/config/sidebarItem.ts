@@ -13,6 +13,8 @@ export const sidebarItemsByRole: Record<AppRole, NavItem[]> = {
     { label: "Students", href: "/admin/students", icon: "students" },
     { label: "Staff", href: "/admin/staff", icon: "staff" },
     { label: "Exams", href: "/admin/exams", icon: "exam" },
+    { label: "Subjects", href: "/admin/subjects", icon: "subject" },
+    {label:"Timetable" , href:"/admin/date-sheet", icon:"DateSheet"},
     { label: "Results", href: "/admin/results", icon: "results" },
     { label: "Fees", href: "/admin/fees", icon: "fees" },
     { label: "Attendance", href: "/admin/attendance", icon: "attendance" },
