@@ -15,7 +15,6 @@ import {
 } from "@/app/components/ui/select";
 import { toast } from "sonner";
 
-
 type ClassType = {
   id: string;
   name: string;
@@ -26,8 +25,7 @@ type Staff = {
   user: { name: string };
 };
 
-export  default  function NewSubjectPage() {
- 
+export default function NewSubjectPage() {
   const router = useRouter();
 
   const [classes, setClasses] = useState<ClassType[]>([]);
@@ -46,8 +44,8 @@ export  default  function NewSubjectPage() {
     async function loadData() {
       try {
         const [cRes, tRes] = await Promise.all([
-          fetch("/api/classes"),
-          fetch("/api/staff"),
+          fetch("/api/classes", { credentials: "include" }),
+          fetch("/api/staff", { credentials: "include" }),
         ]);
 
         const cJson = await cRes.json();
@@ -72,11 +70,14 @@ export  default  function NewSubjectPage() {
     try {
       const res = await fetch("/api/subjects", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        credentials: "include", // IMPORTANT
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           name,
           code,
-          classId,
+          classId:classId === "none" ? null:classId,
           teacherId: teacherId === "none" ? null : teacherId,
         }),
       });
@@ -85,8 +86,8 @@ export  default  function NewSubjectPage() {
 
       toast.success("Subject created");
       router.push("/admin/subjects");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to create subject");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to create subject");
     } finally {
       setSubmitting(false);
     }
@@ -101,8 +102,6 @@ export  default  function NewSubjectPage() {
 
         <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit}>
-
-            {/* Name */}
             <div>
               <Label>Name</Label>
               <Input
@@ -112,7 +111,6 @@ export  default  function NewSubjectPage() {
               />
             </div>
 
-            {/* Code */}
             <div>
               <Label>Code</Label>
               <Input
@@ -122,7 +120,6 @@ export  default  function NewSubjectPage() {
               />
             </div>
 
-            {/* Class */}
             <div>
               <Label>Class</Label>
               <Select value={classId} onValueChange={setClassId}>
@@ -132,9 +129,7 @@ export  default  function NewSubjectPage() {
 
                 <SelectContent>
                   {loading ? (
-                    <div className="p-2 text-sm text-muted-foreground">
-                      Loading…
-                    </div>
+                    <div className="p-2 text-sm text-muted-foreground">Loading…</div>
                   ) : (
                     classes.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
@@ -146,16 +141,14 @@ export  default  function NewSubjectPage() {
               </Select>
             </div>
 
-            {/* Teacher */}
             <div>
-              <Label>Teacher (Optional)</Label>
+              <Label>Teacher (optional)</Label>
               <Select value={teacherId} onValueChange={setTeacherId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select teacher" />
                 </SelectTrigger>
 
                 <SelectContent>
-                  {/* MUST NOT be empty string */}
                   <SelectItem value="none">None</SelectItem>
 
                   {teachers.map((t) => (
@@ -167,17 +160,15 @@ export  default  function NewSubjectPage() {
               </Select>
             </div>
 
-            {/* Buttons */}
             <div className="flex gap-3 justify-end">
               <Button type="button" variant="outline" onClick={() => router.back()}>
                 Cancel
               </Button>
 
               <Button type="submit" disabled={submitting}>
-                {submitting ? "Creating..." : "Create"}
+                {submitting ? "Creating…" : "Create"}
               </Button>
             </div>
-
           </form>
         </CardContent>
       </Card>
