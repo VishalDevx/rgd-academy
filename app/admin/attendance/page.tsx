@@ -1,194 +1,154 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/app/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { toast } from "sonner";
 
-interface Student {
-  id: string;
-  admissionNo: string;
-  rollNumber: string;
-  admissionDate: string;
-  dob: string;
-  user: { name: string; email: string };
-  classId: string;
-}
+interface Exam { id: string; name: string; }
+interface Class { id: string; name: string; }
+interface Subject { id: string; name: string; }
 
-export default function AdminAttendancePage() {
-  const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [selectedClass, setSelectedClass] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [records, setRecords] = useState<Record<string, string>>({});
+export default function AddTimeTablePage() {
+  const router = useRouter();
+
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+
+  const [examId, setExamId] = useState("");
+  const [classId, setClassId] = useState("");
+  const [subjectId, setSubjectId] = useState("");
+  const [examDate, setExamDate] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [room, setRoom] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const loadClasses = async () => {
-    try {
-      const res = await fetch("/api/classes");
-      const json = await res.json();
-
-      console.log("CLASSES RAW:", json);
-
-      if (!Array.isArray(json?.data)) {
-        toast.error("Invalid classes response");
-        return;
-      }
-
-      setClasses(json.data);
-    } catch {
-      toast.error("Failed to load classes");
-    }
-  };
-
-  const loadStudents = async (classId: string) => {
-    try {
-      const res = await fetch(`/api/students?classId=${classId}`);
-      const json = await res.json();
-
-      console.log("STUDENTS API RAW:", json);
-
-      if (!Array.isArray(json?.data)) {
-        toast.error("Invalid students response");
-        return;
-      }
-
-      const list = json.data as Student[];
-      setStudents(list);
-
-      const initial: Record<string, string> = {};
-      list.forEach((s) => (initial[s.id] = "PRESENT"));
-      setRecords(initial);
-    } catch {
-      toast.error("Failed to load students");
-    }
-  };
-
+  // Fetch exams, classes, subjects
   useEffect(() => {
-    loadClasses();
+    async function fetchData() {
+      try {
+        const [examsRes, classesRes, subjectsRes] = await Promise.all([
+          fetch("/api/exams"),
+          fetch("/api/classes"),
+          fetch("/api/subjects"),
+        ]);
+
+        const examsData = await examsRes.json();
+        const classesData = await classesRes.json();
+        const subjectsData = await subjectsRes.json();
+
+        if (!Array.isArray(examsData.data) || !Array.isArray(classesData.data) || !Array.isArray(subjectsData.data)) {
+          toast.error("Invalid data from server");
+          return;
+        }
+
+        setExams(examsData.data);
+        setClasses(classesData.data);
+        setSubjects(subjectsData.data);
+      } catch (err) {
+        toast.error("Failed to load data");
+      }
+    }
+    fetchData();
   }, []);
 
-  useEffect(() => {
-    if (!selectedClass) return;
-    loadStudents(selectedClass);
-  }, [selectedClass]);
-
-  const setStatus = (studentId: string, status: string) => {
-    setRecords((prev) => ({ ...prev, [studentId]: status }));
-  };
-
-  const submitAttendance = async () => {
-    if (!selectedClass) return;
+  const handleSubmit = async () => {
+    if (!examId || !classId || !subjectId || !examDate || !startTime || !endTime) {
+      toast.error("Please fill all required fields");
+      return;
+    }
 
     setSaving(true);
-
-    const payload = {
-      classId: selectedClass,
-      date,
-      records: students.map((s) => ({
-        studentId: s.id,
-        status: records[s.id] || "PRESENT",
-      })),
-    };
+    const payload = { examId, classId, subjectId, examDate, startTime, endTime, room: room || undefined };
 
     try {
-      const res = await fetch("/api/attendance", {
+      const res = await fetch("/api/timetable", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Failed to save attendance");
+      if (!res.ok) throw new Error(await res.text());
 
-      toast.success("Attendance saved successfully!");
+      toast.success("Timetable created successfully!");
+      router.push("/admin/date-sheet");
     } catch (err) {
-      toast.error("Error saving attendance");
+      toast.error("Error creating timetable: " + String(err));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Attendance</h1>
+    <div className="p-6 space-y-6 max-w-2xl mx-auto">
+      <h1 className="text-3xl font-bold">Add Exam Timetable</h1>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Mark Attendance</CardTitle>
-        </CardHeader>
+      <div className="space-y-4">
+        <div className="space-y-1">
+          <Label>Exam</Label>
+          <Select value={examId} onValueChange={setExamId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select Exam" />
+            </SelectTrigger>
+            <SelectContent>
+              {exams.map((e) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-4 items-end">
-            <div className="flex-1 min-w-[200px]">
-              <Label>Class</Label>
-              <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <div className="space-y-1">
+          <Label>Class</Label>
+          <Select value={classId} onValueChange={setClassId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select Class" />
+            </SelectTrigger>
+            <SelectContent>
+              {classes.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
 
-            <div className="flex-1 min-w-[150px]">
-              <Label>Date</Label>
-              <input
-                type="date"
-                className="border rounded px-2 py-1 w-full"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
-            </div>
+        <div className="space-y-1">
+          <Label>Subject</Label>
+          <Select value={subjectId} onValueChange={setSubjectId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select Subject" />
+            </SelectTrigger>
+            <SelectContent>
+              {subjects.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
 
-            <Button onClick={submitAttendance} disabled={saving || !selectedClass}>
-              {saving ? "Saving..." : "Save Attendance"}
-            </Button>
-          </div>
+        <div className="space-y-1">
+          <Label>Exam Date</Label>
+          <Input type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} />
+        </div>
 
-          {students.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="min-w-full border rounded">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="p-2 border text-left">Student</th>
-                    <th className="p-2 border text-left">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {students.map((s) => (
-                    <tr key={s.id} className="hover:bg-gray-50">
-                      <td className="p-2 border">{s.user.name}</td>
-                      <td className="p-2 border">
-                        <Select
-                          value={records[s.id] || "PRESENT"}
-                          onValueChange={(val) => setStatus(s.id, val)}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="PRESENT">PRESENT</SelectItem>
-                            <SelectItem value="ABSENT">ABSENT</SelectItem>
-                            <SelectItem value="LATE">LATE</SelectItem>
-                            <SelectItem value="LEAVE">LEAVE</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        <div className="space-y-1">
+          <Label>Start Time</Label>
+          <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+        </div>
+
+        <div className="space-y-1">
+          <Label>End Time</Label>
+          <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+        </div>
+
+        <div className="space-y-1">
+          <Label>Room (Optional)</Label>
+          <Input type="text" value={room} onChange={(e) => setRoom(e.target.value)} />
+        </div>
+
+        <Button onClick={handleSubmit} disabled={saving}>
+          {saving ? "Saving..." : "Add Timetable"}
+        </Button>
+      </div>
     </div>
   );
 }

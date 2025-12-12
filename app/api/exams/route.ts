@@ -13,12 +13,20 @@ interface CreateExamBody {
 
 // ---- GET ----
 export async function GET() {
-  const exams = await db.exam.findMany({
-    include: { class: true, createdBy: true },
-    orderBy: { startDate: "desc" },
-  });
+  try {
+    const exams = await db.exam.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: { name: "asc" },
+    });
 
-  return NextResponse.json(exams);
+    return NextResponse.json({ data: exams });
+  } catch (err) {
+    console.error("EXAMS ERROR:", err);
+    return NextResponse.json({ data: [] });
+  }
 }
 
 export async function POST(req: NextRequest) {

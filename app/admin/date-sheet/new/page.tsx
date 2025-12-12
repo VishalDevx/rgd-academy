@@ -1,15 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { db } from "@/lib/prisma"; // optional, for type inference only
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/app/components/ui/select";
 import { toast } from "sonner";
-import { unknown } from "zod";
-
 
 interface Exam {
   id: string;
@@ -41,28 +44,60 @@ export default function AddTimeTablePage() {
   const [endTime, setEndTime] = useState("");
   const [room, setRoom] = useState("");
 
-  // Fetch exams, classes, subjects
+  // ------------------------------------
+  // FIX: Convert date + time → valid Date
+  // ------------------------------------
+  const makeDateTime = (dateStr: string, timeStr: string) => {
+    if (!dateStr || !timeStr) return null;
+    const dt = new Date(`${dateStr}T${timeStr}:00`);
+    return isNaN(dt.getTime()) ? null : dt;
+  };
+
   useEffect(() => {
     async function fetchData() {
-      const examsRes = await fetch("/api/exams");
-      const classesRes = await fetch("/api/classes");
-      const subjectsRes = await fetch("/api/subjects");
+      try {
+        const [examsRes, classesRes, subjectsRes] = await Promise.all([
+          fetch("/api/exams"),
+          fetch("/api/classes"),
+          fetch("/api/subjects"),
+        ]);
 
-      const examsData = await examsRes.json();
-      const classesData = await classesRes.json();
-      const subjectsData = await subjectsRes.json();
+        const examsJson = await examsRes.json();
+        const classesJson = await classesRes.json();
+        const subjectsJson = await subjectsRes.json();
 
-      setExams(examsData);
-      setClasses(classesData);
-      setSubjects(subjectsData);
+        console.log("RAW Exams:", examsJson);
+        console.log("RAW Classes:", classesJson);
+        console.log("RAW Subjects:", subjectsJson);
+
+        if (!Array.isArray(examsJson)) throw new Error("Invalid exams response");
+        if (!Array.isArray(classesJson)) throw new Error("Invalid classes response");
+        if (!Array.isArray(subjectsJson)) throw new Error("Invalid subjects response");
+
+        setExams(examsJson);
+        setClasses(classesJson);
+        setSubjects(subjectsJson);
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to fetch data");
+      }
     }
 
     fetchData();
   }, []);
 
-  async function handleSubmit() {
+  const handleSubmit = async () => {
     if (!examId || !classId || !subjectId || !examDate || !startTime || !endTime) {
-      toast( "Please fill all required fields." );
+      toast.error("All fields are required");
+      return;
+    }
+
+    const examDateObj = new Date(examDate);
+    const startDateTime = makeDateTime(examDate, startTime);
+    const endDateTime = makeDateTime(examDate, endTime);
+
+    if (!startDateTime || !endDateTime) {
+      toast.error("Invalid time selected");
       return;
     }
 
@@ -70,27 +105,30 @@ export default function AddTimeTablePage() {
       examId,
       classId,
       subjectId,
-      examDate,
-      startTime,
-      endTime,
+      examDate: examDateObj,
+      startTime: startDateTime,
+      endTime: endDateTime,
       room: room || undefined,
     };
 
     try {
-      const res = await fetch("/api/timetable", {
+      const res = await fetch("/api/dateSheet", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Failed to create timetable");
+      if (!res.ok) throw new Error("Failed");
 
-      toast( "Timetable created successfully!" );
-      router.push("/admin/datesheet");
+      toast.success("Timetable created successfully!");
+      router.push("/admin/date-sheet");
     } catch (err) {
-      toast( "Error creating timetable", );
+      console.error(err);
+      toast.error("Error creating timetable");
     }
-  }
+  };
 
   return (
     <div className="p-6 space-y-6 max-w-2xl mx-auto">
@@ -105,7 +143,9 @@ export default function AddTimeTablePage() {
           </SelectTrigger>
           <SelectContent>
             {exams.map((exam) => (
-              <SelectItem key={exam.id} value={exam.id}>{exam.name}</SelectItem>
+              <SelectItem key={exam.id} value={exam.id}>
+                {exam.name}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -120,7 +160,9 @@ export default function AddTimeTablePage() {
           </SelectTrigger>
           <SelectContent>
             {classes.map((cls) => (
-              <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
+              <SelectItem key={cls.id} value={cls.id}>
+                {cls.name}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -135,7 +177,9 @@ export default function AddTimeTablePage() {
           </SelectTrigger>
           <SelectContent>
             {subjects.map((subj) => (
-              <SelectItem key={subj.id} value={subj.id}>{subj.name}</SelectItem>
+              <SelectItem key={subj.id} value={subj.id}>
+                {subj.name}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -159,13 +203,15 @@ export default function AddTimeTablePage() {
         <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
       </div>
 
-      {/* Room (optional) */}
+      {/* Room */}
       <div className="space-y-1">
         <Label>Room (Optional)</Label>
         <Input type="text" value={room} onChange={(e) => setRoom(e.target.value)} />
       </div>
 
-      <Button className="mt-4" onClick={handleSubmit}>Add Timetable</Button>
+      <Button className="mt-4" onClick={handleSubmit}>
+        Add Timetable
+      </Button>
     </div>
   );
 }

@@ -52,7 +52,7 @@ export default async function AdminDateSheetPage() {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Exam Datesheet</h1>
         <Button asChild variant="default" size="sm">
-          <Link href="/admin/datesheet/new">Add Timetable</Link>
+          <Link href="/admin/date-sheet/new">+ Add Timetable</Link>
         </Button>
       </div>
 
