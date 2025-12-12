@@ -2,6 +2,8 @@ import { authOption } from "@/app/lib/auth";
 import { getServerSession } from "next-auth/next";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
+import { _success } from "zod/v4/core";
+
 
 interface CreateTimeTable {
   examId: string;
@@ -61,4 +63,16 @@ export async function POST(req: NextRequest) {
     console.error("POST /api/timetable failed:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
+}
+
+
+export async function GET(req:NextRequest){
+    try {
+        const session = await getServerSession(authOption);
+        const dateSheet = await db.examDateSheet.findMany()
+        return NextResponse.json({_success:true,dateSheet},{status:200})
+    } catch (error) {
+        console.error("GET /api/timetable failed:",error);
+        return new NextResponse("Internal Server Error", {status:500})
+    }
 }
