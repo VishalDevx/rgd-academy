@@ -70,13 +70,13 @@ export default function AddTimeTablePage() {
         console.log("RAW Classes:", classesJson);
         console.log("RAW Subjects:", subjectsJson);
 
-        if (!Array.isArray(examsJson)) throw new Error("Invalid exams response");
-        if (!Array.isArray(classesJson)) throw new Error("Invalid classes response");
-        if (!Array.isArray(subjectsJson)) throw new Error("Invalid subjects response");
+        if (!Array.isArray(examsJson.data)) throw new Error("Invalid exams response");
+        if (!Array.isArray(classesJson.data)) throw new Error("Invalid classes response");
+        if (!Array.isArray(subjectsJson.data)) throw new Error("Invalid subjects response");
 
-        setExams(examsJson);
-        setClasses(classesJson);
-        setSubjects(subjectsJson);
+        setExams(examsJson.data);
+        setClasses(classesJson.data);
+        setSubjects(subjectsJson.data);
       } catch (err) {
         console.error(err);
         toast.error("Failed to fetch data");
