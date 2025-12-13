@@ -29,6 +29,7 @@ model User {
   staff         Staff?
   student       Student?
   exam          Exam[]     @relation("ExamCreatedBy")
+  results       Result[]
   @@index([role])
 }
 
@@ -89,7 +90,9 @@ model Class {
   section       String?
   gradeCode     String?
   teacherId     String?
+  academicSessionId  String 
   createdAt     DateTime       @default(now())
+  academicSession    AcademicSession  @relation(fields: [academicSessionId], references: [id])
   attendances   Attendance[]
   teacher       Staff?         @relation("ClassTeacher", fields: [teacherId], references: [id])
   exams         Exam[]
@@ -127,7 +130,7 @@ model Staff {
   classes     Class[]      @relation("ClassTeacher")
  
   leaves      Leave[]
-  results     Result[]
+ 
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   subjects    Subject[]
 
@@ -219,20 +222,27 @@ model FeePayment {
 }
 
 model Exam {
-  id          String   @id @default(cuid())
-  name        String
+  id          String        @id @default(cuid())
+  name        String        // "Test-1", "Test-2", "Half Yearly"
+  category    ExamCategory // UNIT_TEST | HALF_YEARLY | ANNUAL
+  sequence    Int?          // 1,2 only for UNIT_TEST
   classId     String
   startDate   DateTime
   endDate     DateTime
+  isLocked    Boolean       @default(false)
   createdById String
-  createdAt   DateTime @default(now())
-  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
-createdBy   User    @relation("ExamCreatedBy",fields: [createdById], references: [id])
+  createdAt   DateTime      @default(now())
+
+  class       Class         @relation(fields: [classId], references: [id], onDelete: Cascade)
+  createdBy   User          @relation("ExamCreatedBy", fields: [createdById], references: [id])
   results     Result[]
-dateSheet ExamDateSheet[]
+  dateSheet   ExamDateSheet[]
+
   @@index([classId])
-  @@index([createdById])
+  @@index([category])
+  @@unique([classId, category, sequence])
 }
+
 model ExamDateSheet {
   id        String   @id @default(cuid())
   examId    String
@@ -265,15 +275,18 @@ model Result {
   remarks    String?
   uploadedBy String?
   createdAt  DateTime @default(now())
+
   exam       Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
   student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   subject    Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  uploader   Staff?   @relation(fields: [uploadedBy], references: [id])
+  uploader   User?    @relation(fields: [uploadedBy], references: [id])
 
+  @@unique([studentId, examId, subjectId]) // 🔥 REQUIRED
   @@index([studentId])
   @@index([examId])
   @@index([subjectId])
 }
+
 
 model Expense {
   id          String          @id @default(cuid())
@@ -350,6 +363,15 @@ model AuditLog {
   @@index([userId])
   @@index([entity, entityId])
 }
+model AcademicSession {
+  id        String   @id @default(cuid())
+  name      String   // "2024-2025"
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  classes   Class[]
+}
+
 
 enum Role {
   ADMIN
@@ -418,3 +440,8 @@ enum SubscriptionTier {
   ENTERPRISE
 }
 
+enum ExamCategory {
+  UNIT_TEST
+  HALF_YEARLY
+  ANNUAL
+}
