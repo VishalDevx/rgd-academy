@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@/app/components/ui/table";
 import { authOption } from "@/app/lib/auth";
+import { ExamCategory } from "@prisma/client";
 
 // ---- Proper Type ----
 type ExamWithClass = {
@@ -23,6 +24,8 @@ type ExamWithClass = {
   name: string;
   startDate: Date;
   endDate: Date;
+   category: ExamCategory; 
+
   class: {
     id: string;
     name: string;
@@ -76,6 +79,7 @@ const exams = await db.exam.findMany({
                 >
                   <TableCell>{exam.name}</TableCell>
                   <TableCell>{exam.class?.name ?? "-"}</TableCell>
+                   <TableCell>{new Date(exam.category).toLocaleDateString()}</TableCell>
                   <TableCell>{new Date(exam.startDate).toLocaleDateString()}</TableCell>
                   <TableCell>{new Date(exam.endDate).toLocaleDateString()}</TableCell>
                 </TableRow>

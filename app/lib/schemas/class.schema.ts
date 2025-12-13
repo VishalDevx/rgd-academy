@@ -6,6 +6,7 @@ export const ClassPayloadSchema = z.object({
   section: z.string().optional(),
   gradeCode: z.string().optional(),
   teacherId: z.string().optional(),
+  academicSessionId:z.string()
 });
 
 export type ClassPayload = z.infer<typeof ClassPayloadSchema>;

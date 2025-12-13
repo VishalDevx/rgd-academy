@@ -8,6 +8,7 @@ import { Label } from "@/app/components/ui/label";
 import { Button } from "@/app/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { toast } from "sonner";
+import { ExamCategory } from "@prisma/client";
 
 interface ClassType {
   id: string;
@@ -19,12 +20,19 @@ interface ExamForm {
   classId: string;
   startDate: string;
   endDate: string;
+  category: ExamCategory;
 }
 
 export default function NewExamPage() {
   const router = useRouter();
   const [classes, setClasses] = useState<ClassType[]>([]);
-  const [form, setForm] = useState<ExamForm>({ name: "", classId: "", startDate: "", endDate: "" });
+  const [form, setForm] = useState<ExamForm>({
+    name: "",
+    classId: "",
+    startDate: "",
+    endDate: "",
+    category: "UNIT_TEST",
+  });
   const [submitting, setSubmitting] = useState(false);
 
   // Fetch classes from API
@@ -37,7 +45,6 @@ export default function NewExamPage() {
         const data: ClassType[] = (await res.json())?.data ?? [];
         setClasses(data);
 
-        // Auto-select first class if available
         if (data.length > 0 && !form.classId) {
           setForm((prev) => ({ ...prev, classId: data[0].id }));
         }
@@ -141,6 +148,27 @@ export default function NewExamPage() {
                   onChange={(e) => onChange("endDate", e.target.value)}
                   required
                 />
+              </div>
+
+              {/* Category Select */}
+              <div>
+                <Label htmlFor="category">Category</Label>
+                <Select
+                  value={form.category}
+                  onValueChange={(val) => onChange("category", val)}
+                  required
+                >
+                  <SelectTrigger id="category">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.values(ExamCategory).map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat.replace("_", " ")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

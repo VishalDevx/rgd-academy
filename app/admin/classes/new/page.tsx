@@ -2,22 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/app/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/app/components/ui/card";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/app/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { toast } from "sonner";
 
 type Staff = {
@@ -25,32 +14,28 @@ type Staff = {
   user: { name: string };
 };
 
+type AcademicSession = {
+  id: string;
+  name: string;
+};
+
 const GRADES = [
-  "NURSERY",
-  "LKG",
-  "UKG",
-  "ONE",
-  "TWO",
-  "THREE",
-  "FOUR",
-  "FIVE",
-  "SIX",
-  "SEVEN",
-  "EIGHT",
-  "NINE",
-  "TEN",
+  "NURSERY","LKG","UKG","ONE","TWO","THREE","FOUR","FIVE","SIX","SEVEN","EIGHT","NINE","TEN",
 ];
 
 export default function NewClassPage() {
   const router = useRouter();
 
   const [staff, setStaff] = useState<Staff[]>([]);
+  const [sessions, setSessions] = useState<AcademicSession[]>([]);
   const [loadingStaff, setLoadingStaff] = useState(true);
+  const [loadingSessions, setLoadingSessions] = useState(true);
 
   const [name, setName] = useState("");
   const [grade, setGrade] = useState("TEN");
   const [section, setSection] = useState("");
   const [classTeacherId, setClassTeacherId] = useState("");
+  const [academicSessionId, setAcademicSessionId] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -78,6 +63,30 @@ export default function NewClassPage() {
     loadStaff();
   }, []);
 
+  // Load academic sessions
+  useEffect(() => {
+    async function loadSessions() {
+      try {
+        const res = await fetch("/api/academic-sessions");
+        const json = await res.json();
+
+        if (json.success && Array.isArray(json.data)) {
+          setSessions(json.data);
+          if (json.data.length > 0) setAcademicSessionId(json.data[0].id); // auto-select first session
+        } else {
+          setSessions([]);
+        }
+      } catch (err) {
+        console.error(err);
+        setSessions([]);
+      } finally {
+        setLoadingSessions(false);
+      }
+    }
+
+    loadSessions();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -85,6 +94,12 @@ export default function NewClassPage() {
 
     if (!classTeacherId) {
       setError("Please select a class teacher");
+      setSubmitting(false);
+      return;
+    }
+
+    if (!academicSessionId) {
+      setError("Please select an academic session");
       setSubmitting(false);
       return;
     }
@@ -97,18 +112,18 @@ export default function NewClassPage() {
           name,
           grade,
           section,
-          classTeacherId,
+          teacherId: classTeacherId,
+          academicSessionId,
         }),
       });
 
       if (!res.ok) throw new Error(await res.text());
 
+      toast.success("Class created successfully!");
       router.push("/admin/classes");
     } catch (err: unknown) {
-        const message =
-    err instanceof Error ? err.message : "Error saving class";
-
-  toast.error(message);
+      const message = err instanceof Error ? err.message : "Error saving class";
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -160,10 +175,36 @@ export default function NewClassPage() {
               />
             </div>
 
+            {/* Academic Session */}
+            <div>
+              <Label>Academic Session</Label>
+              <Select
+                value={academicSessionId}
+                onValueChange={(v) => setAcademicSessionId(v)}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select session" />
+                </SelectTrigger>
+                <SelectContent>
+                  {loadingSessions ? (
+                    <div className="p-2 text-sm text-muted-foreground">Loading…</div>
+                  ) : sessions.length === 0 ? (
+                    <div className="p-2 text-sm text-muted-foreground">No sessions found</div>
+                  ) : (
+                    sessions.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Class Teacher */}
             <div>
               <Label>Class Teacher</Label>
-
               <Select
                 value={classTeacherId}
                 onValueChange={(v) => setClassTeacherId(v)}
@@ -174,13 +215,9 @@ export default function NewClassPage() {
 
                 <SelectContent>
                   {loadingStaff ? (
-                    <div className="p-2 text-sm text-muted-foreground">
-                      Loading…
-                    </div>
+                    <div className="p-2 text-sm text-muted-foreground">Loading…</div>
                   ) : staff.length === 0 ? (
-                    <div className="p-2 text-sm text-muted-foreground">
-                      No staff found
-                    </div>
+                    <div className="p-2 text-sm text-muted-foreground">No staff found</div>
                   ) : (
                     staff.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
