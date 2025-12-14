@@ -1,148 +1,307 @@
-import { PrismaClient, TransactionType } from "@prisma/client";
+import {
+  PrismaClient,
+  Role,
+  Grade,
+  ExamCategory,
+  AttendanceStatus,
+  TransactionType,
+  NotificationType,
+} from "@prisma/client";
 import bcrypt from "bcrypt";
 
 const db = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Clearing old data...");
+  console.log("🌱 Resetting database...");
 
-  // --- DELETE CHILD TABLES FIRST ---
+  // ================= DELETE (CHILD → PARENT) =================
   await db.result.deleteMany();
   await db.examDateSheet.deleteMany();
   await db.exam.deleteMany();
+  await db.attendance.deleteMany();
   await db.feePayment.deleteMany();
   await db.feeStructure.deleteMany();
   await db.subject.deleteMany();
-  await db.attendance.deleteMany();
   await db.student.deleteMany();
+  await db.leave.deleteMany();
   await db.staff.deleteMany();
   await db.expense.deleteMany();
+  await db.notification.deleteMany();
   await db.announcementVisibility.deleteMany();
   await db.announcement.deleteMany();
-  await db.notification.deleteMany();
   await db.auditLog.deleteMany();
   await db.account.deleteMany();
   await db.session.deleteMany();
   await db.verificationToken.deleteMany();
-
-  // --- DELETE PARENT TABLES ---
-  await db.user.deleteMany();
   await db.class.deleteMany();
+  await db.academicSession.deleteMany();
   await db.schoolSettings.deleteMany();
+  await db.user.deleteMany();
 
-  console.log("🌱 Old data cleared. Seeding new data...");
+  // ================= SCHOOL SETTINGS =================
+  await db.schoolSettings.create({
+    data: {
+      name: "RGD Public School",
+      academicYear: "2024-2025",
+      tier: "BASIC",
+      primaryColor: "#2563eb",
+    },
+  });
 
-  // --- HASHED PASSWORDS ---
-  const adminPassword = await bcrypt.hash("Admin@123", 10);
-  const staffPassword = await bcrypt.hash("Staff@123", 10);
-  const studentPassword = await bcrypt.hash("Student@123", 10);
+  // ================= ACADEMIC SESSION =================
+  const session = await db.academicSession.create({
+    data: {
+      name: "2024-2025",
+      isActive: true,
+    },
+  });
 
-  // --- CREATE CLASSES ---
-  const class9A = await db.class.create({ data: { name: "Class 9 A", grade: "NINE" } });
-  const class10A = await db.class.create({ data: { name: "Class 10 A", grade: "TEN" } });
+  // ================= PASSWORDS =================
+  const adminPass = await bcrypt.hash("Admin@123", 10);
+  const staffPass = await bcrypt.hash("Staff@123", 10);
+  const studentPass = await bcrypt.hash("Student@123", 10);
 
-  // --- CREATE ADMIN ---
+  // ================= USERS =================
   const admin = await db.user.create({
     data: {
       name: "Principal Admin",
       email: "admin@school.com",
-      passwordHash: adminPassword,
-      role: "ADMIN",
+      passwordHash: adminPass,
+      role: Role.ADMIN,
       adharNo: "999988887777",
     },
   });
 
-  // --- CREATE STAFF ---
-  const staff = await db.user.create({
+  const staffUser = await db.user.create({
     data: {
-      name: "John Teacher",
+      name: "Amit Teacher",
       email: "staff@school.com",
-      passwordHash: staffPassword,
-      role: "STAFF",
+      passwordHash: staffPass,
+      role: Role.STAFF,
       adharNo: "888877776666",
     },
   });
 
-  // --- STAFF PROFILE ---
-  await db.staff.create({
-    data: {
-      userId: staff.id,
-      designation: "Teacher",
-      salary: 30000,
-    },
-  });
-
-  // --- CREATE STUDENT USER ---
   const studentUser = await db.user.create({
     data: {
       name: "Ravi Student",
       email: "student@school.com",
-      passwordHash: studentPassword,
-      role: "STUDENT",
+      passwordHash: studentPass,
+      role: Role.STUDENT,
       adharNo: "123456789012",
     },
   });
 
-  // --- STUDENT PROFILE ---
-  const studentProfile = await db.student.create({
+  // ================= STAFF =================
+  const staff = await db.staff.create({
+    data: {
+      userId: staffUser.id,
+      designation: "Math Teacher",
+      salary: 32000,
+    },
+  });
+
+  // ================= CLASS =================
+  const class9A = await db.class.create({
+    data: {
+      name: "Class 9 A",
+      grade: Grade.NINE,
+      section: "A",
+      academicSessionId: session.id,
+      teacherId: staff.id,
+    },
+  });
+
+  // ================= STUDENT =================
+  const student = await db.student.create({
     data: {
       userId: studentUser.id,
-      admissionNo: "ADM-2200170100060",
-      rollNumber: "2200170100060",
-      dob: new Date("2007-08-15"),
+      admissionNo: "ADM-0001",
+      rollNumber: "01",
       classId: class9A.id,
-      occupation: "Labours",
+      dob: new Date("2008-05-10"),
       religion: "Hindu",
       caste: "SC",
     },
   });
 
-  // --- FEE STRUCTURE & PAYMENTS ---
-  const fee10 = await db.feeStructure.create({
+  // ================= SUBJECTS =================
+  const math = await db.subject.create({
     data: {
-      classId: class10A.id,
-      name: "Tuition 10th",
-      tuitionFee: 25000.0,
-      examFee: 1500.0,
-      transportFee: 0.0,
-      miscFee: 500.0,
-      total: 27000.0,
+      name: "Mathematics",
+      code: "MATH-9",
+      classId: class9A.id,
+      teacherId: staff.id,
     },
   });
 
-  await db.feePayment.createMany({
-    data: [
-      { studentId: studentProfile.id, feeStructureId: fee10.id, amountPaid: 10000, remainAmount: 17000, status: "PARTIAL" },
-      { studentId: studentProfile.id, feeStructureId: fee10.id, amountPaid: 17000, remainAmount: 0, status: "PAID" },
-    ],
-  });
-
-  // --- EXPENSES ---
-  await db.expense.createMany({
-    data: [
-      { title: "Electricity Bill", amount: 8500, date: new Date(), createdById: admin.id, transaction: TransactionType.CREDIT },
-      { title: "Books & Supplies", amount: 12000, date: new Date(), createdById: admin.id, transaction: TransactionType.DEBIT },
-      { title: "Repairs & Maintenance", amount: 6000, date: new Date(), createdById: admin.id, transaction: TransactionType.DEBIT },
-    ],
-  });
-
-  // --- CREATE EXAM ---
-  await db.exam.create({
+  const science = await db.subject.create({
     data: {
-      name: "Mid Term",
+      name: "Science",
+      code: "SCI-9",
+      classId: class9A.id,
+      teacherId: staff.id,
+    },
+  });
+
+  // ================= ATTENDANCE =================
+  await db.attendance.createMany({
+    data: [
+      {
+        classId: class9A.id,
+        studentId: student.id,
+        markedById: staff.id,
+        date: new Date(),
+        status: AttendanceStatus.PRESENT,
+      },
+    ],
+  });
+
+  // ================= FEE =================
+  const fee = await db.feeStructure.create({
+    data: {
+      classId: class9A.id,
+      name: "Annual Fee",
+      tuitionFee: "24000",
+      examFee: "2000",
+      miscFee: "1000",
+      total: "27000",
+    },
+  });
+
+  await db.feePayment.create({
+    data: {
+      studentId: student.id,
+      feeStructureId: fee.id,
+      amountPaid: "15000",
+      remainAmount: "12000",
+      status: "PARTIAL",
+    },
+  });
+
+  // ================= EXAM =================
+  const exam = await db.exam.create({
+    data: {
+      name: "Half Yearly",
+      category: ExamCategory.HALF_YEARLY,
       classId: class9A.id,
       startDate: new Date(),
-      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      createdById: staff.id, // staff must exist for FK
+      endDate: new Date(Date.now() + 5 * 86400000),
+      createdById: staffUser.id,
     },
   });
 
-  console.log("✅ Seed data inserted successfully!");
+  // ================= DATE SHEET =================
+  await db.examDateSheet.createMany({
+    data: [
+      {
+        examId: exam.id,
+        classId: class9A.id,
+        subjectId: math.id,
+        examDate: new Date(),
+        startTime: new Date(),
+        endTime: new Date(Date.now() + 2 * 3600000),
+        room: "101",
+      },
+      {
+        examId: exam.id,
+        classId: class9A.id,
+        subjectId: science.id,
+        examDate: new Date(),
+        startTime: new Date(),
+        endTime: new Date(Date.now() + 2 * 3600000),
+        room: "102",
+      },
+    ],
+  });
+
+  // ================= RESULTS =================
+  await db.result.createMany({
+    data: [
+      {
+        studentId: student.id,
+        examId: exam.id,
+        subjectId: math.id,
+        marks: 78,
+        maxMarks: 100,
+        grade: "B+",
+        uploadedBy: staffUser.id,
+      },
+      {
+        studentId: student.id,
+        examId: exam.id,
+        subjectId: science.id,
+        marks: 85,
+        maxMarks: 100,
+        grade: "A",
+        uploadedBy: staffUser.id,
+      },
+    ],
+  });
+
+  // ================= ANNOUNCEMENT =================
+  const announcement = await db.announcement.create({
+    data: {
+      title: "Half Yearly Exams",
+      content: "Half yearly exams will start from Monday.",
+      createdBy: admin.id,
+    },
+  });
+
+  await db.announcementVisibility.createMany({
+    data: [
+      { announcementId: announcement.id, role: Role.STUDENT },
+      { announcementId: announcement.id, role: Role.STAFF },
+    ],
+  });
+
+  // ================= NOTIFICATION =================
+  await db.notification.create({
+    data: {
+      userId: studentUser.id,
+      type: NotificationType.RESULT_PUBLISHED,
+      title: "Results Published",
+      message: "Your Half Yearly results are available.",
+    },
+  });
+
+  // ================= LEAVE =================
+  await db.leave.create({
+    data: {
+      staffId: staff.id,
+      fromDate: new Date(),
+      toDate: new Date(Date.now() + 2 * 86400000),
+      reason: "Medical",
+    },
+  });
+
+  // ================= EXPENSE =================
+  await db.expense.create({
+    data: {
+      title: "Electricity Bill",
+      amount: "8500",
+      createdById: admin.id,
+      transaction: TransactionType.DEBIT,
+    },
+  });
+
+  // ================= AUDIT LOG =================
+  await db.auditLog.create({
+    data: {
+      userId: admin.id,
+      action: "CREATE",
+      entity: "EXAM",
+      entityId: exam.id,
+      newValue: { exam: "Half Yearly" },
+    },
+  });
+
+  console.log("✅ FULL DATABASE SEEDED (NO TABLE LEFT)");
 }
 
 main()
-  .catch((err) => {
-    console.error("❌ Seeding failed:", err);
+  .catch((e) => {
+    console.error(e);
     process.exit(1);
   })
   .finally(async () => {
