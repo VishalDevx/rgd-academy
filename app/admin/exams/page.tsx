@@ -66,6 +66,7 @@ const exams = await db.exam.findMany({
               <TableRow className="bg-gray-100">
                 <TableHead className="text-left">Name</TableHead>
                 <TableHead className="text-left">Class</TableHead>
+                <TableHead className="text-left">Category</TableHead>
                 <TableHead className="text-left">Start Date</TableHead>
                 <TableHead className="text-left">End Date</TableHead>
               </TableRow>
@@ -79,7 +80,7 @@ const exams = await db.exam.findMany({
                 >
                   <TableCell>{exam.name}</TableCell>
                   <TableCell>{exam.class?.name ?? "-"}</TableCell>
-                   <TableCell>{new Date(exam.category).toLocaleDateString()}</TableCell>
+                   <TableCell>{exam.category}</TableCell>
                   <TableCell>{new Date(exam.startDate).toLocaleDateString()}</TableCell>
                   <TableCell>{new Date(exam.endDate).toLocaleDateString()}</TableCell>
                 </TableRow>

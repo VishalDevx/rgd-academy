@@ -2,13 +2,26 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Button } from "@/app/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/app/components/ui/select";
 import { toast } from "sonner";
 import { ExamCategory } from "@prisma/client";
+
+/* ---------- Types ---------- */
 
 interface ClassType {
   id: string;
@@ -21,23 +34,30 @@ interface ExamForm {
   startDate: string;
   endDate: string;
   category: ExamCategory;
+  sequence?: number;
 }
+
+/* ---------- Component ---------- */
 
 export default function NewExamPage() {
   const router = useRouter();
+
   const [classes, setClasses] = useState<ClassType[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+
   const [form, setForm] = useState<ExamForm>({
     name: "",
     classId: "",
     startDate: "",
     endDate: "",
     category: "UNIT_TEST",
+    sequence: 1,
   });
-  const [submitting, setSubmitting] = useState(false);
 
-  // Fetch classes from API
+  /* ---------- Fetch Classes ---------- */
+
   useEffect(() => {
-    const fetchClasses = async () => {
+    (async () => {
       try {
         const res = await fetch("/api/classes");
         if (!res.ok) throw new Error("Failed to fetch classes");
@@ -45,24 +65,41 @@ export default function NewExamPage() {
         const data: ClassType[] = (await res.json())?.data ?? [];
         setClasses(data);
 
-        if (data.length > 0 && !form.classId) {
-          setForm((prev) => ({ ...prev, classId: data[0].id }));
+        if (data.length && !form.classId) {
+          setForm((p) => ({ ...p, classId: data[0].id }));
         }
-      } catch (err) {
-        console.error(err);
+      } catch {
         toast.error("Failed to load classes");
       }
-    };
-
-    fetchClasses();
+    })();
   }, []);
 
-  const onChange = (key: keyof ExamForm, value: string) => {
+  /* ---------- Handlers ---------- */
+
+  const updateForm = <K extends keyof ExamForm>(
+    key: K,
+    value: ExamForm[K]
+  ) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const onCategoryChange = (category: ExamCategory) => {
+    setForm((prev) => ({
+      ...prev,
+      category,
+      sequence: category === "UNIT_TEST" ? 1 : undefined,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // hard validation (frontend must protect backend)
+    if (form.category === "UNIT_TEST" && !form.sequence) {
+      toast.error("Sequence is required for Unit Test");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -72,17 +109,20 @@ export default function NewExamPage() {
         body: JSON.stringify(form),
       });
 
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
 
-      toast.success("Exam created successfully!");
+      toast.success("Exam created successfully");
       router.push("/admin/exams");
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Error saving exam";
-      toast.error(message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setSubmitting(false);
     }
   };
+
+  /* ---------- UI ---------- */
 
   return (
     <div className="max-w-3xl mx-auto py-8">
@@ -90,30 +130,28 @@ export default function NewExamPage() {
         <CardHeader>
           <CardTitle>New Exam</CardTitle>
         </CardHeader>
+
         <CardContent>
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Exam Name */}
               <div>
-                <Label htmlFor="name">Exam Name</Label>
+                <Label>Exam Name</Label>
                 <Input
-                  id="name"
-                  placeholder="Enter exam name"
                   value={form.name}
-                  onChange={(e) => onChange("name", e.target.value)}
+                  onChange={(e) => updateForm("name", e.target.value)}
                   required
                 />
               </div>
 
-              {/* Class Select */}
+              {/* Class */}
               <div>
-                <Label htmlFor="classId">Class</Label>
+                <Label>Class</Label>
                 <Select
-                  value={form.classId || undefined}
-                  onValueChange={(val) => onChange("classId", val)}
-                  required
+                  value={form.classId}
+                  onValueChange={(v) => updateForm("classId", v)}
                 >
-                  <SelectTrigger id="classId">
+                  <SelectTrigger>
                     <SelectValue placeholder="Select class" />
                   </SelectTrigger>
                   <SelectContent>
@@ -128,37 +166,38 @@ export default function NewExamPage() {
 
               {/* Start Date */}
               <div>
-                <Label htmlFor="startDate">Start Date</Label>
+                <Label>Start Date</Label>
                 <Input
-                  id="startDate"
                   type="date"
                   value={form.startDate}
-                  onChange={(e) => onChange("startDate", e.target.value)}
+                  onChange={(e) =>
+                    updateForm("startDate", e.target.value)
+                  }
                   required
                 />
               </div>
 
               {/* End Date */}
               <div>
-                <Label htmlFor="endDate">End Date</Label>
+                <Label>End Date</Label>
                 <Input
-                  id="endDate"
                   type="date"
                   value={form.endDate}
-                  onChange={(e) => onChange("endDate", e.target.value)}
+                  onChange={(e) =>
+                    updateForm("endDate", e.target.value)
+                  }
                   required
                 />
               </div>
 
-              {/* Category Select */}
+              {/* Category */}
               <div>
-                <Label htmlFor="category">Category</Label>
+                <Label>Category</Label>
                 <Select
                   value={form.category}
-                  onValueChange={(val) => onChange("category", val)}
-                  required
+                  onValueChange={onCategoryChange}
                 >
-                  <SelectTrigger id="category">
+                  <SelectTrigger>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -170,11 +209,31 @@ export default function NewExamPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Sequence — ONLY for UNIT_TEST */}
+              {form.category === "UNIT_TEST" && (
+                <div>
+                  <Label>Unit Test Number</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={form.sequence ?? ""}
+                    onChange={(e) =>
+                      updateForm("sequence", Number(e.target.value))
+                    }
+                    required
+                  />
+                </div>
+              )}
             </div>
 
-            {/* Buttons */}
+            {/* Actions */}
             <div className="flex justify-end gap-2">
-              <Button variant="outline" type="button" onClick={() => router.back()}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.back()}
+              >
                 Cancel
               </Button>
               <Button type="submit" disabled={submitting}>

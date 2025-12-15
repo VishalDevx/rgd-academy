@@ -65,6 +65,7 @@ export default function AddTimeTablePage() {
         const examsJson = await examsRes.json();
         const classesJson = await classesRes.json();
         const subjectsJson = await subjectsRes.json();
+        
 
         if (!Array.isArray(examsJson.data)) throw new Error("Invalid exams response");
         if (!Array.isArray(classesJson.data)) throw new Error("Invalid classes response");
