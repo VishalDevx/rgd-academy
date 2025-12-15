@@ -56,7 +56,7 @@ export default function AdminResultPage() {
   /* ---------- Load Filters ---------- */
 
   useEffect(() => {
-    fetch("/api/exams")
+    fetch("/api/marksheet")
       .then((r) => r.json())
       .then((res) => setExams(res.data ?? res))
       .catch(() => setExams([]));
@@ -74,7 +74,7 @@ export default function AdminResultPage() {
     if (examId) params.set("examId", examId);
     if (studentId) params.set("studentId", studentId);
 
-    const res = await fetch(`/api/result?${params.toString()}`);
+    const res = await fetch(`/api/marksheet?${params.toString()}`);
     const data = await res.json();
     setResults(Array.isArray(data) ? data : []);
   };

@@ -102,14 +102,10 @@ export default function AdminAddResult() {
       .then((d) => setExams(d.data ?? []))
       .catch(() => toast.error("Failed to load exams"));
 
-    // Fetch students
-    fetch(`/api/students?classId=${form.classId}`)
-      .then((r) => r.json())
-      .then((d) => {
-        const studentList: Student[] = d.data ?? [];
-        setStudents(studentList);
-      })
-      .catch(() => toast.error("Failed to load students"));
+  fetch("/api/students")
+       .then((res) => res.json())
+       .then((data: Student[]) => setStudents(data))
+       .catch(() => toast.error("Failed to load students"));
 
     // Reset dependent fields
     update("examId", "");
