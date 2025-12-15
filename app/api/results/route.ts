@@ -3,12 +3,7 @@ import { db } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOption } from "@/app/lib/auth";
 
-// -------- Types --------
-interface ResultQuery {
-  examId?: string | null;
-  classId?: string | null;
-  studentId?: string | null;
-}
+/* ================= TYPES ================= */
 
 interface CreateResultBody {
   examId: string;
@@ -20,40 +15,50 @@ interface CreateResultBody {
   remarks?: string | null;
 }
 
-// -------- GET --------
+/* ================= GET ================= */
+
 export async function GET(req: Request) {
+  const session = await getServerSession(authOption);
+  if (!session?.user) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+
   const { searchParams } = new URL(req.url);
+  const examId = searchParams.get("examId");
+  const studentId = searchParams.get("studentId");
+  const classId = searchParams.get("classId");
 
-  const query: ResultQuery = {
-    examId: searchParams.get("examId"),
-    classId: searchParams.get("classId"),
-    studentId: searchParams.get("studentId"),
-  };
-
-  const where: Record<string, string> = {};
-  if (query.examId) where.examId = query.examId;
-  if (query.studentId) where.studentId = query.studentId;
+  // 🔒 STUDENT can only see his own results
+  if (session.user.role === "STUDENT" && studentId !== session.user.id) {
+    return new NextResponse("Forbidden", { status: 403 });
+  }
 
   const results = await db.result.findMany({
-    where,
+    where: {
+      ...(examId && { examId }),
+      ...(studentId && { studentId }),
+      ...(classId && {
+        exam: { classId },
+      }),
+    },
     include: {
       exam: true,
       subject: true,
-      student: { include: { user: true } },
+      student: {
+        include: { user: true },
+      },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: [
+      { subject: { name: "asc" } },
+      { exam: { category: "asc" } },
+    ],
   });
 
-  // Optional filtering by classId through exam.classId
-  const filtered =
-    query.classId != null
-      ? results.filter((r) => r.exam.classId === query.classId)
-      : results;
-
-  return NextResponse.json(filtered);
+  return NextResponse.json(results);
 }
 
-// -------- POST --------
+/* ================= POST (UPSERT) ================= */
+
 export async function POST(req: Request) {
   const session = await getServerSession(authOption);
 
@@ -81,8 +86,22 @@ export async function POST(req: Request) {
     return new NextResponse("Invalid numeric values", { status: 400 });
   }
 
-  const created = await db.result.create({
-    data: {
+  const result = await db.result.upsert({
+    where: {
+      studentId_examId_subjectId: {
+        studentId: body.studentId,
+        examId: body.examId,
+        subjectId: body.subjectId,
+      },
+    },
+    update: {
+      marks,
+      maxMarks,
+      grade: body.grade ?? null,
+      remarks: body.remarks ?? null,
+      uploadedBy: session.user.id,
+    },
+    create: {
       studentId: body.studentId,
       examId: body.examId,
       subjectId: body.subjectId,
@@ -90,9 +109,9 @@ export async function POST(req: Request) {
       maxMarks,
       grade: body.grade ?? null,
       remarks: body.remarks ?? null,
-      uploadedBy: session.user.role === "STAFF" ? session.user.id : null,
+      uploadedBy: session.user.id,
     },
   });
 
-  return NextResponse.json(created, { status: 201 });
+  return NextResponse.json(result, { status: 201 });
 }

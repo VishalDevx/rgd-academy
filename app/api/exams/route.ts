@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     return new NextResponse("Invalid payload", { status: 400 });
   }
 
-  // 🔴 RULE: sequence ONLY for UNIT_TEST
+
   if (body.category === "UNIT_TEST" && !body.sequence) {
     return new NextResponse("Sequence required for UNIT_TEST", { status: 400 });
   }
