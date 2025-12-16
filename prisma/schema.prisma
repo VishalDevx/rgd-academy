@@ -260,7 +260,7 @@ model ExamDateSheet {
   @@index([examId])
   @@index([classId])
   @@index([subjectId])
-  @@unique([examId, subjectId])
+  @@unique([examId, subjectId,classId])
 }
 
 

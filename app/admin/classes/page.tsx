@@ -29,6 +29,7 @@ export default async function AdminClassesPage() {
           user: { select: { name: true } },
         },
       },
+      academicSession:true
     },
   });
 
@@ -53,6 +54,7 @@ export default async function AdminClassesPage() {
                 <TableHead>Grade</TableHead>
                 <TableHead>Section</TableHead>
                 <TableHead>Class Teacher</TableHead>
+                 <TableHead>Academic Sections</TableHead>
               </TableRow>
             </TableHeader>
 
@@ -63,6 +65,7 @@ export default async function AdminClassesPage() {
                   <TableCell>{c.grade}</TableCell>
                   <TableCell>{c.section ?? "-"}</TableCell>
                   <TableCell>{c.teacher?.user?.name || "-"}</TableCell>
+                   <TableCell>{c.academicSession?.name || "-"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
