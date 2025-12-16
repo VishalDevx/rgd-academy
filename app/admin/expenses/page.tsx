@@ -1,29 +1,24 @@
-export const dynamic = "force-dynamic";
-
+// app/admin/expenses/page.tsx (Server Component)
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import ExpenseDashboard from "@/app/components/charts/ExpenseCharts";
-import { authOption} from "@/app/lib/auth";
+import ExpenseDashboardClient from "./expensePage";
+import { authOption } from "@/app/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminExpensesPage() {
   const session = await getServerSession(authOption);
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
-  // ---------------- FETCH EXPENSES ----------------
-  const raw = await db.expense.findMany({
-    orderBy: { date: "desc" },
-  });
-
-  // ---------------- SANITIZE FOR CLIENT ----------------
+  const raw = await db.expense.findMany({ orderBy: { date: "desc" } });
   const expenses = raw.map((x) => ({
     id: x.id,
     title: x.title,
     description: x.description ?? "",
     amount: Number(x.amount),
-   
     date: x.date.toISOString(),
   }));
 
-  return <ExpenseDashboard expenses={expenses} />;
+  return <ExpenseDashboardClient expenses={expenses} />;
 }

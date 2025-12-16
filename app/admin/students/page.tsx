@@ -17,18 +17,22 @@ export default async function AdminStudentsPage() {
   });
 
   return (
-    <div className="p-6 max-h-screen">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold text-gray-800">Students</h1>
+    <div className="p-6 md:p-8 min-h-screen bg-gradient-to-b from-gray-50 to-white space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-800">Students</h1>
         <Link
           href="/admin/students/new"
-          className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition"
+          className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white text-sm font-semibold shadow-md transition-all"
         >
           + Add Student
         </Link>
       </div>
 
-      <StudentsTable students={students} />
+      {/* Table */}
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4">
+        <StudentsTable students={students} />
+      </div>
     </div>
   );
 }

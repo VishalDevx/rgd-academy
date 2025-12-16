@@ -23,6 +23,7 @@ import {
   AvatarImage,
 } from "@/app/components/ui/avatar";
 import { Button } from "@/app/components/ui/button";
+import { LoadingSkeleton } from "@/app/components/LoadingSkeleton";
 
 // -----------------------------
 // Type Definitions
@@ -111,7 +112,7 @@ export default function StudentProfilePage() {
     fetchStudent();
   }, [params?.id, router]);
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div><LoadingSkeleton type="table"/></div>;
   if (!student) return <div>Student not found.</div>;
 
   const totalFeesPaid = student.fees.reduce(

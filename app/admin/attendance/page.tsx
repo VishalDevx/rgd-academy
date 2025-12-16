@@ -24,19 +24,18 @@ export default function AdminAttendancePage() {
   const [records, setRecords] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
-  // Load classes
+  // Load all classes
   const loadClasses = async () => {
     try {
       const res = await fetch("/api/classes");
       const json = await res.json();
-
       if (!Array.isArray(json?.data)) {
         toast.error("Invalid classes response");
         return;
       }
-
       setClasses(json.data);
-    } catch {
+    } catch (err) {
+      console.error(err);
       toast.error("Failed to load classes");
     }
   };
@@ -44,7 +43,7 @@ export default function AdminAttendancePage() {
   // Load students of selected class
   const loadStudents = async (classId: string) => {
     try {
-      const res = await fetch(`/api/students?classId=${classId}`);
+      const res = await fetch(`/api/students?classId=${classId}`); // removed trailing slash
       const json = await res.json();
 
       if (!Array.isArray(json?.data)) {
@@ -52,14 +51,23 @@ export default function AdminAttendancePage() {
         return;
       }
 
-      const list: Student[] = json.data;
+      // Map students to expected shape
+      const list: Student[] = json.data.map((s: any) => ({
+        id: s.id ?? "",
+        user: { name: s.user?.name ?? "No Name" },
+        classId: s.class?.id ?? "",
+      }));
+
+      console.log("Loaded students:", list); // debug log
+
       setStudents(list);
 
-      // Default status PRESENT
+      // Initialize attendance records
       const initial: Record<string, string> = {};
       list.forEach((s) => (initial[s.id] = "PRESENT"));
       setRecords(initial);
-    } catch {
+    } catch (err) {
+      console.error(err);
       toast.error("Failed to load students");
     }
   };
@@ -69,8 +77,7 @@ export default function AdminAttendancePage() {
   }, []);
 
   useEffect(() => {
-    if (!selectedClass) return;
-    loadStudents(selectedClass);
+    if (selectedClass) loadStudents(selectedClass);
   }, [selectedClass]);
 
   const setStatus = (studentId: string, status: string) => {
@@ -103,6 +110,7 @@ export default function AdminAttendancePage() {
       toast.success("Attendance saved successfully!");
       router.push("/admin/attendance");
     } catch (err) {
+      console.error(err);
       toast.error("Error saving attendance");
     } finally {
       setSaving(false);
@@ -154,7 +162,7 @@ export default function AdminAttendancePage() {
           </div>
 
           {/* Students Table */}
-          {students.length > 0 && (
+          {students.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full border rounded">
                 <thead className="bg-gray-50">
@@ -189,7 +197,9 @@ export default function AdminAttendancePage() {
                 </tbody>
               </table>
             </div>
-          )}
+          ) : selectedClass ? (
+            <p>No students found for this class.</p>
+          ) : null}
 
         </CardContent>
       </Card>
