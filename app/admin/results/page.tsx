@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+
 import {
   Card,
   CardContent,
@@ -20,7 +21,7 @@ import {
 
 /* ---------- Types ---------- */
 
-interface Exam {
+interface Class {
   id: string;
   name: string;
 }
@@ -30,62 +31,57 @@ interface Student {
   user: { name: string };
 }
 
-interface Result {
-  id: string;
-  marks: number;
-  maxMarks: number;
-  grade?: string | null;
-  subject: { name: string };
-  student: { user: { name: string } };
-  exam: { name: string };
-}
-
 /* ---------- Component ---------- */
 
 export default function AdminResultPage() {
   const router = useRouter();
   const { data: session } = useSession();
 
-  const [exams, setExams] = useState<Exam[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
-  const [results, setResults] = useState<Result[]>([]);
 
-  const [examId, setExamId] = useState("");
+  const [classId, setClassId] = useState("");
   const [studentId, setStudentId] = useState("");
 
-  /* ---------- Load Filters ---------- */
-
+  /* ---------- Load Classes ---------- */
   useEffect(() => {
-    fetch("/api/marksheet")
+    fetch("/api/classes")
       .then((r) => r.json())
-      .then((res) => setExams(res.data ?? res))
-      .catch(() => setExams([]));
-
-    fetch("/api/students")
-      .then((r) => r.json())
-      .then((res) => setStudents(res.data ?? res))
-      .catch(() => setStudents([]));
+      .then((res) => setClasses(res.data ?? []))
+      .catch(() => setClasses([]));
   }, []);
 
-  /* ---------- Load Results ---------- */
+  /* ---------- Load Students (by class) ---------- */
+  useEffect(() => {
+    if (!classId) {
+      setStudents([]);
+      setStudentId("");
+      return;
+    }
 
-  const loadResults = async () => {
-    const params = new URLSearchParams();
-    if (examId) params.set("examId", examId);
-    if (studentId) params.set("studentId", studentId);
+    fetch(`/api/students/by-class?classId=${classId}`)
+      .then((r) => r.json())
+      .then((res) => setStudents(res.data ?? []))
+      .catch(() => setStudents([]));
+  }, [classId]);
 
-    const res = await fetch(`/api/marksheet?${params.toString()}`);
-    const data = await res.json();
-    setResults(Array.isArray(data) ? data : []);
+  /* ---------- View Marksheet ---------- */
+  const viewMarksheet = () => {
+    if (!studentId) {
+      alert("Select a student first");
+      return;
+    }
+
+    // EXACTLY what you asked for
+    router.push(`/admin/marksheet/${studentId}`);
   };
 
   /* ---------- UI ---------- */
 
   return (
-    <Card>
-      {/* ---------- HEADER ---------- */}
+    <Card className="max-w-3xl mx-auto">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Results</CardTitle>
+        <CardTitle>View Marksheet</CardTitle>
 
         {session?.user.role !== "STUDENT" && (
           <Button onClick={() => router.push("/admin/results/new")}>
@@ -95,22 +91,28 @@ export default function AdminResultPage() {
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* ---------- FILTERS ---------- */}
+        {/* Filters */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Select value={examId} onValueChange={setExamId}>
+          {/* Class */}
+          <Select value={classId} onValueChange={setClassId}>
             <SelectTrigger>
-              <SelectValue placeholder="Select Exam" />
+              <SelectValue placeholder="Select Class" />
             </SelectTrigger>
             <SelectContent>
-              {exams.map((e) => (
-                <SelectItem key={e.id} value={e.id}>
-                  {e.name}
+              {classes.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          <Select value={studentId} onValueChange={setStudentId}>
+          {/* Student */}
+          <Select
+            value={studentId}
+            onValueChange={setStudentId}
+            disabled={!classId}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select Student" />
             </SelectTrigger>
@@ -123,43 +125,10 @@ export default function AdminResultPage() {
             </SelectContent>
           </Select>
 
-          <Button onClick={loadResults}>Get Results</Button>
-        </div>
-
-        {/* ---------- TABLE ---------- */}
-        <div className="border rounded-md overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-muted">
-              <tr>
-                <th className="p-2 text-left">Student</th>
-                <th className="p-2 text-left">Subject</th>
-                <th className="p-2 text-center">Marks</th>
-                <th className="p-2 text-center">Grade</th>
-                <th className="p-2 text-left">Exam</th>
-              </tr>
-            </thead>
-            <tbody>
-              {results.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="p-4 text-center text-muted-foreground">
-                    No results found
-                  </td>
-                </tr>
-              )}
-
-              {results.map((r) => (
-                <tr key={r.id} className="border-t">
-                  <td className="p-2">{r.student.user.name}</td>
-                  <td className="p-2">{r.subject.name}</td>
-                  <td className="p-2 text-center">
-                    {r.marks}/{r.maxMarks}
-                  </td>
-                  <td className="p-2 text-center">{r.grade ?? "-"}</td>
-                  <td className="p-2">{r.exam.name}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {/* Action */}
+          <Button onClick={viewMarksheet} disabled={!studentId}>
+            View Marksheet
+          </Button>
         </div>
       </CardContent>
     </Card>
