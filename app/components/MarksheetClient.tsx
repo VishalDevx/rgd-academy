@@ -5,7 +5,13 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
 interface MarksheetResponse {
-  student: { id: string; name: string; rollNumber: string; class: string };
+  student: { 
+    id: string; 
+    name: string; 
+    rollNumber: string; 
+    class: { name: string; academicSession: string }; // updated
+  };
+  
   exams: { id: string; name: string; category: string; sequence: number | null }[];
   subjects: {
     subjectId: string;
@@ -96,10 +102,11 @@ export default function MarksheetClient({ studentId }: { studentId: string }) {
         </div>
 
         {/* STUDENT INFO */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10 text-sm">
           <Info label="Student Name" value={data.student.name} />
-          <Info label="Class" value={data.student.class} />
+          <Info label="Class" value={data.student.class.name} />
           <Info label="Roll Number" value={data.student.rollNumber} />
+          <Info label="Session" value={data.student.class.academicSession} />
         </div>
 
         {/* MARKS TABLE */}
@@ -114,12 +121,9 @@ export default function MarksheetClient({ studentId }: { studentId: string }) {
                 <Th colSpan={2}>Grand Total</Th>
               </tr>
               <tr className="bg-gray-100">
-               {["UT-I", "UT-II", "Max", "Obt", "Max", "Obt", "Max", "Obt", "Max", "Obt"].map(
-  (h, i) => (
-    <Th key={i}>{h}</Th>
-  )
-)}
-
+                {["UT-I", "UT-II", "Max", "Obt", "Max", "Obt", "Max", "Obt", "Max", "Obt"].map(
+                  (h, i) => <Th key={i}>{h}</Th>
+                )}
               </tr>
             </thead>
 

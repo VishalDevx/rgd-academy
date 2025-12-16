@@ -7,7 +7,6 @@ export async function GET(req: Request) {
   try {
     // -------------------- AUTH --------------------
     const session = await getServerSession(authOption);
-
     if (!session?.user) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
@@ -15,7 +14,6 @@ export async function GET(req: Request) {
     // -------------------- PARAMS --------------------
     const { searchParams } = new URL(req.url);
     const studentId = searchParams.get("studentId");
-
     if (!studentId) {
       return new NextResponse("studentId is required", { status: 400 });
     }
@@ -25,7 +23,11 @@ export async function GET(req: Request) {
       where: { id: studentId },
       include: {
         user: true,
-        class: true,
+        class: {
+          include: {
+            academicSession: true, // include session relation
+          },
+        },
       },
     });
 
@@ -45,8 +47,8 @@ export async function GET(req: Request) {
     const exams = await db.exam.findMany({
       where: { classId },
       orderBy: [
-        { category: "asc" },   // UNIT_TEST → HALF_YEARLY → ANNUAL
-        { sequence: "asc" },   // UT-1, UT-2
+        { category: "asc" }, // UNIT_TEST → HALF_YEARLY → ANNUAL
+        { sequence: "asc" }, // UT-1, UT-2
       ],
     });
 
@@ -54,13 +56,12 @@ export async function GET(req: Request) {
     const results = await db.result.findMany({
       where: {
         studentId,
-        examId: { in: exams.map(e => e.id) },
+        examId: { in: exams.map((e) => e.id) },
       },
     });
 
     // -------------------- RESULT LOOKUP --------------------
     const resultMap = new Map<string, typeof results[number]>();
-
     for (const r of results) {
       resultMap.set(`${r.subjectId}_${r.examId}`, r);
     }
@@ -69,11 +70,11 @@ export async function GET(req: Request) {
     let grandTotalMarks = 0;
     let grandTotalMaxMarks = 0;
 
-    const subjectRows = subjects.map(subject => {
+    const subjectRows = subjects.map((subject) => {
       let subjectTotalMarks = 0;
       let subjectTotalMaxMarks = 0;
 
-      const examMarks = exams.map(exam => {
+      const examMarks = exams.map((exam) => {
         const key = `${subject.id}_${exam.id}`;
         const result = resultMap.get(key) ?? null;
 
@@ -86,8 +87,8 @@ export async function GET(req: Request) {
           examId: exam.id,
           category: exam.category,
           sequence: exam.sequence,
-          marks: result ? result.marks : null,       // BLANK CELL
-          maxMarks: result ? result.maxMarks : null, // BLANK CELL
+          marks: result ? result.marks : null,
+          maxMarks: result ? result.maxMarks : null,
           grade: result?.grade ?? null,
         };
       });
@@ -112,7 +113,6 @@ export async function GET(req: Request) {
 
     // -------------------- DIVISION --------------------
     let division: "FIRST" | "SECOND" | "THIRD" | "FAIL";
-
     if (percentage >= 60) division = "FIRST";
     else if (percentage >= 45) division = "SECOND";
     else if (percentage >= 33) division = "THIRD";
@@ -124,10 +124,13 @@ export async function GET(req: Request) {
         id: student.id,
         name: student.user.name,
         rollNumber: student.rollNumber,
-        class: student.class?.name,
+        class: {
+          name: student.class?.name ?? "",
+          academicSession: student.class?.academicSession?.name ?? "",
+        },
       },
 
-      exams: exams.map(e => ({
+      exams: exams.map((e) => ({
         id: e.id,
         name: e.name,
         category: e.category,
