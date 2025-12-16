@@ -1,5 +1,5 @@
 "use client";
-
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { sidebarItemsByRole, type AppRole, type NavItem } from "@/app/config/sidebarItem";
@@ -17,7 +17,7 @@ import {
   FileText,
   ClipboardList,
   BarChart3,
-TriangleRight,
+  TriangleRight,
   Settings,
   LogsIcon,
   UserRoundPen,
@@ -51,11 +51,11 @@ const icons = {
   exams: ClipboardList,
   exam: ClipboardList,
   results: BarChart3,
-  settings:Settings,
-  logs:LogsIcon,
-  user:UserRoundPen,
-  subject:TriangleRight,
-  DateSheet:CalendarCheck2
+  settings: Settings,
+  logs: LogsIcon,
+  user: UserRoundPen,
+  subject: TriangleRight,
+  DateSheet: CalendarCheck2
 };
 
 export function Sidebar({ role, collapsed = false, onToggleCollapsed }: SidebarProps) {
@@ -65,18 +65,19 @@ export function Sidebar({ role, collapsed = false, onToggleCollapsed }: SidebarP
   return (
     <aside
       className={cn(
-        "h-screen flex flex-col border-r bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/40 transition-all duration-300 shadow-sm",
+        "h-screen flex flex-col border-r bg-gradient-to-b from-white/80 to-white/70 backdrop-blur-lg shadow-lg transition-all duration-300",
         collapsed ? "w-20" : "w-64"
       )}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary text-primary-foreground shadow-md">
-            <School size={20} />
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-primary-foreground shadow-md">
+          <Image className="rounded-full" src="/logo.jpeg" width={40} height={40} alt="Logo" />
+
           </div>
           {!collapsed && (
-            <span className="text-lg font-semibold tracking-tight">RGD School</span>
+            <span className="text-lg font-semibold tracking-wide">RGD School</span>
           )}
         </div>
 
@@ -84,7 +85,7 @@ export function Sidebar({ role, collapsed = false, onToggleCollapsed }: SidebarP
           variant="ghost"
           size="icon"
           onClick={onToggleCollapsed}
-          className="hover:bg-accent hover:text-accent-foreground"
+          className="hover:bg-primary/10 hover:text-primary transition-all"
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </Button>
@@ -100,25 +101,32 @@ export function Sidebar({ role, collapsed = false, onToggleCollapsed }: SidebarP
             const linkContent = (
               <div
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
                   active
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "hover:bg-accent hover:text-accent-foreground text-muted-foreground"
+                    ? "bg-primary/20 text-primary shadow-inner"
+                    : "hover:bg-primary/10 hover:text-primary text-muted-foreground"
                 )}
               >
                 {Icon && <Icon size={18} />}
-                {!collapsed && <span>{item.label}</span>}
+                {!collapsed && <span className="truncate">{item.label}</span>}
               </div>
             );
 
             return (
-              <motion.li key={item.href} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
+              <motion.li
+                key={item.href}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                className="rounded-md"
+              >
                 {collapsed ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Link href={item.href}>{linkContent}</Link>
                     </TooltipTrigger>
-                    <TooltipContent side="right">{item.label}</TooltipContent>
+                    <TooltipContent side="right" className="bg-gray-800 text-white rounded-md px-2 py-1 text-xs shadow-md">
+                      {item.label}
+                    </TooltipContent>
                   </Tooltip>
                 ) : (
                   <Link href={item.href}>{linkContent}</Link>
@@ -130,29 +138,28 @@ export function Sidebar({ role, collapsed = false, onToggleCollapsed }: SidebarP
       </nav>
 
       {/* Footer */}
-     <div
-  className={cn(
-    "p-4 text-xs font-medium border-t text-muted-foreground",
-    collapsed ? "text-center" : "text-left"
-  )}
->
-  {!collapsed ? (
-    <span>
-      © 2025 RGD School —{" "}
-      <a
-        href="https://github.com/VishalDevx"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="underline hover:text-primary transition"
+      <div
+        className={cn(
+          "p-4 text-xs font-medium border-t border-gray-200 text-muted-foreground",
+          collapsed ? "text-center" : "text-left"
+        )}
       >
-        Built by Vishal
-      </a>
-    </span>
-  ) : (
-    "©"
-  )}
-</div>
-
+        {!collapsed ? (
+          <span>
+            © 2025 RGD School —{" "}
+            <a
+              href="https://github.com/VishalDevx"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-primary transition-colors"
+            >
+              Built by Vishal
+            </a>
+          </span>
+        ) : (
+          "©"
+        )}
+      </div>
     </aside>
   );
 }
