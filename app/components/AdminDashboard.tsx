@@ -1,6 +1,6 @@
 "use client";
 
-import { Student } from "@prisma/client";
+import type { Student } from "@prisma/client";
 import {
   Card,
   CardContent,
@@ -14,8 +14,14 @@ import {
   IndianRupee,
   UserPlus,
 } from "lucide-react";
+
 import AttendanceTrendCharts from "./charts/attendanceTrendCharts";
 import { CurrentMonthFeeStatusChart } from "./charts/DashboardFeeCharts";
+import ClassWiseCharts from "./charts/classWiseCharts";
+
+/* =======================
+   Types
+======================= */
 
 export interface MonthlyRevenue {
   amount: number;
@@ -26,11 +32,16 @@ export interface AttendancePoint {
   percentage: number;
 }
 
+export interface ClassWiseStudentCount {
+  name: string;
+  studentCount: number;
+}
+
 export interface AdminDashboardProps {
   stats: {
     totalStudents: number;
     totalStaff: number;
-    attandanceToday: number;
+    attandanceToday: number; // backend typo – keep consistent
   };
   monthlyRevenue: MonthlyRevenue;
   recentStudents: Student[];
@@ -42,7 +53,12 @@ export interface AdminDashboardProps {
     collectionRate: number;
     totalExpected: number;
   };
+  classWiseStudents: ClassWiseStudentCount[];
 }
+
+/* =======================
+   Component
+======================= */
 
 export function AdminDashboard({
   stats,
@@ -50,62 +66,48 @@ export function AdminDashboard({
   recentStudents,
   attendanceTrend,
   feeStatus,
+  classWiseStudents,
 }: AdminDashboardProps) {
   return (
-    <div className="p-6 space-y-8">
+    <div className="space-y-8 p-6">
 
-      {/* Top Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
-            <Users className="h-8 w-8 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{stats.totalStudents}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Staff</CardTitle>
-            <UserCheck className="h-8 w-8 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{stats.totalStaff}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Attendance Today</CardTitle>
-            <Layers className="h-8 w-8 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{stats.attandanceToday}%</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
-            <IndianRupee className="h-8 w-8 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">₹{monthlyRevenue.amount}</p>
-          </CardContent>
-        </Card>
+      {/* =======================
+         Top Stats
+      ======================= */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <StatCard
+          title="Total Students"
+          value={stats.totalStudents}
+          icon={<Users className="h-7 w-7 text-blue-600" />}
+        />
+        <StatCard
+          title="Total Staff"
+          value={stats.totalStaff}
+          icon={<UserCheck className="h-7 w-7 text-green-600" />}
+        />
+        <StatCard
+          title="Attendance Today"
+          value={`${stats.attandanceToday}%`}
+          icon={<Layers className="h-7 w-7 text-purple-600" />}
+        />
+        <StatCard
+          title="Monthly Revenue"
+          value={`₹${monthlyRevenue.amount}`}
+          icon={<IndianRupee className="h-7 w-7 text-red-600" />}
+        />
       </div>
 
-      {/* Charts Row → 80% + 20% */}
-      <div className="flex gap-4 w-full">
-        {/* Attendance Trend (80%) */}
-        <div className="w-[80%]">
+      {/* =======================
+         Charts Section
+      ======================= */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        {/* Attendance Trend → 4/5 */}
+        <div className="lg:col-span-4">
           <AttendanceTrendCharts data={attendanceTrend} />
         </div>
 
-        {/* Fee Status Chart (20%) */}
-        <div className="w-[30%]">
+        {/* Fee Status → 1/5 */}
+        <div className="lg:col-span-1">
           <CurrentMonthFeeStatusChart
             paid={feeStatus.paid}
             pending={feeStatus.pending}
@@ -116,27 +118,48 @@ export function AdminDashboard({
         </div>
       </div>
 
-      {/* Recently Added Students */}
+      {/* =======================
+         Class-wise Distribution
+      ======================= */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Class-wise Student Distribution</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="w-1/2">
+
+          <ClassWiseCharts data={classWiseStudents} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* =======================
+         Recent Students
+      ======================= */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <UserPlus className="h-8 w-8 text-blue-600" />
+            <UserPlus className="h-6 w-6 text-blue-600" />
             Recently Added Students
           </CardTitle>
         </CardHeader>
 
         <CardContent>
           {recentStudents.length === 0 ? (
-            <p className="text-sm text-gray-500">No recent students found.</p>
+            <p className="text-sm text-muted-foreground">
+              No recent students found.
+            </p>
           ) : (
             <ul className="space-y-2">
               {recentStudents.map((s) => (
                 <li
                   key={s.id}
-                  className="p-2 bg-gray-100 rounded flex justify-between"
+                  className="flex justify-between rounded-md bg-muted p-2"
                 >
                   <span className="font-medium">{s.admissionNo}</span>
-                  <span className="text-sm text-gray-600">{s.rollNumber}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {s.rollNumber}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -144,5 +167,31 @@ export function AdminDashboard({
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/* =======================
+   Small Reusable Component
+======================= */
+
+function StatCard({
+  title,
+  value,
+  icon,
+}: {
+  title: string;
+  value: number | string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        {icon}
+      </CardHeader>
+      <CardContent>
+        <p className="text-3xl font-bold">{value}</p>
+      </CardContent>
+    </Card>
   );
 }
