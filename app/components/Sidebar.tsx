@@ -73,7 +73,7 @@ export function Sidebar({ role, collapsed = false, onToggleCollapsed }: SidebarP
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-primary-foreground shadow-md">
-          <Image className="rounded-full" src="/logo.jpeg" width={40} height={40} alt="Logo" />
+         <Link href="/admin/dashboard"><Image className="rounded-full" src="/logo.jpeg" width={40} height={40} alt="Logo" /></Link> 
 
           </div>
           {!collapsed && (
