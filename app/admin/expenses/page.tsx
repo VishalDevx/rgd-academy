@@ -10,7 +10,7 @@ export default async function AdminExpensesPage() {
   const session = await getServerSession(authOption);
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
-  const raw = await db.expense.findMany({ orderBy: { date: "desc" } });
+  const raw = await db.expense.findMany();
 
   const expenses = raw.map((x) => ({
     id: x.id,
