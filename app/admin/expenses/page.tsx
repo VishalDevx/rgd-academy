@@ -2,8 +2,9 @@
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-import ExpenseDashboardClient from "./expensePage";
+
 import { authOption } from "@/app/lib/auth";
+import ExpenseDashboardClient from "./ExpenseDashboard";
 
 export const dynamic = "force-dynamic";
 

@@ -9,7 +9,7 @@ interface CreateExpenseBody {
   description?: string | null;
   amount: number | string;
   date?: string | null;
-  transaction?: TransactionType;  // allow user to send it
+  transaction: TransactionType; // <-- mandatory
 }
 
 export async function POST(req: NextRequest) {
@@ -19,26 +19,38 @@ export async function POST(req: NextRequest) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
+  // Parse JSON body
   const body: CreateExpenseBody | null = await req.json().catch(() => null);
-
-  if (!body || !body.title || body.amount == null) {
+  if (!body) {
     return new NextResponse("Invalid payload", { status: 400 });
   }
 
-  const normalizedAmount = Number(body.amount);
+  // Validate required fields
+  const { title, amount, transaction, description, date } = body;
+
+  if (!title || amount == null || !transaction) {
+    return new NextResponse("Title, amount, and transaction are required", { status: 400 });
+  }
+
+  // Validate transaction type
+  if (!Object.values(TransactionType).includes(transaction)) {
+    return new NextResponse("Invalid transaction type", { status: 400 });
+  }
+
+  // Normalize amount
+  const normalizedAmount = Number(amount);
   if (Number.isNaN(normalizedAmount)) {
     return new NextResponse("Invalid amount", { status: 400 });
   }
 
+  // Create expense
   const created = await db.expense.create({
     data: {
-      title: body.title,
-      description: body.description ?? null,
+      title,
+      description: description ?? null,
       amount: normalizedAmount.toFixed(2),
-
-      transaction: body.transaction ?? TransactionType.DEBIT, // default
-
-      date: body.date ? new Date(body.date) : new Date(),
+      transaction,            // now mandatory and validated
+      date: date ? new Date(date) : new Date(),
       createdById: session.user.id,
     },
   });

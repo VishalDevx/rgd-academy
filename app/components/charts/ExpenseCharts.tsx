@@ -16,6 +16,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { TransactionType } from "@prisma/client";
 
 export type Expense = {
   id: string;
@@ -23,6 +24,7 @@ export type Expense = {
   description: string;
   amount: number;
   date: string; // ISO
+  transcationType : TransactionType
 };
 
 const COLORS = ["#6366f1", "#ef4444", "#10b981", "#f59e0b", "#3b82f6"];
@@ -33,10 +35,11 @@ export default function ExpenseDashboard({
   expenses: Expense[];
 }) {
   // ----------- BASIC STATS ---------------
-  const totalAmount = expenses.reduce(
+  const totalExpense = expenses.reduce(
     (sum, x) => sum + Number(x.amount),
     0
   );
+  const totalIncome = expenses.
 
   const today = new Date().toDateString();
   const todayAmount = expenses
@@ -90,7 +93,7 @@ export default function ExpenseDashboard({
             <CardTitle>Total Expenses</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">₹{totalAmount}</p>
+            <p className="text-3xl font-bold">₹{totalExpense}</p>
           </CardContent>
         </Card>
 
