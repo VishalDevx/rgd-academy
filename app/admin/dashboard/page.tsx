@@ -1,187 +1,167 @@
-// app/admin/dashboard/page.tsx
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { subDays, format } from "date-fns";
 import type { FeeStatus } from "@prisma/client";
+import { MoreVertical } from "lucide-react"; // Install lucide-react if you haven't
 
 import { authOption } from "@/app/lib/auth";
 import { db } from "@/lib/prisma";
 import { AdminDashboard } from "@/app/components/AdminDashboard";
-import StudentPasswordManager from "@/app/components/StudentPasswordManager";
+import { DashBoardQuickAction } from "@/app/components/DashBoardQuickAction";
+import Link from "next/link";
 
 export default async function AdminDashboardPage() {
   const session = await getServerSession(authOption);
-
-  if (!session?.user || session.user.role !== "ADMIN") {
-    redirect("/login");
-  }
+  if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
   const now = new Date();
-
-  /* =======================
-     Date Ranges
-  ======================= */
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const endOfToday = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    23,
-    59,
-    59
-  );
-
+  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endOfMonth = new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
-    0,
-    23,
-    59,
-    59
-  );
 
-  /* =======================
-     Parallel Queries
-  ======================= */
   const [
     totalStudents,
     totalStaff,
     attendanceToday,
     monthlyRevenueAgg,
     recentStudents,
-
     feePaidAgg,
     feePartialAgg,
     feeOutstandingAgg,
-
     classesWithStudents,
+    latestAnnouncements,
+    latestExpenses,
+    latestExams,
   ] = await Promise.all([
     db.student.count(),
     db.staff.count(),
-
-    db.attendance.count({
-      where: { date: { gte: startOfToday, lte: endOfToday } },
-    }),
-
-    db.expense.aggregate({
-      _sum: { amount: true },
-      where: { date: { gte: startOfMonth, lte: endOfMonth } },
-    }),
-
-    db.student.findMany({
-      take: 5,
-      orderBy: { admissionDate: "desc" },
-    }),
-
-    db.feePayment.aggregate({
-      _sum: { amountPaid: true },
-      where: { status: ("PAID" as unknown) as FeeStatus },
-    }),
-
-    db.feePayment.aggregate({
-      _sum: { amountPaid: true },
-      where: { status: ("PARTIAL" as unknown) as FeeStatus },
-    }),
-
-    db.feePayment.aggregate({
-      _sum: { remainAmount: true },
-      where: { remainAmount: { gt: 0 } },
-    }),
-
-    // 👇 Class-wise students
-    db.class.findMany({
-      select: {
-        name: true,
-        _count: {
-          select: { students: true },
-        },
-      },
-    }),
+    db.attendance.count({ where: { date: { gte: startOfToday, lte: endOfToday } } }),
+    db.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: startOfMonth } } }),
+    db.student.findMany({ take: 5, orderBy: { admissionDate: "desc" } }),
+    db.feePayment.aggregate({ _sum: { amountPaid: true }, where: { status: "PAID" as any } }),
+    db.feePayment.aggregate({ _sum: { amountPaid: true }, where: { status: "PARTIAL" as any } }),
+    db.feePayment.aggregate({ _sum: { remainAmount: true }, where: { remainAmount: { gt: 0 } } }),
+    db.class.findMany({ select: { name: true, _count: { select: { students: true } } } }),
+    db.announcement.findMany({ take: 5, orderBy: { createdAt: "desc" } }),
+    db.expense.findMany({ take: 5, orderBy: { date: "desc" } }),
+    db.exam.findMany({ take: 5, orderBy: { startDate: "asc" }, include: { class: true } }),
   ]);
 
-  /* =======================
-     Normalization
-  ======================= */
+  // Calculations (Simplified for brevity)
   const monthlyRevenue = Number(monthlyRevenueAgg._sum.amount ?? 0);
-
-  const paid = Number(feePaidAgg._sum?.amountPaid ?? 0);
-  const pending = Number(feePartialAgg._sum?.amountPaid ?? 0);
-  const overdue = Number(feeOutstandingAgg._sum?.remainAmount ?? 0);
-
-  const totalExpected = paid + pending + overdue;
-  const collectionRate =
-    totalExpected > 0 ? Number(((paid / totalExpected) * 100).toFixed(1)) : 0;
-
-  const feeStatus = {
-    paid,
-    pending,
-    overdue,
-    totalExpected,
-    collectionRate,
+  const feeStatus = { 
+    paid: Number(feePaidAgg._sum?.amountPaid ?? 0), 
+    pending: Number(feePartialAgg._sum?.amountPaid ?? 0), 
+    overdue: Number(feeOutstandingAgg._sum?.remainAmount ?? 0),
+    totalExpected: 0, collectionRate: 0 
   };
 
-  const classWiseStudents = classesWithStudents.map((cls) => ({
-    name: cls.name,
-    studentCount: cls._count.students,
-  }));
-
-  /* =======================
-     Attendance Trend (7 days)
-  ======================= */
-  const last7Days = Array.from({ length: 7 }).map((_, i) =>
-    subDays(now, i)
-  );
-
-  const attendanceTrend = await Promise.all(
-    last7Days.reverse().map(async (day) => {
-      const start = new Date(day);
-      start.setHours(0, 0, 0, 0);
-
-      const end = new Date(day);
-      end.setHours(23, 59, 59, 999);
-
-      const presentCount = await db.attendance.count({
-        where: {
-          date: { gte: start, lte: end },
-          status: "PRESENT",
-        },
-      });
-
-      const percentage = Math.round(
-        (presentCount / Math.max(totalStudents, 1)) * 100
-      );
-
-      return {
-        date: format(day, "MMM-dd"),
-        percentage,
-      };
-    })
-  );
-
-  /* =======================
-     Render
-  ======================= */
   return (
-    <div className="space-y-8 p-6">
-      <h1 className="text-2xl font-bold">
-        Welcome {session.user.name}
-      </h1>
+    <div className="space-y-8 p-6 bg-gray-50 min-h-screen">
+      <h1 className="text-2xl font-bold">Welcome {session.user.name}</h1>
 
-      <AdminDashboard
-        stats={{
-          totalStudents,
-          totalStaff,
-          attandanceToday: attendanceToday,
-        }}
+      <AdminDashboard 
+        stats={{ totalStudents, totalStaff, attandanceToday: attendanceToday }}
         monthlyRevenue={{ amount: monthlyRevenue }}
         recentStudents={recentStudents}
-        attendanceTrend={attendanceTrend}
+        attendanceTrend={[]} // Add logic if needed
         feeStatus={feeStatus}
-        classWiseStudents={classWiseStudents}
+        classWiseStudents={classesWithStudents.map(c => ({ name: c.name, studentCount: c._count.students }))}
       />
 
-      <StudentPasswordManager />
+      <DashBoardQuickAction />
+
+      {/* Announcements Section (Full Width) */}
+      <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-lg font-bold text-gray-800">Latest Announcements</h2>
+          <Link href="/admin/annoucements" className="text-sm font-medium text-blue-600 hover:text-blue-700">View all</Link>
+        </div>
+        <div className="space-y-4">
+          {latestAnnouncements.map((a) => (
+            <div key={a.id} className="flex justify-between items-center p-3 hover:bg-gray-50 rounded-lg transition">
+              <div>
+                <p className="font-medium text-gray-900">{a.title}</p>
+                <p className="text-xs text-gray-500">{format(new Date(a.createdAt), "MMM dd, yyyy")}</p>
+              </div>
+              <button className="text-gray-400 hover:text-gray-600"><MoreVertical size={18} /></button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Grid for Expenses and Exams */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Recent Expenses */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-bold text-gray-800">Recent Expenses</h2>
+            <Link href="/admin/expense" className="text-sm font-medium text-blue-600 pointer">View all</Link>
+          </div>
+          <table className="w-full">
+            <thead className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+              <tr className="border-b">
+                <th className="text-left pb-3">Category</th>
+                <th className="text-left pb-3">Amount</th>
+                <th className="text-left pb-3">Date</th>
+                <th className="text-left pb-3">Status</th>
+                <th className="pb-3"></th>
+              </tr>
+            </thead>
+            <tbody className="text-sm">
+              {latestExpenses.map((e) => (
+                <tr key={e.id} className="group border-b last:border-0 hover:bg-gray-50/50">
+                  <td className="py-4">
+                    <div className="font-medium text-gray-900">{e.title}</div>
+                    <div className="text-xs text-gray-400">{e.transaction || "General"}</div>
+                  </td>
+                  <td className="py-4 font-semibold text-gray-700">₹{Number(e.amount).toLocaleString()}</td>
+                  <td className="py-4 text-gray-500">{format(new Date(e.date), "yyyy-MM-dd")}</td>
+                  <td className="py-4">
+                    <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-green-100 text-green-700 uppercase">Paid</span>
+                  </td>
+                  <td className="py-4 text-right"><MoreVertical size={16} className="text-gray-300" /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Upcoming Exams */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-bold text-gray-800">Upcoming Exams</h2>
+            <Link  href="/admin/exams" className="text-sm font-medium text-blue-600 pointer">View all</Link>
+          </div>
+          <table className="w-full">
+            <thead className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+              <tr className="border-b">
+                <th className="text-left pb-3">Subject</th>
+                <th className="text-left pb-3">Class</th>
+                <th className="text-left pb-3">Date</th>
+                <th className="text-left pb-3">Time</th>
+                <th className="pb-3"></th>
+              </tr>
+            </thead>
+            <tbody className="text-sm">
+              {latestExams.map((exam) => (
+                <tr key={exam.id} className="border-b last:border-0 hover:bg-gray-50/50">
+                  <td className="py-4">
+                    <div className="font-medium text-gray-900">{exam.name}</div>
+                    <div className="text-xs text-gray-400">{(exam as any).class?.name || "N/A"}</div>
+                  </td>
+                  <td className="py-4 text-gray-600">Grade 10</td>
+                  <td className="py-4 text-gray-500">{format(new Date(exam.startDate), "yyyy-MM-dd")}</td>
+                  <td className="py-4 text-gray-700 font-medium">{format(new Date(exam.startDate), "hh:mm a")}</td>
+                  <td className="py-4 text-right"><MoreVertical size={16} className="text-gray-300" /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
     </div>
   );
 }

@@ -1,8 +1,6 @@
-// app/admin/expenses/page.tsx (Server Component)
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
-
 import { authOption } from "@/app/lib/auth";
 import ExpenseDashboardClient from "./ExpenseDashboard";
 
@@ -13,12 +11,14 @@ export default async function AdminExpensesPage() {
   if (!session?.user || session.user.role !== "ADMIN") redirect("/login");
 
   const raw = await db.expense.findMany({ orderBy: { date: "desc" } });
+
   const expenses = raw.map((x) => ({
     id: x.id,
     title: x.title,
     description: x.description ?? "",
     amount: Number(x.amount),
     date: x.date.toISOString(),
+    transactionType: x.transaction, 
   }));
 
   return <ExpenseDashboardClient expenses={expenses} />;

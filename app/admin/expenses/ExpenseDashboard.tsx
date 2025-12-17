@@ -1,5 +1,3 @@
-
-
 "use client";
 import { motion } from "framer-motion";
 import ExpenseDashboard from "@/app/components/charts/ExpenseCharts";
@@ -17,7 +15,7 @@ export default function ExpenseDashboardClient({ expenses }: { expenses: any[] }
           Expense Dashboard
         </h1>
         <p className="text-gray-700 text-sm md:text-base">
-          Track all school expenses with trends and insights
+          Track all school expenses and income with trends and insights
         </p>
       </motion.div>
 

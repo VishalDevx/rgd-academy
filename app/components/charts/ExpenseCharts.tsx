@@ -24,22 +24,20 @@ export type Expense = {
   description: string;
   amount: number;
   date: string; // ISO
-  transcationType : TransactionType
+  transactionType: TransactionType;
 };
 
 const COLORS = ["#6366f1", "#ef4444", "#10b981", "#f59e0b", "#3b82f6"];
 
-export default function ExpenseDashboard({
-  expenses,
-}: {
-  expenses: Expense[];
-}) {
+export default function ExpenseDashboard({ expenses }: { expenses: Expense[] }) {
   // ----------- BASIC STATS ---------------
-  const totalExpense = expenses.reduce(
-    (sum, x) => sum + Number(x.amount),
-    0
-  );
-  const totalIncome = expenses.
+  const totalExpense = expenses
+    .filter((x) => x.transactionType === TransactionType.DEBIT)
+    .reduce((sum, x) => sum + Number(x.amount), 0);
+
+  const totalIncome = expenses
+    .filter((x) => x.transactionType === TransactionType.CREDIT)
+    .reduce((sum, x) => sum + Number(x.amount), 0);
 
   const today = new Date().toDateString();
   const todayAmount = expenses
@@ -58,10 +56,9 @@ export default function ExpenseDashboard({
     amount: monthly[m],
   }));
 
-  // ----------- PIE DATA (NO CATEGORY) ---------------
-  // Use "expense.title" grouping for now
+  // ----------- PIE DATA ---------------
   const categoryData = expenses.reduce((acc, exp) => {
-    const cat = exp.title; // fallback category
+    const cat = exp.title;
     acc[cat] = (acc[cat] || 0) + Number(exp.amount);
     return acc;
   }, {} as Record<string, number>);
@@ -77,7 +74,6 @@ export default function ExpenseDashboard({
       {/* ---------- TOP BAR ---------- */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Expense Dashboard</h2>
-
         <Link href="/admin/expenses/new">
           <button className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-md hover:opacity-90">
             <PlusCircle className="w-4 h-4" />
@@ -87,13 +83,22 @@ export default function ExpenseDashboard({
       </div>
 
       {/* ---------- SUMMARY CARDS ---------- */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Total Income</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-green-600">₹{totalIncome}</p>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Total Expenses</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">₹{totalExpense}</p>
+            <p className="text-3xl font-bold text-red-600">₹{totalExpense}</p>
           </CardContent>
         </Card>
 
@@ -175,16 +180,23 @@ export default function ExpenseDashboard({
                 <tr className="bg-secondary text-left text-sm">
                   <th className="px-4 py-2 border">Title</th>
                   <th className="px-4 py-2 border">Amount</th>
+                  <th className="px-4 py-2 border">Type</th>
                   <th className="px-4 py-2 border">Date</th>
                   <th className="px-4 py-2 border text-center">View</th>
                 </tr>
               </thead>
-
               <tbody>
                 {expenses.map((expense) => (
                   <tr key={expense.id} className="border">
                     <td className="px-4 py-2">{expense.title}</td>
                     <td className="px-4 py-2">₹{Number(expense.amount)}</td>
+                    <td className="px-4 py-2">
+                      {expense.transactionType === TransactionType.CREDIT ? (
+                        <span className="text-green-600 font-semibold">Income</span>
+                      ) : (
+                        <span className="text-red-600 font-semibold">Expense</span>
+                      )}
+                    </td>
                     <td className="px-4 py-2">
                       {format(new Date(expense.date), "dd/MM/yyyy")}
                     </td>
