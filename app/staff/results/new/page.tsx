@@ -15,7 +15,7 @@ export default async function ResultUploadPage(){
     if(!staff){
         return(
               <div className="p-6">
-        <div className="border p-6 text-center text-muted-foreground rounded">
+        <div className="border p-6  text-center text-muted-foreground rounded">
           No staff record found.
         </div>
       </div>
