@@ -36,6 +36,8 @@ export default async function StaffResultsPage() {
     orderBy: { createdAt: "desc" },
   });
  const safeClasses = Array.isArray(classes) ? classes : [];
+
+ 
   return (
     <div className="p-6 space-y-4">
       <h1 className="text-2xl font-semibold">Results</h1>

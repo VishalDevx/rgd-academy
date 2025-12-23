@@ -35,7 +35,7 @@ export default async function StaffAttendancePage() {
     orderBy: { createdAt: "desc" },
   });
 
-  // --- 🔥 FIX: Guarantee classes is always an array ---
+  // ---FIX: Guarantee classes is always an array ---
   const safeClasses = Array.isArray(classes) ? classes : [];
 
   return (
