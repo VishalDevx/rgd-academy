@@ -3,7 +3,7 @@ import { db } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
-export default async function ResultsPage() {
+export default async function StaffResultsPage() {
   const session = await getServerSession(authOption);
 
   if (!session?.user || session.user.role !== "STAFF") {
@@ -28,7 +28,14 @@ export default async function ResultsPage() {
       </div>
     );
   }
-
+  const classes = await db.class.findMany({
+    where: { teacherId: staffUser.id },
+    include: {
+      students: { include: { user: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+ const safeClasses = Array.isArray(classes) ? classes : [];
   return (
     <div className="p-6 space-y-4">
       <h1 className="text-2xl font-semibold">Results</h1>
