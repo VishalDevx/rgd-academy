@@ -133,8 +133,8 @@ export default function NewStudentPage() {
       }
 
       router.push("/admin/students");
-    } catch (err: any) {
-      setError(err.message || "Something went wrong");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setSubmitting(false);
     }
@@ -151,25 +151,27 @@ export default function NewStudentPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
             {/* BASIC INPUTS */}
-            {[
-              ["Full Name", "name"],
-              ["Email", "email"],
-              ["Aadhar No", "adharNo"],
-              ["Admission No", "admissionNo"],
-              ["Roll Number", "rollNumber"],
-              ["Father Name", "fatherName"],
-              ["Mother Name", "motherName"],
-              ["UDISE Code", "udiseCode"],
-              ["Religion", "religion"],
-              ["Caste", "caste"],
-              ["Contact No", "contactNo"],
-              ["Occupation", "occupation"]
-            ].map(([label, key]) => (
+            {(
+              [
+                ["Full Name", "name"],
+                ["Email", "email"],
+                ["Aadhar No", "adharNo"],
+                ["Admission No", "admissionNo"],
+                ["Roll Number", "rollNumber"],
+                ["Father Name", "fatherName"],
+                ["Mother Name", "motherName"],
+                ["UDISE Code", "udiseCode"],
+                ["Religion", "religion"],
+                ["Caste", "caste"],
+                ["Contact No", "contactNo"],
+                ["Occupation", "occupation"],
+              ] as Array<[string, keyof FormState]>
+            ).map(([label, key]) => (
               <div key={key}>
                 <Label>{label}</Label>
                 <Input
-                  value={(form as any)[key]}
-                  onChange={(e) => onChange(key as any, e.target.value)}
+                  value={form[key]}
+                  onChange={(e) => onChange(key, e.target.value)}
                   required
                 />
               </div>

@@ -52,7 +52,7 @@ interface StudentData {
   };
   class?: { name: string } | null;
   fees: Array<{
-    remainAmount: any;
+    remainAmount: string | number;
     id: string;
     amountPaid: number;
     status: "PAID" | "PENDING" | "PARTIAL";
@@ -150,12 +150,14 @@ export default function StudentProfilePage() {
           </p>
         </div>
 
-        <Link
-          href={`/admin/students/${student.id}/edit`}
-          className="absolute top-4 right-4"
-        >
-          <Button variant="outline">Edit</Button>
-        </Link>
+        <div className="absolute top-4 right-4 flex gap-2">
+          <Link href={`/admin/marksheet/${student.id}`}>
+            <Button variant="outline">Download Marksheet</Button>
+          </Link>
+          <Link href={`/admin/students/${student.id}/edit`}>
+            <Button variant="outline">Edit</Button>
+          </Link>
+        </div>
       </Card>
 
       {/* Tabs */}

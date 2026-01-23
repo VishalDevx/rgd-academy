@@ -62,7 +62,12 @@ interface TimetableData {
       name: string;
       grade: string;
       section: string | null;
-      subjects: any[];
+      subjects: Array<{
+        id: string;
+        name: string;
+        code: string;
+        teacher: { user: { name: string } } | null;
+      }>;
     } | null;
   };
 }
@@ -353,7 +358,7 @@ export default function StudentExamsPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {data.student.class.subjects.map((subject: any) => (
+              {data.student.class.subjects.map((subject) => (
                 <div
                   key={subject.id}
                   className="p-3 border rounded-lg hover:bg-gray-50 transition-colors"

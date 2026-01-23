@@ -1,5 +1,5 @@
 import { db } from "@/lib/prisma";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 export async function resetAllStudentPasswords(defaultPassword: string) {
   const hashedPassword = await bcrypt.hash(defaultPassword, 10);

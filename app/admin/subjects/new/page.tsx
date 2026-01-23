@@ -86,8 +86,8 @@ export default function NewSubjectPage() {
 
       toast.success("Subject created");
       router.push("/admin/subjects");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to create subject");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to create subject");
     } finally {
       setSubmitting(false);
     }

@@ -53,11 +53,7 @@ export default function AdminResultPage() {
 
   /* ---------- Load Students (by class) ---------- */
   useEffect(() => {
-    if (!classId) {
-      setStudents([]);
-      setStudentId("");
-      return;
-    }
+    if (!classId) return;
 
     fetch(`/api/students/by-class?classId=${classId}`)
       .then((r) => r.json())
@@ -94,7 +90,14 @@ export default function AdminResultPage() {
         {/* Filters */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Class */}
-          <Select value={classId} onValueChange={setClassId}>
+          <Select
+            value={classId}
+            onValueChange={(v) => {
+              setClassId(v);
+              setStudents([]);
+              setStudentId("");
+            }}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select Class" />
             </SelectTrigger>

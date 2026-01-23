@@ -62,10 +62,27 @@ interface DashboardData {
     };
   };
   recent: {
-    announcements: any[];
-    upcomingExams: any[];
-    recentAttendance: any[];
-    notifications: any[];
+    announcements: Array<{
+      id: string;
+      title: string;
+      content: string;
+      createdAt: string;
+      creator: { name: string } | null;
+    }>;
+    upcomingExams: Array<{
+      id: string;
+      name: string;
+      category: string;
+      startDate: string;
+      endDate: string;
+      class: { name: string } | null;
+    }>;
+    recentAttendance: Array<{
+      id: string;
+      date: string;
+      status: "PRESENT" | "ABSENT" | "LATE" | "LEAVE";
+    }>;
+    notifications: unknown[];
   };
 }
 

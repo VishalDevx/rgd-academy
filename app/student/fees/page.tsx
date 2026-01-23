@@ -31,7 +31,13 @@ interface FeePayment {
 
 interface FeesData {
   feePayments: FeePayment[];
-  feeStructures: any[];
+  feeStructures: Array<{
+    id: string;
+    name: string | null;
+    total: string;
+    class: { name: string };
+    payments?: Array<{ amountPaid: string; status: "PENDING" | "PARTIAL" | "PAID" }>;
+  }>;
   summary: {
     totalPaid: number;
     totalPending: number;

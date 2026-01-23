@@ -52,11 +52,13 @@ export default function AdminAttendancePage() {
       }
 
       // Map students to expected shape
-      const list: Student[] = json.data.map((s: any) => ({
-        id: s.id ?? "",
-        user: { name: s.user?.name ?? "No Name" },
-        classId: s.class?.id ?? "",
-      }));
+      const list: Student[] = json.data.map(
+        (s: { id?: string; user?: { name?: string }; class?: { id?: string } }) => ({
+          id: s.id ?? "",
+          user: { name: s.user?.name ?? "No Name" },
+          classId: s.class?.id ?? "",
+        })
+      );
 
       console.log("Loaded students:", list); // debug log
 

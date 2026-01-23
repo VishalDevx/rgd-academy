@@ -15,6 +15,18 @@
    DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB_NAME?schema=public
    NEXTAUTH_SECRET=your-strong-secret
    NEXTAUTH_URL=http://localhost:3000
+   # Supabase (uploads/notifications features)
+   SUPABASE_URL=...
+   SUPABASE_SERVICE_ROLE_KEY=...
+
+   # Vercel Cron protection (either works)
+   CRON_SECRET_TOKEN=...
+   # or (Vercel-native)
+   CRON_SECRET=...
+
+   # Upstash (login rate limiting)
+   UPSTASH_REDIS_REST_URL=...
+   UPSTASH_REDIS_REST_TOKEN=...
    ```
 3. Generate Prisma client and run migrations:
    ```bash
@@ -47,9 +59,14 @@ Login test users (if seeded):
   - `DATABASE_URL`
   - `NEXTAUTH_SECRET`
   - `NEXTAUTH_URL` (e.g., your Vercel domain)
+  - `SUPABASE_URL`
+  - `SUPABASE_SERVICE_ROLE_KEY`
   - `RAZORPAY_KEY_ID` (if using Razorpay)
   - `RAZORPAY_KEY_SECRET` (if using Razorpay)
-  - `CRON_SECRET_TOKEN` (shared secret for cron routes)
+  - `CRON_SECRET_TOKEN` (shared secret for cron routes; supported via `Authorization: Bearer` or `x-cron-token`)
+    - Alternatively set Vercel’s `CRON_SECRET` env var and it will call cron jobs with `Authorization: Bearer $CRON_SECRET`
+  - `UPSTASH_REDIS_REST_URL`
+  - `UPSTASH_REDIS_REST_TOKEN`
 - Vercel runs `npm install` (triggers `postinstall: prisma generate`) and `next build`
 - Run migrations via Vercel CLI or a one-off job:
   ```bash
@@ -66,8 +83,8 @@ Login test users (if seeded):
 ## Cron jobs (single school)
 - Student promotion (year-end):
   - Route: `POST /api/cron/promote-students`
-  - Auth: ADMIN session or header `x-cron-token: $CRON_SECRET_TOKEN`
-  - Vercel Cron example (annual): `0 0 1 4 *` (adjust to your academic year)
+  - Auth: ADMIN session, or cron secret via `Authorization: Bearer $CRON_SECRET_TOKEN` / `x-cron-token: $CRON_SECRET_TOKEN`
+  - Vercel Cron: configured in `vercel.json` (UTC schedule; adjust as needed)
 - Attendance reminder (daily):
   - Route: `POST /api/cron/attendance-reminder`
   - Auth: header `x-cron-token: $CRON_SECRET_TOKEN`

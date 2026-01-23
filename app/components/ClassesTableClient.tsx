@@ -7,7 +7,16 @@ import { Button } from "@/app/components/ui/button";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/app/components/ui/table";
 import { motion } from "framer-motion";
 
-export default function ClassesTableClient({ classes }: { classes: any[] }) {
+type ClassRow = {
+  id: string;
+  name: string;
+  grade: string;
+  section?: string | null;
+  teacher?: { user?: { name?: string } | null } | null;
+  academicSession?: { name?: string } | null;
+};
+
+export default function ClassesTableClient({ classes }: { classes: ClassRow[] }) {
   return (
     <div className="p-6 min-h-screen bg-gradient-to-b from-indigo-50 via-white to-pink-50">
       <motion.div

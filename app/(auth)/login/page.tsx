@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Mail, Lock, IdCard, UserCog, Users, GraduationCap, Quote } from "lucide-react";
@@ -17,6 +17,14 @@ interface LoginForm {
 }
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading…</div>}>
+      <LoginPageInner />
+    </Suspense>
+  );
+}
+
+function LoginPageInner() {
   const [role, setRole] = useState<Role>("STAFF");
   const [form, setForm] = useState<LoginForm>({ email: "", password: "", aadharNo: "" });
   const [error, setError] = useState("");

@@ -68,7 +68,7 @@ interface Exam {
   name: string;
   category: string;
   startDate: string;
-  endDate: string;
+  endDate?: string;
 }
 
 export default function StaffResultsPage() {

@@ -21,6 +21,7 @@ import {
   FileText,
   Clock,
   CheckCircle2,
+  XCircle,
   AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
@@ -50,11 +51,36 @@ interface DashboardData {
     resultsCount: number;
     subjectsCount: number;
   };
-  classes: any[];
-  upcomingExams: any[];
-  recentAttendance: any[];
-  announcements: any[];
-  subjects: any[];
+  classes: Array<{
+    id: string;
+    name: string;
+    grade: string;
+    section: string | null;
+    students: unknown[];
+    subjects: unknown[];
+  }>;
+  upcomingExams: Array<{
+    id: string;
+    name: string;
+    category: string;
+    startDate: string;
+    class: { name: string } | null;
+  }>;
+  recentAttendance: Array<{
+    id: string;
+    date: string;
+    status: "PRESENT" | "ABSENT" | "LATE" | "LEAVE";
+    student: { user: { name: string } };
+    class: { name: string };
+  }>;
+  announcements: Array<{
+    id: string;
+    title: string;
+    content: string;
+    createdAt: string;
+    creator: { name: string } | null;
+  }>;
+  subjects: unknown[];
 }
 
 export default function StaffDashboardPage() {
@@ -102,7 +128,7 @@ export default function StaffDashboardPage() {
       {/* Welcome Header */}
       <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl p-6 text-white shadow-lg">
         <div className="flex items-center justify-between">
-          <div>
+    <div>
             <h1 className="text-2xl font-bold mb-2">
               Welcome back, {session?.user?.name}!
             </h1>

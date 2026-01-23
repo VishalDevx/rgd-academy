@@ -1,5 +1,5 @@
 import { db } from "@/lib/prisma";
-import type { Student, Class } from "@prisma/client";
+import type { Class, Grade, Prisma } from "@prisma/client";
 
 const gradeOrder: string[] = [
   "NURSERY",
@@ -20,55 +20,109 @@ const gradeOrder: string[] = [
 /**
  * Get next grade in sequence
  */
-export function getNextGrade(current: string): string | null {
+export function getNextGrade(current: string): Grade | null {
   const idx = gradeOrder.indexOf(current);
   if (idx === -1 || idx === gradeOrder.length - 1) return null;
-  return gradeOrder[idx + 1];
+  return gradeOrder[idx + 1] as Grade;
 }
 
 /**
- * Promote all active students to the next grade
+ * Promote all active students from the current AcademicSession into classes
+ * created/found in the next AcademicSession.
  */
 export async function promoteAllActiveStudents() {
-  // Load all classes
-  const classes: Class[] = await db.class.findMany();
+  // Determine current active academic session (fallback to latest if none active)
+  const currentSession =
+    (await db.academicSession.findFirst({
+      where: { isActive: true },
+      orderBy: { createdAt: "desc" },
+    })) ??
+    (await db.academicSession.findFirst({ orderBy: { createdAt: "desc" } }));
 
-  // Map classes by grade for quick lookup
-  const classByGrade: Record<string, Class[]> = {};
-  for (const cls of classes) {
-    const key = String(cls.grade);
-    if (!classByGrade[key]) classByGrade[key] = [];
-    classByGrade[key].push(cls);
+  if (!currentSession) {
+    return { promotedCount: 0, createdClasses: 0, message: "No academic session found" };
   }
 
-  // Fetch active students with their class
-  const students: (Student & { class: Class | null })[] =
-    await db.student.findMany({
-      where: { active: true },
-      include: { class: true },
+  // Determine next session name. Prefer YYYY-YYYY pattern.
+  const m = /^(\d{4})-(\d{4})$/.exec(currentSession.name.trim());
+  const nextName = m
+    ? `${Number(m[1]) + 1}-${Number(m[2]) + 1}`
+    : `${currentSession.name.trim()}-next`;
+
+  const nextSession =
+    (await db.academicSession.findFirst({ where: { name: nextName } })) ??
+    (await db.academicSession.create({ data: { name: nextName, isActive: false } }));
+
+  const currentClasses: Class[] = await db.class.findMany({
+    where: { academicSessionId: currentSession.id },
+    orderBy: [{ grade: "asc" }, { section: "asc" }],
+  });
+
+  let createdClasses = 0;
+  let promotedCount = 0;
+  const moves: Array<{ fromClassId: string; toClassId: string; count: number }> = [];
+
+  for (const cls of currentClasses) {
+    const nextGrade = getNextGrade(String(cls.grade));
+    if (!nextGrade) continue; // terminal grade (TEN)
+
+    const targetExisting = await db.class.findFirst({
+      where: {
+        academicSessionId: nextSession.id,
+        grade: nextGrade,
+        section: cls.section ?? null,
+        gradeCode: cls.gradeCode ?? null,
+      },
     });
 
-  const updates: Promise<Student>[] = [];
+    const targetClass =
+      targetExisting ??
+      (await db.class.create({
+        data: {
+          academicSessionId: nextSession.id,
+          grade: nextGrade,
+          section: cls.section ?? null,
+          gradeCode: cls.gradeCode ?? null,
+          name: `${nextGrade}${cls.section ? `-${cls.section}` : ""}`,
+          teacherId: null,
+        },
+      }));
 
-  for (const student of students) {
-    const currentGrade = student.class?.grade ?? null;
-    if (!currentGrade) continue;
+    if (!targetExisting) createdClasses += 1;
 
-    const nextGrade = getNextGrade(String(currentGrade));
-    if (!nextGrade) continue; // Already at terminal grade
+    const result = await db.student.updateMany({
+      where: { active: true, classId: cls.id },
+      data: { classId: targetClass.id },
+    });
 
-    const targetClass = classByGrade[nextGrade]?.[0];
-    if (!targetClass) continue; // No class exists for next grade
-
-    updates.push(
-      db.student.update({
-        where: { id: student.id },
-        data: { classId: targetClass.id },
-      })
-    );
+    promotedCount += result.count;
+    if (result.count > 0) {
+      moves.push({ fromClassId: cls.id, toClassId: targetClass.id, count: result.count });
+    }
   }
 
-  await Promise.all(updates);
+  await db.auditLog.create({
+    data: {
+      userId: null,
+      action: "PROMOTE_STUDENTS",
+      entity: "AcademicSession",
+      entityId: nextSession.id,
+      newValue: {
+        currentSessionId: currentSession.id,
+        currentSessionName: currentSession.name,
+        nextSessionId: nextSession.id,
+        nextSessionName: nextSession.name,
+        createdClasses,
+        promotedCount,
+        moves,
+      } as Prisma.InputJsonValue,
+    },
+  });
 
-  return { promotedCount: updates.length };
+  return {
+    currentSession: currentSession.name,
+    nextSession: nextSession.name,
+    createdClasses,
+    promotedCount,
+  };
 }

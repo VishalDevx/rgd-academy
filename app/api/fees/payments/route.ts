@@ -5,9 +5,31 @@ import { getServerSession } from "next-auth/next";
 import { authOption } from "@/app/lib/auth";
 
 export async function GET() {
+  const session = await getServerSession(authOption);
+  if (!session?.user || !["ADMIN", "STAFF"].includes(session.user.role)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const items = await db.feePayment.findMany({
-    include: { student: { include: { user: true } }, feeStructure: true },
     orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      amountPaid: true,
+      remainAmount: true,
+      status: true,
+      paymentDate: true,
+      createdAt: true,
+      student: {
+        select: {
+          id: true,
+          admissionNo: true,
+          rollNumber: true,
+          user: { select: { name: true, email: true } },
+          class: { select: { name: true } },
+        },
+      },
+      feeStructure: { select: { id: true, name: true, total: true } },
+    },
   });
   return NextResponse.json(items);
 }
@@ -39,11 +61,28 @@ export async function POST(req: NextRequest) {
       feeStructureId: String(body.feeStructureId),
       amountPaid: new Prisma.Decimal(amountPaid.toFixed(2)),
       status,
-       remainAmount: new Prisma.Decimal(remainAmount.toFixed(2)),
+      remainAmount: new Prisma.Decimal(remainAmount.toFixed(2)),
       paymentDate: body.paymentDate ? new Date(body.paymentDate) : new Date(),
       razorpayOrder: body.razorpayOrder ?? null,
       razorpayPaymentId: body.razorpayPaymentId ?? null,
       receiptUrl: body.receiptUrl ?? null,
+    },
+  });
+
+  await db.auditLog.create({
+    data: {
+      userId: session.user.id,
+      action: "CREATE_FEE_PAYMENT",
+      entity: "FeePayment",
+      entityId: created.id,
+      newValue: {
+        studentId: created.studentId,
+        feeStructureId: created.feeStructureId,
+        amountPaid: created.amountPaid,
+        remainAmount: created.remainAmount,
+        status: created.status,
+        paymentDate: created.paymentDate,
+      } as Prisma.InputJsonValue,
     },
   });
 

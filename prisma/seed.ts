@@ -7,7 +7,7 @@ import {
   TransactionType,
   NotificationType,
 } from "@prisma/client";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 const db = new PrismaClient();
 

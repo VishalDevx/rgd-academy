@@ -3,6 +3,7 @@
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Badge } from '@/app/components/ui/badge'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Card,
   CardContent,
@@ -22,49 +23,55 @@ import {
 // Strongly typed payment
 type NormalizedPayment = {
   id: string
-  amountPaid: number
-  status: 'PAID' | 'PARTIAL' | 'UNPAID'
-  createdAt: Date
+  amountPaid: string | number
+  remainAmount: string | number
+  status: 'PAID' | 'PARTIAL' | 'PENDING'
+  paymentDate: string | null
+  createdAt: string
   student: {
+    id: string
+    admissionNo: string
+    rollNumber: string
     user: {
       name: string
       email: string
     }
+    class: { name: string } | null
   }
   feeStructure: {
     name: string | null
-    total: number
+    total: string | number
   }
 }
-
-// Dummy data for client-side demo (replace with API call)
-const dummyPayments: NormalizedPayment[] = [
-  {
-    id: '1',
-    amountPaid: 5000,
-    status: 'PAID',
-    createdAt: new Date(),
-    student: { user: { name: 'John Doe', email: 'john@example.com' } },
-    feeStructure: { name: 'Monthly Fee', total: 5000 },
-  },
-  {
-    id: '2',
-    amountPaid: 2500,
-    status: 'PARTIAL',
-    createdAt: new Date(),
-    student: { user: { name: 'Jane Smith', email: 'jane@example.com' } },
-    feeStructure: { name: 'Monthly Fee', total: 5000 },
-  },
-]
 
 export default function AdminPaymentPage() {
   const searchParams = useSearchParams()
   const pageParam = searchParams?.get('page')
   const currentPage = Number(pageParam ?? '1')
   const pageSize = 15
-  const totalPages = 10 // Replace with real total pages from API
+  const [payments, setPayments] = useState<NormalizedPayment[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const payments = dummyPayments // Replace with real fetched data
+  useEffect(() => {
+    fetch('/api/fees/payments')
+      .then(async (res) => {
+        if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? 'Failed')
+        return res.json()
+      })
+      .then((rows: NormalizedPayment[]) => setPayments(Array.isArray(rows) ? rows : []))
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Failed'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const totalPages = useMemo(() => {
+    return Math.max(1, Math.ceil(payments.length / pageSize))
+  }, [payments.length, pageSize])
+
+  const paged = useMemo(() => {
+    const start = (currentPage - 1) * pageSize
+    return payments.slice(start, start + pageSize)
+  }, [payments, currentPage, pageSize])
 
   return (
     <div className="flex-1 p-4 md:p-8 space-y-6">
@@ -79,6 +86,9 @@ export default function AdminPaymentPage() {
         </CardHeader>
 
         <CardContent>
+          {loading ? <div className="py-8 text-center text-gray-500">Loading…</div> : null}
+          {error ? <div className="py-8 text-center text-red-600">{error}</div> : null}
+
           <Table>
             <TableHeader>
               <TableRow>
@@ -88,17 +98,22 @@ export default function AdminPaymentPage() {
                 <TableHead>Date</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
                 <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
 
             <TableBody>
-              {payments.map((p) => (
+              {paged.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>{p.student.user.name}</TableCell>
                   <TableCell>{p.student.user.email}</TableCell>
                   <TableCell>{p.feeStructure.name}</TableCell>
-                  <TableCell>{new Date(p.createdAt).toLocaleDateString()}</TableCell>
-                  <TableCell className="text-right">₹{p.amountPaid.toLocaleString()}</TableCell>
+                  <TableCell>
+                    {new Date(p.paymentDate ?? p.createdAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    ₹{Number(p.amountPaid).toLocaleString()}
+                  </TableCell>
                   <TableCell className="text-center">
                     <Badge
                       variant={
@@ -111,6 +126,14 @@ export default function AdminPaymentPage() {
                     >
                       {p.status}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Link
+                      className="text-sm font-semibold underline underline-offset-4"
+                      href={`/admin/fees/payments/${p.id}/receipt`}
+                    >
+                      Receipt
+                    </Link>
                   </TableCell>
                 </TableRow>
               ))}

@@ -256,7 +256,7 @@ export default function StudentProfilePage() {
               {student.fatherName && (
                 <div>
                   <label className="text-sm font-medium text-gray-500 mb-1">
-                    Father's Name
+                    Father&apos;s Name
                   </label>
                   <p className="text-gray-900">{student.fatherName}</p>
                 </div>
@@ -265,7 +265,7 @@ export default function StudentProfilePage() {
               {student.motherName && (
                 <div>
                   <label className="text-sm font-medium text-gray-500 mb-1">
-                    Mother's Name
+                    Mother&apos;s Name
                   </label>
                   <p className="text-gray-900">{student.motherName}</p>
                 </div>

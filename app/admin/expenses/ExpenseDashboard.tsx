@@ -1,8 +1,8 @@
 "use client";
 import { motion } from "framer-motion";
-import ExpenseDashboard from "@/app/components/charts/ExpenseCharts";
+import ExpenseDashboard, { type Expense as ChartExpense } from "@/app/components/charts/ExpenseCharts";
 
-export default function ExpenseDashboardClient({ expenses }: { expenses: any[] }) {
+export default function ExpenseDashboardClient({ expenses }: { expenses: ChartExpense[] }) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-100 via-white to-pink-50 p-6">
       <motion.div

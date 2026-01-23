@@ -13,9 +13,30 @@ export async function GET(req: Request) {
 
     // -------------------- PARAMS --------------------
     const { searchParams } = new URL(req.url);
-    const studentId = searchParams.get("studentId");
-    if (!studentId) {
-      return new NextResponse("studentId is required", { status: 400 });
+    const studentIdParam = searchParams.get("studentId");
+
+    let studentId = studentIdParam ?? "";
+
+    if (session.user.role === "STUDENT") {
+      const student = await db.student.findUnique({
+        where: { userId: session.user.id },
+        select: { id: true },
+      });
+      if (!student) return new NextResponse("Student not found", { status: 404 });
+
+      // Students may only access their own marksheet.
+      if (studentIdParam && studentIdParam !== student.id) {
+        return new NextResponse("Forbidden", { status: 403 });
+      }
+
+      studentId = student.id;
+    } else if (["ADMIN", "STAFF"].includes(session.user.role)) {
+      if (!studentIdParam) {
+        return new NextResponse("studentId is required", { status: 400 });
+      }
+      studentId = studentIdParam;
+    } else {
+      return new NextResponse("Forbidden", { status: 403 });
     }
 
     // -------------------- STUDENT --------------------

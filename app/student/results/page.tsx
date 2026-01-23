@@ -127,7 +127,7 @@ export default function StudentResultsPage() {
           <p className="text-gray-500 mt-1">View your exam results and performance</p>
         </div>
         {session?.user?.id && (
-          <Link href={`/admin/marksheet/${session.user.id}`}>
+          <Link href="/student/marksheet">
             <Button>
               <Download className="h-4 w-4 mr-2" />
               Download Marksheet

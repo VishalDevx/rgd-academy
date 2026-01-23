@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOption } from "@/app/lib/auth";
+import type { Prisma } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
   try {
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Build date filter
-    let dateFilter: any = {};
+    let dateFilter: Prisma.AttendanceWhereInput = {};
     if (month && year) {
       const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
       const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);

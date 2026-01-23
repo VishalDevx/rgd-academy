@@ -1,7 +1,6 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { subDays, format } from "date-fns";
-import type { FeeStatus } from "@prisma/client";
+import { format } from "date-fns";
 import { MoreVertical } from "lucide-react"; // Install lucide-react if you haven't
 
 import { authOption } from "@/app/lib/auth";
@@ -38,8 +37,8 @@ export default async function AdminDashboardPage() {
     db.attendance.count({ where: { date: { gte: startOfToday, lte: endOfToday } } }),
     db.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: startOfMonth } } }),
     db.student.findMany({ take: 5, orderBy: { admissionDate: "desc" } }),
-    db.feePayment.aggregate({ _sum: { amountPaid: true }, where: { status: "PAID" as any } }),
-    db.feePayment.aggregate({ _sum: { amountPaid: true }, where: { status: "PARTIAL" as any } }),
+    db.feePayment.aggregate({ _sum: { amountPaid: true }, where: { status: "PAID" } }),
+    db.feePayment.aggregate({ _sum: { amountPaid: true }, where: { status: "PARTIAL" } }),
     db.feePayment.aggregate({ _sum: { remainAmount: true }, where: { remainAmount: { gt: 0 } } }),
     db.class.findMany({ select: { name: true, _count: { select: { students: true } } } }),
     db.announcement.findMany({ take: 5, orderBy: { createdAt: "desc" } }),
@@ -149,7 +148,7 @@ export default async function AdminDashboardPage() {
                 <tr key={exam.id} className="border-b last:border-0 hover:bg-gray-50/50">
                   <td className="py-4">
                     <div className="font-medium text-gray-900">{exam.name}</div>
-                    <div className="text-xs text-gray-400">{(exam as any).class?.name || "N/A"}</div>
+                    <div className="text-xs text-gray-400">{exam.class?.name || "N/A"}</div>
                   </td>
                   <td className="py-4 text-gray-600">Grade 10</td>
                   <td className="py-4 text-gray-500">{format(new Date(exam.startDate), "yyyy-MM-dd")}</td>

@@ -4,6 +4,7 @@ import { db } from "@/lib/prisma";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { type AuthOptions } from "next-auth";
+import { clearLoginFailures, isLoginBlocked, recordLoginFailure } from "./rateLimit";
 
 if (!process.env.NEXTAUTH_SECRET) {
   throw new Error("Missing NEXTAUTH_SECRET in env");
@@ -26,21 +27,38 @@ export const authOption: AuthOptions = {
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         const { email, password } = credentials ?? {};
         if (!email || !password) throw new Error("Missing credentials");
 
-        const user = await db.user.findUnique({
-          where: { email: email.toLowerCase().trim() },
-        });
+        const identifier = email.toLowerCase().trim();
+        const blocked = await isLoginBlocked({ req, identifier });
+        if (blocked.blocked) {
+          throw new Error(`Too many login attempts. Try again in ${blocked.retryAfterSeconds}s.`);
+        }
 
-        if (!user) throw new Error("User not found");
-        if (!user.passwordHash) throw new Error("User has no password set");
-        if (!["ADMIN", "STAFF"].includes(user.role))
+        const user = await db.user.findUnique({ where: { email: identifier } });
+
+        if (!user) {
+          await recordLoginFailure({ req, identifier });
+          throw new Error("Invalid credentials");
+        }
+        if (!user.passwordHash) {
+          await recordLoginFailure({ req, identifier });
+          throw new Error("Invalid credentials");
+        }
+        if (!["ADMIN", "STAFF"].includes(user.role)) {
+          await recordLoginFailure({ req, identifier });
           throw new Error("Unauthorized role");
+        }
 
         const isValid = await bcrypt.compare(password, user.passwordHash);
-        if (!isValid) throw new Error("Invalid credentials");
+        if (!isValid) {
+          await recordLoginFailure({ req, identifier });
+          throw new Error("Invalid credentials");
+        }
+
+        await clearLoginFailures({ req, identifier });
 
         return {
           id: user.id,
@@ -59,20 +77,40 @@ export const authOption: AuthOptions = {
         aadharNo: { label: "Aadhar Number", type: "text" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         const { aadharNo, password } = credentials ?? {};
         if (!aadharNo || !password) throw new Error("Missing credentials");
 
+        const identifier = aadharNo.trim();
+        const blocked = await isLoginBlocked({ req, identifier });
+        if (blocked.blocked) {
+          throw new Error(`Too many login attempts. Try again in ${blocked.retryAfterSeconds}s.`);
+        }
+
         const user = await db.user.findUnique({
-          where: { adharNo: aadharNo.trim() },
+          where: { adharNo: identifier },
         });
 
-        if (!user) throw new Error("Student not found");
-        if (user.role !== "STUDENT") throw new Error("Unauthorized role");
-        if (!user.passwordHash) throw new Error("User has no password set");
+        if (!user) {
+          await recordLoginFailure({ req, identifier });
+          throw new Error("Invalid credentials");
+        }
+        if (user.role !== "STUDENT") {
+          await recordLoginFailure({ req, identifier });
+          throw new Error("Unauthorized role");
+        }
+        if (!user.passwordHash) {
+          await recordLoginFailure({ req, identifier });
+          throw new Error("Invalid credentials");
+        }
 
         const isValid = await bcrypt.compare(password, user.passwordHash);
-        if (!isValid) throw new Error("Invalid password");
+        if (!isValid) {
+          await recordLoginFailure({ req, identifier });
+          throw new Error("Invalid credentials");
+        }
+
+        await clearLoginFailures({ req, identifier });
 
         return {
           id: user.id,
@@ -94,7 +132,7 @@ export const authOption: AuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as any).role;
+        token.role = user.role;
       }
       return token;
     },
@@ -102,7 +140,7 @@ export const authOption: AuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
-        session.user.role = token.role  ;
+        session.user.role = token.role;
       }
       return session;
     },
