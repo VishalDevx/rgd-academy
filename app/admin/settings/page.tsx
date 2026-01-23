@@ -7,8 +7,18 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
-import { Settings, Save, Loader2, Building2, Mail, Phone, Calendar, Palette, Upload, CheckCircle2 } from "lucide-react";
+import { Settings, Save, Loader2, Building2, Mail, Phone, Calendar, Palette, Upload, CheckCircle2, Image as ImageIcon, X, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/app/components/ui/dialog";
+import Image from "next/image";
 
 interface SchoolSettings {
   id: string;
@@ -300,6 +310,240 @@ export default function SettingsPage() {
           </Button>
         </div>
       </form>
+
+      {/* Image Management Sections */}
+      <ImageManagementSection type="gallery" title="Gallery Images" description="Manage images displayed in the gallery section" />
+      <ImageManagementSection type="hero" title="Hero Images" description="Manage images displayed in the hero section" />
     </div>
+  );
+}
+
+// Image Management Component
+function ImageManagementSection({ type, title, description }: { type: "gallery" | "hero"; title: string; description: string }) {
+  const [images, setImages] = useState<Array<{ id: string; url: string; category?: string; title: string; description?: string }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [uploadForm, setUploadForm] = useState({
+    file: null as File | null,
+    category: "Campus",
+    title: "",
+    description: "",
+  });
+
+  useEffect(() => {
+    fetchImages();
+  }, []);
+
+  const fetchImages = async () => {
+    try {
+      const endpoint = type === "gallery" ? "/api/gallery" : "/api/hero-images";
+      const res = await fetch(endpoint);
+      if (!res.ok) throw new Error("Failed to fetch images");
+      const data = await res.json();
+      setImages(data.images || []);
+    } catch (err) {
+      toast.error("Failed to load images");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!uploadForm.file || !uploadForm.title) {
+      toast.error("Please select a file and enter a title");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", uploadForm.file);
+      formData.append("title", uploadForm.title);
+      if (uploadForm.description) formData.append("description", uploadForm.description);
+      if (type === "gallery") formData.append("category", uploadForm.category);
+
+      const endpoint = type === "gallery" ? "/api/gallery" : "/api/hero-images";
+      const res = await fetch(endpoint, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to upload image");
+      }
+
+      toast.success("Image uploaded successfully!");
+      setDialogOpen(false);
+      setUploadForm({ file: null, category: "Campus", title: "", description: "" });
+      fetchImages();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to upload image");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDelete = async (imageId: string) => {
+    if (!confirm("Are you sure you want to delete this image?")) return;
+
+    try {
+      const endpoint = type === "gallery" ? "/api/gallery" : "/api/hero-images";
+      const res = await fetch(`${endpoint}?id=${imageId}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to delete image");
+      }
+
+      toast.success("Image deleted successfully!");
+      fetchImages();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete image");
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5 text-blue-600" />
+              {title}
+            </CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </div>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Image
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Upload {type === "gallery" ? "Gallery" : "Hero"} Image</DialogTitle>
+                <DialogDescription>
+                  Upload an image to display on the school website
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Image File *</Label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) setUploadForm({ ...uploadForm, file });
+                    }}
+                  />
+                </div>
+                {type === "gallery" && (
+                  <div className="space-y-2">
+                    <Label>Category *</Label>
+                    <Select
+                      value={uploadForm.category}
+                      onValueChange={(v) => setUploadForm({ ...uploadForm, category: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Campus">Campus</SelectItem>
+                        <SelectItem value="Events">Events</SelectItem>
+                        <SelectItem value="Sports">Sports</SelectItem>
+                        <SelectItem value="Celebrations">Celebrations</SelectItem>
+                        <SelectItem value="Achievements">Achievements</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label>Title *</Label>
+                  <Input
+                    value={uploadForm.title}
+                    onChange={(e) => setUploadForm({ ...uploadForm, title: e.target.value })}
+                    placeholder="Image title"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Textarea
+                    value={uploadForm.description}
+                    onChange={(e) => setUploadForm({ ...uploadForm, description: e.target.value })}
+                    placeholder="Optional description"
+                    rows={3}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpload} disabled={uploading}>
+                  {uploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          </div>
+        ) : images.length === 0 ? (
+          <div className="text-center py-12 text-gray-500">
+            <ImageIcon className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <p>No images uploaded yet</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {images.map((image) => (
+              <div key={image.id} className="group relative aspect-square rounded-lg overflow-hidden border border-gray-200">
+                <Image
+                  src={image.url}
+                  alt={image.title}
+                  fill
+                  className="object-cover"
+                />
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleDelete(image.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+                  <p className="text-white text-xs font-medium truncate">{image.title}</p>
+                  {image.category && (
+                    <p className="text-white/70 text-xs">{image.category}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

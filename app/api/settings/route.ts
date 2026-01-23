@@ -44,7 +44,18 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json().catch(() => ({}));
+    const body = await req.json().catch(() => ({})) as {
+      name?: string;
+      address?: string | null;
+      contactEmail?: string | null;
+      contactPhone?: string | null;
+      academicYear?: string | null;
+      logoUrl?: string | null;
+      faviconUrl?: string | null;
+      primaryColor?: string | null;
+      tier?: "BASIC" | "PRO" | "ENTERPRISE";
+      featureFlags?: unknown;
+    };
     const {
       name,
       address,
@@ -74,7 +85,9 @@ export async function PUT(req: NextRequest) {
             faviconUrl: faviconUrl !== undefined ? faviconUrl : existing.faviconUrl,
             primaryColor: primaryColor !== undefined ? primaryColor : existing.primaryColor,
             tier: tier ?? existing.tier,
-            featureFlags: featureFlags !== undefined ? featureFlags : existing.featureFlags,
+            featureFlags: featureFlags !== undefined 
+              ? (featureFlags as Prisma.InputJsonValue) 
+              : (existing.featureFlags ?? Prisma.DbNull),
           },
         })
       : await db.schoolSettings.create({
@@ -88,7 +101,7 @@ export async function PUT(req: NextRequest) {
             faviconUrl,
             primaryColor: primaryColor || "#2563eb",
             tier: tier || "BASIC",
-            featureFlags,
+            featureFlags: featureFlags as Prisma.InputJsonValue | undefined,
           },
         });
 
@@ -99,9 +112,10 @@ export async function PUT(req: NextRequest) {
         action: "UPDATE_SETTINGS",
         entity: "SchoolSettings",
         entityId: updated.id,
-        oldValue: existing ? { ...existing } : Prisma.JsonNull,
-
-        newValue: { ...updated },
+        oldValue: existing 
+          ? (JSON.parse(JSON.stringify(existing)) as Prisma.InputJsonValue)
+          : Prisma.DbNull,
+        newValue: JSON.parse(JSON.stringify(updated)) as Prisma.InputJsonValue,
       },
     });
 

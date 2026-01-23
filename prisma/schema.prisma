@@ -81,6 +81,8 @@ model SchoolSettings {
   featureFlags Json?
   primaryColor String?
   tier         SubscriptionTier @default(BASIC)
+  galleryImages Json?           // Array of { id, url, category, title, description }
+  heroImages   Json?            // Array of { id, url, title, description }
 }
 
 model Class {

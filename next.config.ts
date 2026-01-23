@@ -1,6 +1,17 @@
-const nextConfig = {
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
   images: {
-    domains: ["qoigzylkryyfjzbxzqiv.supabase.co"],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**.supabase.co",
+      },
+      {
+        protocol: "https",
+        hostname: "**.supabase.in",
+      },
+    ],
   },
   env: {
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
