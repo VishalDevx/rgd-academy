@@ -1,4 +1,3 @@
-import bcrypt from "bcryptjs"
 import { db } from "@/lib/prisma"
 
 async function fixPasswords() {
@@ -9,9 +8,6 @@ async function fixPasswords() {
       console.log(`Skipping ${u.email} — no valid password to hash`)
       continue
     }
-
-
-
   }
   console.log("✅ Checked all users.")
   process.exit(0)
