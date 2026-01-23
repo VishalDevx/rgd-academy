@@ -21,7 +21,7 @@ interface SchoolSettings {
   faviconUrl: string | null;
   primaryColor: string | null;
   tier: "BASIC" | "PRO" | "ENTERPRISE";
-  featureFlags: any;
+  featureFlags: string;
   createdAt: string;
   updatedAt: string;
 }

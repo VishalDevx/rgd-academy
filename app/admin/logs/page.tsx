@@ -18,8 +18,8 @@ interface AuditLog {
   action: string;
   entity: string;
   entityId: string | null;
-  oldValue: any;
-  newValue: any;
+  oldValue: unknown;
+  newValue: unknown;
   createdAt: string;
   user: {
     id: string;

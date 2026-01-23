@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOption } from "@/app/lib/auth";
 import { db } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 
-// GET audit logs with filtering
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOption);
@@ -22,8 +22,7 @@ export async function GET(req: NextRequest) {
 
     const skip = (page - 1) * limit;
 
-    // Build where clause
-    const where: any = {};
+    const where: Prisma.AuditLogWhereInput = {};
     if (entity) where.entity = entity;
     if (action) where.action = action;
     if (userId) where.userId = userId;
