@@ -40,6 +40,7 @@ STUDENT: [
   { label: "Results", href: "/student/results", icon: "results" },
   { label: "Fees", href: "/student/fees", icon: "fees" },
   { label: "Announcements", href: "/student/announcements", icon: "announce" },
+  { label: "Profile", href: "/student/profile", icon: "user" },
 ]
 
 };

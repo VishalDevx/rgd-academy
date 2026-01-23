@@ -29,10 +29,48 @@ export async function GET(req: Request) {
   const classId = searchParams.get("classId");
 
   // 🔒 STUDENT can only see his own results
-  if (session.user.role === "STUDENT" && studentId !== session.user.id) {
-    return new NextResponse("Forbidden", { status: 403 });
+  if (session.user.role === "STUDENT") {
+    // Get student record for the logged-in user
+    const student = await db.student.findUnique({
+      where: { userId: session.user.id },
+      select: { id: true },
+    });
+
+    if (!student) {
+      return new NextResponse("Student record not found", { status: 404 });
+    }
+
+    // Force studentId to be the logged-in student's ID
+    const whereClause: any = {
+      studentId: student.id,
+    };
+
+    if (examId) {
+      whereClause.examId = examId;
+    }
+    if (classId) {
+      whereClause.exam = { classId };
+    }
+
+    const results = await db.result.findMany({
+      where: whereClause,
+      include: {
+        exam: true,
+        subject: true,
+        student: {
+          include: { user: true },
+        },
+      },
+      orderBy: [
+        { subject: { name: "asc" } },
+        { exam: { category: "asc" } },
+      ],
+    });
+
+    return NextResponse.json(results);
   }
 
+  // For ADMIN/STAFF, use the provided filters
   const results = await db.result.findMany({
     where: {
       ...(examId && { examId }),
