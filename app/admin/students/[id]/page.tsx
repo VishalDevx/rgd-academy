@@ -24,6 +24,17 @@ import {
 } from "@/app/components/ui/avatar";
 import { Button } from "@/app/components/ui/button";
 import { LoadingSkeleton } from "@/app/components/LoadingSkeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/app/components/ui/dialog";
+import { KeyRound, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 // -----------------------------
 // Type Definitions
@@ -83,6 +94,34 @@ export default function StudentProfilePage() {
   const router = useRouter();
   const [student, setStudent] = useState<StudentData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [resetPassword, setResetPassword] = useState<string | null>(null);
+
+  const handleResetPassword = async () => {
+    if (!student) return;
+    setResettingPassword(true);
+    try {
+      const res = await fetch(`/api/students/${student.id}/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to reset password");
+      }
+
+      const data = await res.json();
+      setResetPassword(data.defaultPassword);
+      toast.success(`Password reset successfully for ${student.user.name}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to reset password");
+      setResetPasswordDialogOpen(false);
+    } finally {
+      setResettingPassword(false);
+    }
+  };
 
   useEffect(() => {
     if (!params?.id) return;
@@ -151,6 +190,71 @@ export default function StudentProfilePage() {
         </div>
 
         <div className="absolute top-4 right-4 flex gap-2">
+          <Dialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <KeyRound className="h-4 w-4 mr-2" />
+                Reset Password
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Reset Password</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to reset the password for {student.user.name}?
+                  {resetPassword && (
+                    <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                      <p className="text-sm font-semibold text-green-800 mb-1">
+                        New Password:
+                      </p>
+                      <p className="text-lg font-mono text-green-900 bg-white p-2 rounded border">
+                        {resetPassword}
+                      </p>
+                      <p className="text-xs text-green-700 mt-2">
+                        Please share this password with the student securely.
+                      </p>
+                    </div>
+                  )}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                {resetPassword ? (
+                  <Button
+                    onClick={() => {
+                      setResetPasswordDialogOpen(false);
+                      setResetPassword(null);
+                    }}
+                  >
+                    Close
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setResetPasswordDialogOpen(false);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleResetPassword}
+                      disabled={resettingPassword}
+                    >
+                      {resettingPassword ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Resetting...
+                        </>
+                      ) : (
+                        "Reset Password"
+                      )}
+                    </Button>
+                  </>
+                )}
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           <Link href={`/admin/marksheet/${student.id}`}>
             <Button variant="outline">Download Marksheet</Button>
           </Link>

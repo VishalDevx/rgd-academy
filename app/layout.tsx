@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RGD School",
-  description: "School Management System",
+  title: "RGD School - Modern School Management System",
+  description: "Comprehensive school management platform for administrators, staff, and students. Streamline operations, track attendance, manage fees, and enhance learning experiences.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
