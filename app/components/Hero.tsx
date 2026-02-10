@@ -135,19 +135,19 @@ export const Hero = () => {
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-card border border-border shadow-lg mb-8 animate-fade-in">
             <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
             <span className="text-sm text-muted-foreground">
-              Admissions Open for 2024-25
+              Admissions Open for 2025-26
             </span>
           </div>
 
           {/* Heading */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 animate-fade-in" style={{ animationDelay: "0.1s" }}>
-            Empowering Minds,{" "}
+            RGD ACADEMY ,{" "}
             <span className="text-gradient">Shaping Futures</span>
           </h1>
 
           {/* Subheading */}
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-in" style={{ animationDelay: "0.2s" }}>
-            Welcome to RGD School, where excellence meets opportunity. We nurture
+            Welcome to RGD , where excellence meets opportunity. We nurture
             young minds with quality education, strong values, and a passion for
             lifelong learning.
           </p>
@@ -158,7 +158,7 @@ export const Hero = () => {
               size="lg"
               className="bg-gradient-school hover:opacity-90 transition-opacity shadow-lg text-lg px-8"
             >
-              Explore Our School
+              Explore Our Academy
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
             <Button

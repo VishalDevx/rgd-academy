@@ -10,12 +10,12 @@ const contactInfo = [
   {
     icon: MapPin,
     title: "Address",
-    details: ["RGD School Campus", "123 Education Street", "City, State - 123456"],
+    details: ["RGD School Campus", "Bhurapur near Masjid", "Bijnor, UP - 246762"],
   },
   {
     icon: Phone,
     title: "Phone",
-    details: ["+91 98765 43210", "+91 12345 67890"],
+    details: ["+91 6395646426", "+91 12345 67890"],
   },
   {
     icon: Mail,
@@ -142,17 +142,14 @@ export const Contact = () => {
             </div>
 
             {/* Map Placeholder */}
-            <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-lg h-64">
-              <div className="w-full h-full bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center">
-                <div className="text-center">
-                  <MapPin className="w-12 h-12 text-primary/50 mx-auto mb-2" />
-                  <p className="text-muted-foreground text-sm">Interactive Map</p>
-                  <p className="text-xs text-muted-foreground/70">
-                    Replace with Google Maps embed
-                  </p>
-                </div>
-              </div>
-            </div>
+           <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-lg h-64">
+  <iframe
+    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3473.038541940824!2d78.4157176!3d29.3910645!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390bc525b3467b85%3A0x86f6797ce7140c41!2sAYUSH%20KATARIYA%20HOUSE!5e0!3m2!1sen!2sin!4v1700000000000"
+    className="w-full h-full border-0"
+    loading="lazy"
+    referrerPolicy="no-referrer-when-downgrade"
+  />
+</div>
 
             {/* Social Links */}
             <div className="bg-gradient-school rounded-2xl p-6 text-primary-foreground">

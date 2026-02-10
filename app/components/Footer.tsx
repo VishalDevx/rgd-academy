@@ -13,7 +13,7 @@ const quickLinks = [
 const portalLinks = [
   { name: "Student Portal", href: "#" },
   { name: "Staff Portal", href: "#" },
-  { name: "Admin Portal", href: "#" },
+  
   { name: "Parent Portal", href: "#" },
 ];
 
@@ -55,11 +55,11 @@ export const Footer = () => {
             <div className="space-y-2 text-sm">
               <p className="flex items-center gap-2 text-background/70">
                 <MapPin className="w-4 h-4 text-primary" />
-                123 Education Street, City
+              Bhurapur near Masjid
               </p>
               <p className="flex items-center gap-2 text-background/70">
                 <Phone className="w-4 h-4 text-primary" />
-                +91 98765 43210
+                +91 6395646426
               </p>
               <p className="flex items-center gap-2 text-background/70">
                 <Mail className="w-4 h-4 text-primary" />

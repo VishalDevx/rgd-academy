@@ -37,7 +37,7 @@ export const About = () => {
             About Us
           </span>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            Welcome to <span className="text-gradient">RGD School</span>
+            Welcome to <span className="text-gradient">RGD Academy</span>
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
             A legacy of excellence in education, nurturing future leaders since 1999
@@ -64,7 +64,7 @@ export const About = () => {
               Principal&apos;s Message
             </h3>
             <blockquote className="text-lg text-muted-foreground italic border-l-4 border-primary pl-6">
-              &ldquo;At RGD School, we believe every child has the potential to achieve
+              &ldquo;At RGD Academy, we believe every child has the potential to achieve
               greatness. Our mission is to provide an environment where students
               can discover their talents, develop critical thinking skills, and
               become responsible global citizens.&rdquo;
@@ -75,8 +75,8 @@ export const About = () => {
               creativity, innovation, and character development in our students.
             </p>
             <div className="pt-4">
-              <p className="font-semibold text-foreground">Dr. Ramesh Kumar</p>
-              <p className="text-sm text-muted-foreground">Principal, RGD School</p>
+              <p className="font-semibold text-foreground"> Deepak Kumar</p>
+              <p className="text-sm text-muted-foreground">Principal, RGD Academy</p>
             </div>
           </div>
         </div>
@@ -114,7 +114,7 @@ export const About = () => {
         <div className="text-center mb-12">
           <h3 className="text-2xl md:text-3xl font-bold mb-4">Our Core Values</h3>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            The principles that guide everything we do at RGD School
+            The principles that guide everything we do at RGD Academy
           </p>
         </div>
 

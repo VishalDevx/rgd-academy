@@ -43,7 +43,7 @@ export const Navbar = () => {
             </div>
             <div className="flex flex-col">
               <span className="text-lg md:text-xl font-bold text-gradient">
-                RGD School
+                RGD Academy
               </span>
               <span className="text-[10px] md:text-xs text-muted-foreground hidden sm:block">
                 Empowering Minds
