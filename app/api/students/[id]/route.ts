@@ -5,6 +5,7 @@ import { authOption } from "@/app/lib/auth";
 import { createClient } from "@supabase/supabase-js";
 import type { Gender } from "@prisma/client";
 
+
 export const runtime = "nodejs";
 
 const supabase = createClient(
@@ -172,6 +173,55 @@ export async function GET(
     console.error("Error fetching student:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const studentId = (await params).id;
+
+    if (!studentId) {
+      return new Response(
+        JSON.stringify({ error: "Student ID is required" }),
+        { status: 400 }
+      );
+    }
+
+    // AUTH CHECK (assumes you already have session logic globally)
+    // remove this block if handled by middleware
+    const session = await getServerSession(authOption);
+    if (!session?.user || session.user.role !== "ADMIN") {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401 }
+      );
+    }
+
+    await db.student.delete({
+      where: {
+        id: studentId,
+      },include:{fees:true,results:true,attendance:true}
+    });
+
+    return new Response(
+      JSON.stringify({ message: "Student permanently deleted" }),
+      { status: 200 }
+    );
+  } catch (err: unknown) {
+    // Prisma throws if record does not exist
+    if (err && typeof err === "object" && "code" in err && err.code === "P2025") {
+      return new Response(
+        JSON.stringify({ error: "Student not found" }),
+        { status: 404 }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500 }
     );
   }

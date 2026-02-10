@@ -35,6 +35,7 @@ import {
 } from "@/app/components/ui/dialog";
 import { KeyRound, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import DeleteStudent from "@/app/components/DeleteStudent";
 
 // -----------------------------
 // Type Definitions
@@ -261,6 +262,10 @@ export default function StudentProfilePage() {
           <Link href={`/admin/students/${student.id}/edit`}>
             <Button variant="outline">Edit</Button>
           </Link>
+           <div>
+            <DeleteStudent studentId={student.id} />
+           </div>
+         
         </div>
       </Card>
 
