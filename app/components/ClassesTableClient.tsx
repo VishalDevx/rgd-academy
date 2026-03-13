@@ -6,6 +6,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/app/components/ui/ca
 import { Button } from "@/app/components/ui/button";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/app/components/ui/table";
 import { motion } from "framer-motion";
+import { Trash } from "lucide-react";
+import { id } from "zod/v4/locales";
 
 type ClassRow = {
   id: string;
@@ -56,6 +58,7 @@ export default function ClassesTableClient({ classes }: { classes: ClassRow[] })
                     <TableHead>Section</TableHead>
                     <TableHead>Class Teacher</TableHead>
                     <TableHead>Academic Session</TableHead>
+                    
                   </TableRow>
                 </TableHeader>
 
@@ -73,6 +76,9 @@ export default function ClassesTableClient({ classes }: { classes: ClassRow[] })
                       <TableCell>{c.section ?? "-"}</TableCell>
                       <TableCell>{c.teacher?.user?.name || "-"}</TableCell>
                       <TableCell>{c.academicSession?.name || "-"}</TableCell>
+                      <TableCell>
+                       <Link href={`/admin/classes/edit-class`}>Update</Link> </TableCell>
+                      <TableCell><Trash /></TableCell>
                     </motion.tr>
                   ))}
                 </TableBody>
