@@ -2,13 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOption } from "@/app/lib/auth";
 import { db } from "@/lib/prisma";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseServiceClient } from "@/app/lib/supabaseClient";
 import { Prisma } from "@prisma/client";
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 // GET hero images
 export async function GET() {
@@ -70,7 +65,7 @@ export async function POST(req: NextRequest) {
     const fileName = `hero/${timestamp}_${file.name}`;
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await getSupabaseServiceClient().storage
       .from("rgd-school")
       .upload(fileName, buffer, { contentType: file.type });
 
@@ -83,7 +78,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get public URL
-    const { data } = supabase.storage.from("rgd-school").getPublicUrl(fileName);
+    const { data } = getSupabaseServiceClient().storage.from("rgd-school").getPublicUrl(fileName);
     const imageUrl = data.publicUrl;
 
     // Add to hero images in settings

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { supabase } from "@/app/lib/supabaseClient";
+import { getSupabaseClient } from "@/app/lib/supabaseClient";
 import { authOption } from "@/app/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
   // ✅ Upload to the real bucket
   const filePath = `${type}s/${id}/${Date.now()}_${file.name}`;
-  const { error } = await supabase.storage
+  const { error } = await getSupabaseClient().storage
     .from("rgd-school") // ✅ correct bucket
     .upload(filePath, file, { upsert: true });
 
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   }
 
   // ✅ Generate signed URL
-  const { data: signed } = await supabase.storage
+  const { data: signed } = await getSupabaseClient().storage
     .from("rgd-school") // ✅ same bucket
     .createSignedUrl(filePath, 60 * 60);
 

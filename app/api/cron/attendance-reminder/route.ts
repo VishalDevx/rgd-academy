@@ -1,14 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
+import { getServerSession } from "next-auth/next";
+import { authOption } from "@/app/lib/auth";
 import type { Attendance, Student, User } from "@prisma/client";
 
 // POST /api/cron/attendance-reminder
 export async function POST(req: NextRequest) {
-  // --- Validate cron secret ---
+  // --- Allow ADMIN session or cron token ---
+  const session = await getServerSession(authOption);
   const headerToken = req.headers.get("x-cron-token");
-  const envToken = process.env.CRON_SECRET_TOKEN;
+  const authHeader = req.headers.get("authorization");
+  const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : authHeader;
+  const envToken = process.env.CRON_SECRET_TOKEN ?? process.env.CRON_SECRET;
 
-  if (!envToken || headerToken !== envToken) {
+  const isAuthorized =
+    (session?.user?.role === "ADMIN") ||
+    (!!envToken && headerToken === envToken) ||
+    (!!envToken && bearer === envToken);
+
+  if (!isAuthorized) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 

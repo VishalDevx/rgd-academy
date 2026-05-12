@@ -53,6 +53,8 @@ export interface IFeeStructure {
   transportFee?: number | null;
   miscFee?: number | null;
   total: number;
+  monthlyFee?: number | null;
+  totalMonths: number;
   createdAt: Date;
 }
 export interface IFeePayment {

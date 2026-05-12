@@ -55,6 +55,17 @@ export async function PUT(req: NextRequest) {
       primaryColor?: string | null;
       tier?: "BASIC" | "PRO" | "ENTERPRISE";
       featureFlags?: unknown;
+      principalName?: string | null;
+      registrationNo?: string | null;
+      receiptPrefix?: string | null;
+      admissionPrefix?: string | null;
+      staffIdPrefix?: string | null;
+      gradingSystem?: string | null;
+      dateFormat?: string | null;
+      currency?: string | null;
+      website?: string | null;
+      pdfHeader?: string | null;
+      pdfFooter?: string | null;
     };
     const {
       name,
@@ -67,6 +78,17 @@ export async function PUT(req: NextRequest) {
       primaryColor,
       tier,
       featureFlags,
+      principalName,
+      registrationNo,
+      receiptPrefix,
+      admissionPrefix,
+      staffIdPrefix,
+      gradingSystem,
+      dateFormat,
+      currency,
+      website,
+      pdfHeader,
+      pdfFooter,
     } = body;
 
     // Get existing settings or create new
@@ -88,6 +110,17 @@ export async function PUT(req: NextRequest) {
             featureFlags: featureFlags !== undefined 
               ? (featureFlags as Prisma.InputJsonValue) 
               : (existing.featureFlags ?? Prisma.DbNull),
+            principalName: principalName !== undefined ? principalName : existing.principalName,
+            registrationNo: registrationNo !== undefined ? registrationNo : existing.registrationNo,
+            receiptPrefix: receiptPrefix !== undefined ? receiptPrefix : existing.receiptPrefix,
+            admissionPrefix: admissionPrefix !== undefined ? admissionPrefix : existing.admissionPrefix,
+            staffIdPrefix: staffIdPrefix !== undefined ? staffIdPrefix : existing.staffIdPrefix,
+            gradingSystem: gradingSystem !== undefined ? gradingSystem : existing.gradingSystem,
+            dateFormat: dateFormat !== undefined ? dateFormat : existing.dateFormat,
+            currency: currency !== undefined ? currency : existing.currency,
+            website: website !== undefined ? website : existing.website,
+            pdfHeader: pdfHeader !== undefined ? pdfHeader : existing.pdfHeader,
+            pdfFooter: pdfFooter !== undefined ? pdfFooter : existing.pdfFooter,
           },
         })
       : await db.schoolSettings.create({
@@ -102,6 +135,17 @@ export async function PUT(req: NextRequest) {
             primaryColor: primaryColor || "#2563eb",
             tier: tier || "BASIC",
             featureFlags: featureFlags as Prisma.InputJsonValue | undefined,
+            principalName,
+            registrationNo,
+            receiptPrefix,
+            admissionPrefix,
+            staffIdPrefix,
+            gradingSystem,
+            dateFormat,
+            currency,
+            website,
+            pdfHeader,
+            pdfFooter,
           },
         });
 

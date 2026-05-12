@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
-import { TransactionType } from "@prisma/client";
+import { TransactionType, PaymentMethod, Prisma } from "@prisma/client";
 import { authOption } from "@/app/lib/auth";
 
 interface CreateExpenseBody {
@@ -9,7 +9,34 @@ interface CreateExpenseBody {
   description?: string | null;
   amount: number | string;
   date?: string | null;
-  transaction: TransactionType; // <-- mandatory
+  transaction: TransactionType;
+  categoryId?: string | null;
+  paidTo?: string | null;
+  paymentMode?: PaymentMethod | null;
+  billUrl?: string | null;
+}
+
+export async function GET(req: NextRequest) {
+  const session = await getServerSession(authOption);
+  if (!session?.user || session.user.role !== "ADMIN") {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const categoryId = searchParams.get("categoryId");
+
+  const where: Record<string, unknown> = {};
+  if (categoryId) {
+    where.categoryId = categoryId;
+  }
+
+  const expenses = await db.expense.findMany({
+    where,
+    include: { category: true },
+    orderBy: { date: "desc" },
+  });
+
+  return NextResponse.json(expenses);
 }
 
 export async function POST(req: NextRequest) {
@@ -19,39 +46,59 @@ export async function POST(req: NextRequest) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
-  // Parse JSON body
   const body: CreateExpenseBody | null = await req.json().catch(() => null);
   if (!body) {
     return new NextResponse("Invalid payload", { status: 400 });
   }
 
-  // Validate required fields
-  const { title, amount, transaction, description, date } = body;
+  const { title, amount, transaction, description, date, categoryId, paidTo, paymentMode, billUrl } = body;
 
   if (!title || amount == null || !transaction) {
     return new NextResponse("Title, amount, and transaction are required", { status: 400 });
   }
 
-  // Validate transaction type
   if (!Object.values(TransactionType).includes(transaction)) {
     return new NextResponse("Invalid transaction type", { status: 400 });
   }
 
-  // Normalize amount
+  if (paymentMode && !Object.values(PaymentMethod).includes(paymentMode)) {
+    return new NextResponse("Invalid payment mode", { status: 400 });
+  }
+
   const normalizedAmount = Number(amount);
   if (Number.isNaN(normalizedAmount)) {
     return new NextResponse("Invalid amount", { status: 400 });
   }
 
-  // Create expense
   const created = await db.expense.create({
     data: {
       title,
       description: description ?? null,
       amount: normalizedAmount.toFixed(2),
-      transaction,            // now mandatory and validated
+      transaction,
       date: date ? new Date(date) : new Date(),
       createdById: session.user.id,
+      categoryId: categoryId ?? null,
+      paidTo: paidTo ?? null,
+      paymentMode: paymentMode ?? null,
+      billUrl: billUrl ?? null,
+    },
+  });
+
+  await db.auditLog.create({
+    data: {
+      userId: session.user.id,
+      action: "CREATE_EXPENSE",
+      entity: "Expense",
+      entityId: created.id,
+      newValue: {
+        title: created.title,
+        amount: created.amount,
+        transaction: created.transaction,
+        categoryId: created.categoryId,
+        paidTo: created.paidTo,
+        paymentMode: created.paymentMode,
+      } as Prisma.InputJsonValue,
     },
   });
 

@@ -162,10 +162,12 @@ async function main() {
     data: {
       classId: class9A.id,
       name: "Annual Fee",
-      tuitionFee: "24000",
-      examFee: "2000",
-      miscFee: "1000",
-      total: "27000",
+      tuitionFee: "5400",
+      examFee: "0",
+      miscFee: "0",
+      total: "5400",
+      monthlyFee: "450",
+      totalMonths: 12,
     },
   });
 
@@ -173,9 +175,9 @@ async function main() {
     data: {
       studentId: student.id,
       feeStructureId: fee.id,
-      amountPaid: "15000",
-      remainAmount: "12000",
-      status: "PARTIAL",
+      amountPaid: "0",
+      remainAmount: "5400",
+      status: "PENDING",
     },
   });
 

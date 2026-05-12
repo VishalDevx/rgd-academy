@@ -1,19 +1,30 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { TransactionType } from "@prisma/client";
+import { useEffect, useState } from "react";
+import { TransactionType, PaymentMethod } from "@prisma/client";
 
-type ExpenseForm = {
+interface ExpenseCategory {
+  id: string;
+  name: string;
+}
+
+interface ExpenseForm {
   title: string;
   description: string;
   amount: string;
   date: string;
   transaction: TransactionType;
-};
+  categoryId: string;
+  paidTo: string;
+  paymentMode: string;
+}
+
+const PAYMENT_MODES = ["CASH", "UPI", "BANK", "CHEQUE", "CARD", "ONLINE"] as const;
 
 export default function NewExpensePage() {
   const router = useRouter();
+  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
 
   const [form, setForm] = useState<ExpenseForm>({
     title: "",
@@ -21,10 +32,21 @@ export default function NewExpensePage() {
     amount: "",
     date: "",
     transaction: TransactionType.DEBIT,
+    categoryId: "",
+    paidTo: "",
+    paymentMode: "",
   });
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [billFile, setBillFile] = useState<File | null>(null);
+
+  useEffect(() => {
+    fetch("/api/expenses/categories")
+      .then((res) => res.json())
+      .then(setCategories)
+      .catch(() => setError("Failed to load categories"));
+  }, []);
 
   const onChange = <K extends keyof ExpenseForm>(
     key: K,
@@ -37,7 +59,6 @@ export default function NewExpensePage() {
     e.preventDefault();
     setError(null);
 
-    // ---- basic client-side validation ----
     if (!form.title.trim()) {
       setError("Title is required");
       return;
@@ -52,12 +73,29 @@ export default function NewExpensePage() {
     setSubmitting(true);
 
     try {
+      let billUrl = "";
+      if (billFile) {
+        const uploadData = new FormData();
+        uploadData.append("file", billFile);
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          body: uploadData,
+        });
+        if (!uploadRes.ok) throw new Error("Failed to upload bill");
+        const uploadResult = await uploadRes.json();
+        billUrl = uploadResult.url ?? "";
+      }
+
       const res = await fetch("/api/expenses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
           amount,
+          categoryId: form.categoryId || null,
+          paidTo: form.paidTo || null,
+          paymentMode: form.paymentMode || null,
+          billUrl: billUrl || null,
         }),
       });
 
@@ -122,14 +160,71 @@ export default function NewExpensePage() {
           </div>
         </div>
 
-        {/* Date */}
+        {/* Category + Paid To */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Category</label>
+            <select
+              className="w-full rounded border px-3 py-2"
+              value={form.categoryId}
+              onChange={(e) => onChange("categoryId", e.target.value)}
+            >
+              <option value="">Select category</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Paid To</label>
+            <input
+              className="w-full rounded border px-3 py-2"
+              value={form.paidTo}
+              onChange={(e) => onChange("paidTo", e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Payment Mode + Date */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Payment Mode</label>
+            <select
+              className="w-full rounded border px-3 py-2"
+              value={form.paymentMode}
+              onChange={(e) => onChange("paymentMode", e.target.value)}
+            >
+              <option value="">Select payment mode</option>
+              {PAYMENT_MODES.map((mode) => (
+                <option key={mode} value={mode}>
+                  {mode}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Date</label>
+            <input
+              type="date"
+              className="w-full rounded border px-3 py-2"
+              value={form.date}
+              onChange={(e) => onChange("date", e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Bill Upload */}
         <div>
-          <label className="block text-sm font-medium mb-1">Date</label>
+          <label className="block text-sm font-medium mb-1">Bill Upload</label>
           <input
-            type="date"
+            type="file"
+            accept="image/*,.pdf"
             className="w-full rounded border px-3 py-2"
-            value={form.date}
-            onChange={(e) => onChange("date", e.target.value)}
+            onChange={(e) => setBillFile(e.target.files?.[0] ?? null)}
           />
         </div>
 

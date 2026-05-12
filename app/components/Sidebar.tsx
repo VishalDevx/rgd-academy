@@ -6,7 +6,6 @@ import { sidebarItemsByRole, type AppRole, type NavItem } from "@/app/config/sid
 import {
   ChevronLeft,
   ChevronRight,
-  School,
   LayoutDashboard,
   Users,
   BookOpen,
@@ -21,7 +20,7 @@ import {
   Settings,
   LogsIcon,
   UserRoundPen,
-  CalendarCheck2
+  CalendarCheck2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/app/components/ui/button";
@@ -38,8 +37,7 @@ interface SidebarProps {
   onToggleCollapsed?: () => void;
 }
 
-// Icon mapping
-const icons = {
+const icons: Record<string, React.ComponentType<{ size?: number }>> = {
   dashboard: LayoutDashboard,
   students: Users,
   staff: GraduationCap,
@@ -55,7 +53,7 @@ const icons = {
   logs: LogsIcon,
   user: UserRoundPen,
   subject: TriangleRight,
-  DateSheet: CalendarCheck2
+  DateSheet: CalendarCheck2,
 };
 
 export function Sidebar({ role, collapsed = false, onToggleCollapsed }: SidebarProps) {
@@ -69,18 +67,15 @@ export function Sidebar({ role, collapsed = false, onToggleCollapsed }: SidebarP
         collapsed ? "w-20" : "w-64"
       )}
     >
-      {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-primary-foreground shadow-md">
          <Link href="/admin/dashboard"><Image className="rounded-full" src="/logo.jpeg" width={40} height={40} alt="Logo" /></Link> 
-
           </div>
           {!collapsed && (
             <span className="text-lg font-semibold tracking-wide">RGD School</span>
           )}
         </div>
-
         <Button
           variant="ghost"
           size="icon"
@@ -91,7 +86,6 @@ export function Sidebar({ role, collapsed = false, onToggleCollapsed }: SidebarP
         </Button>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-3">
         <ul className="space-y-2">
           {items.map((item) => {
@@ -137,7 +131,6 @@ export function Sidebar({ role, collapsed = false, onToggleCollapsed }: SidebarP
         </ul>
       </nav>
 
-      {/* Footer */}
       <div
         className={cn(
           "p-4 text-xs font-medium border-t border-gray-200 text-muted-foreground",

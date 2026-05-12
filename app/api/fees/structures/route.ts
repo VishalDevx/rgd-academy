@@ -8,11 +8,14 @@ import { authOption } from "@/app/lib/auth";
 // ---------- Types ----------
 interface FeeStructureBody {
   classId: string;
+  categoryId?: string | null;
   name?: string | null;
   tuitionFee: number | string;
   examFee?: number | string | null;
   transportFee?: number | string | null;
   miscFee?: number | string | null;
+  monthlyFee?: number | string | null;
+  totalMonths?: number | string | null;
 }
 
 // Convert safely to number
@@ -45,18 +48,37 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
-  // ----- Calculate total -----
-  const tuition = toNum(body.tuitionFee);
-  const exam = toNum(body.examFee);
-  const transport = toNum(body.transportFee);
-  const misc = toNum(body.miscFee);
+  // ----- Calculate total (support monthly fee) -----
+  const monthlyFee = toNum(body.monthlyFee);
+  const totalMonths = body.totalMonths != null ? toNum(body.totalMonths) : 12;
 
-  const total = tuition + exam + transport + misc;
+  let total: number;
+  let tuition: number;
+  let exam: number;
+  let transport: number;
+  let misc: number;
+
+  if (monthlyFee > 0) {
+    // Monthly fee mode: calculate total from monthlyFee * months
+    tuition = toNum(body.tuitionFee);
+    exam = toNum(body.examFee);
+    transport = toNum(body.transportFee);
+    misc = toNum(body.miscFee);
+    total = monthlyFee * totalMonths;
+  } else {
+    // Legacy mode: sum of all components
+    tuition = toNum(body.tuitionFee);
+    exam = toNum(body.examFee);
+    transport = toNum(body.transportFee);
+    misc = toNum(body.miscFee);
+    total = tuition + exam + transport + misc;
+  }
 
   // ----- Create Fee Structure -----
   const created = await db.feeStructure.create({
     data: {
       classId: body.classId,
+      categoryId: body.categoryId ?? null,
       name: body.name ?? null,
       tuitionFee: new Prisma.Decimal(tuition.toFixed(2)),
       examFee: body.examFee != null ? new Prisma.Decimal(exam.toFixed(2)) : null,
@@ -67,6 +89,8 @@ export async function POST(req: NextRequest) {
       miscFee:
         body.miscFee != null ? new Prisma.Decimal(misc.toFixed(2)) : null,
       total: new Prisma.Decimal(total.toFixed(2)),
+      monthlyFee: monthlyFee > 0 ? new Prisma.Decimal(monthlyFee.toFixed(2)) : null,
+      totalMonths: monthlyFee > 0 ? totalMonths : 12,
     },
   });
 
@@ -75,20 +99,24 @@ export async function POST(req: NextRequest) {
     where: { classId: body.classId },
   });
 
-  // ----- Auto-create FeePayment -----
+  // ----- Auto-create FeePayment (adjust transport fee per student) -----
   if (students.length > 0) {
     await db.$transaction(
-      students.map((s) =>
-        db.feePayment.create({
+      students.map((s) => {
+        let adjustedTotal = total;
+        if (!s.usesTransport && transport > 0) {
+          adjustedTotal -= transport;
+        }
+        return db.feePayment.create({
           data: {
             studentId: s.id,
             feeStructureId: created.id,
             amountPaid: new Prisma.Decimal(0),
-            remainAmount: created.total,
+            remainAmount: new Prisma.Decimal(adjustedTotal.toFixed(2)),
             status: "PENDING",
           },
-        })
-      )
+        });
+      })
     );
   }
 

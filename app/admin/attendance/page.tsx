@@ -7,6 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/ca
 import { Label } from "@/app/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { toast } from "sonner";
+import { Download } from "lucide-react";
+import { usePDF } from "@/app/lib/usePDF";
+import { format } from "date-fns";
 
 interface Student {
   id: string;
@@ -23,6 +26,8 @@ export default function AdminAttendancePage() {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [records, setRecords] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const reportPdf = usePDF(`Attendance_${date}.pdf`);
+  const className = classes.find(c => c.id === selectedClass)?.name ?? "Class";
 
   // Load all classes
   const loadClasses = async () => {
@@ -130,6 +135,32 @@ export default function AdminAttendancePage() {
 
         <CardContent className="space-y-4">
 
+          {/* Hidden PDF content */}
+          <div className="hidden"><div ref={reportPdf.ref}>
+            <div className="p-8 text-sm">
+              <div className="text-center border-b-2 border-black pb-4 mb-6">
+                <h1 className="text-2xl font-bold">R. G. D. Academy</h1>
+                <p className="text-xs text-gray-600">Bharapur Nagina, Distt. Bijnor (U.P.)</p>
+                <p className="text-lg font-semibold mt-2">Attendance Report</p>
+                <p className="text-sm">{className} - {date}</p>
+              </div>
+              <table className="w-full border">
+                <thead><tr className="bg-gray-100">
+                  <th className="border p-2 text-left">Student</th><th className="border p-2 text-left">Status</th>
+                </tr></thead>
+                <tbody>
+                  {students.map(s => (
+                    <tr key={s.id}><td className="border p-2">{s.user.name}</td><td className="border p-2">{records[s.id]}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="mt-10 grid grid-cols-2 gap-10 text-xs">
+                <div><div className="h-10 border-b mb-1" /><p className="text-center">Teacher Signature</p></div>
+                <div><div className="h-10 border-b mb-1" /><p className="text-center">Principal</p></div>
+              </div>
+            </div>
+          </div></div>
+
           {/* Class & Date */}
           <div className="flex flex-wrap gap-4 items-end">
             <div className="flex-1 min-w-[200px]">
@@ -161,6 +192,12 @@ export default function AdminAttendancePage() {
             <Button onClick={submitAttendance} disabled={saving || !selectedClass}>
               {saving ? "Saving..." : "Save Attendance"}
             </Button>
+            {students.length > 0 && (
+              <Button variant="outline" onClick={reportPdf.generatePDF} disabled={reportPdf.loading}>
+                <Download className="h-4 w-4 mr-1" />
+                {reportPdf.loading ? "..." : "Download Report"}
+              </Button>
+            )}
           </div>
 
           {/* Students Table */}

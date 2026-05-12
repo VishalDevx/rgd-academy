@@ -23,11 +23,14 @@ import { toast } from "sonner";
 
 interface FeeStructureForm {
   classId: string;
+  categoryId: string;
   name: string;
   tuitionFee: string;
   examFee: string;
   transportFee: string;
   miscFee: string;
+  monthlyFee: string;
+  totalMonths: string;
 }
 
 interface ClassType {
@@ -35,16 +38,25 @@ interface ClassType {
   name: string;
 }
 
+interface FeeCategoryType {
+  id: string;
+  name: string;
+}
+
 export default function NewFeeStructurePage() {
   const router = useRouter();
   const [classes, setClasses] = useState<ClassType[]>([]);
+  const [categories, setCategories] = useState<FeeCategoryType[]>([]);
   const [form, setForm] = useState<FeeStructureForm>({
     classId: "",
+    categoryId: "",
     name: "",
     tuitionFee: "",
     examFee: "",
     transportFee: "",
     miscFee: "",
+    monthlyFee: "",
+    totalMonths: "12",
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -60,6 +72,17 @@ useEffect(() => {
     })
     .catch(() => toast.error("Failed to load classes"));
 }, []);
+
+useEffect(() => {
+  fetch("/api/fees/categories")
+    .then((res) => res.json())
+    .then((data) => setCategories(data))
+    .catch(() => toast.error("Failed to load categories"));
+}, []);
+
+  const monthlyAmount = Number(form.monthlyFee) || 0;
+  const months = Number(form.totalMonths) || 12;
+  const calculatedAnnual = monthlyAmount > 0 ? monthlyAmount * months : 0;
 
   const onChange = (key: keyof FeeStructureForm, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -112,6 +135,26 @@ useEffect(() => {
                   </SelectTrigger>
                   <SelectContent>
                     {classes.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Fee Category */}
+              <div>
+                <Label htmlFor="categoryId">Fee Category</Label>
+                <Select
+                  value={form.categoryId}
+                  onValueChange={(val) => onChange("categoryId", val)}
+                >
+                  <SelectTrigger id="categoryId">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.name}
                       </SelectItem>
@@ -175,7 +218,41 @@ useEffect(() => {
                   onChange={(e) => onChange("miscFee", e.target.value)}
                 />
               </div>
+
+              {/* Monthly Fee */}
+              <div>
+                <Label htmlFor="monthlyFee">Monthly Fee</Label>
+                <Input
+                  id="monthlyFee"
+                  type="number"
+                  value={form.monthlyFee}
+                  onChange={(e) => onChange("monthlyFee", e.target.value)}
+                  placeholder="e.g. 450"
+                />
+              </div>
+
+              {/* Total Months */}
+              <div>
+                <Label htmlFor="totalMonths">Total Months</Label>
+                <Input
+                  id="totalMonths"
+                  type="number"
+                  value={form.totalMonths}
+                  onChange={(e) => onChange("totalMonths", e.target.value)}
+                  placeholder="e.g. 12"
+                  min="1"
+                />
+              </div>
             </div>
+
+            {/* Monthly fee preview */}
+            {monthlyAmount > 0 && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-sm text-green-700 font-medium">
+                  Annual Fee Preview: ₹{monthlyAmount}/month × {months} months = <span className="text-lg font-bold">₹{calculatedAnnual.toLocaleString()}</span>
+                </p>
+              </div>
+            )}
 
             {/* Error message */}
             {error && <p className="text-sm text-destructive">{error}</p>}

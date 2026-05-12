@@ -12,9 +12,9 @@ export const sidebarItemsByRole: Record<AppRole, NavItem[]> = {
     { label: "Classes", href: "/admin/classes", icon: "class" },
     { label: "Students", href: "/admin/students", icon: "students" },
     { label: "Staff", href: "/admin/staff", icon: "staff" },
-    { label: "Exams", href: "/admin/exams", icon: "exam" },
     { label: "Subjects", href: "/admin/subjects", icon: "subject" },
-    {label:"Timetable" , href:"/admin/date-sheet", icon:"DateSheet"},
+    { label: "Exams", href: "/admin/exams", icon: "exam" },
+    { label: "Timetable", href: "/admin/date-sheet", icon: "DateSheet" },
     { label: "Results", href: "/admin/results", icon: "results" },
     { label: "Fees", href: "/admin/fees", icon: "fees" },
     { label: "Attendance", href: "/admin/attendance", icon: "attendance" },
@@ -35,7 +35,7 @@ STAFF: [
 
 STUDENT: [
   { label: "Dashboard", href: "/student/dashboard", icon: "dashboard" },
-  { label: "Attendance History", href: "/student/attendance", icon: "attendance" },
+  { label: "Attendance", href: "/student/attendance", icon: "attendance" },
   { label: "Exams", href: "/student/exams", icon: "exam" },
   { label: "Results", href: "/student/results", icon: "results" },
   { label: "Fees", href: "/student/fees", icon: "fees" },
@@ -44,5 +44,3 @@ STUDENT: [
 ]
 
 };
-
-

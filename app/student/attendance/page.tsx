@@ -17,6 +17,9 @@ import {
   FileText,
   TrendingUp,
 } from "lucide-react";
+import { PDFDownloadButton } from "@/app/components/PDFDownloadButton";
+import { usePDF } from "@/app/lib/usePDF";
+import { AttendanceReportPDF } from "@/app/components/PDFTemplates";
 import { Button } from "@/app/components/ui/button";
 import {
   Select,
@@ -75,6 +78,7 @@ export default function StudentAttendancePage() {
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const attendancePdf = usePDF("Attendance_Report.pdf");
 
   useEffect(() => {
     async function fetchAttendance() {
@@ -172,6 +176,18 @@ export default function StudentAttendancePage() {
 
   return (
     <div className="space-y-6">
+      {/* Hidden PDF content */}
+      <div className="hidden"><div ref={attendancePdf.ref}>
+        <AttendanceReportPDF
+          studentName={data.student.class ? `${data.student.class.name} - Roll No: ${data.student.rollNumber}` : "Student"}
+          className={data.student.class?.name ?? ""}
+          month={format(new Date(selectedYear, selectedMonth - 1), "MMMM")}
+          year={selectedYear.toString()}
+          stats={data.stats}
+          records={data.attendance.map(a => ({ date: format(new Date(a.date), "MMM dd, yyyy"), status: a.status }))}
+        />
+      </div></div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -182,7 +198,8 @@ export default function StudentAttendancePage() {
               : "View your attendance records"}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <PDFDownloadButton onClick={attendancePdf.generatePDF} loading={attendancePdf.loading} label="Download Report" variant="outline" />
           <Select
             value={selectedMonth.toString()}
             onValueChange={(value) => setSelectedMonth(parseInt(value))}

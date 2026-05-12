@@ -18,6 +18,10 @@ export async function GET() {
       remainAmount: true,
       status: true,
       paymentDate: true,
+      paymentMode: true,
+      discount: true,
+      lateFine: true,
+      receiptNo: true,
       createdAt: true,
       student: {
         select: {
@@ -45,46 +49,101 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
 
-  // Fetch fee structure to calculate status
   const fee = await db.feeStructure.findUnique({ where: { id: body.feeStructureId } });
   if (!fee) return NextResponse.json({ error: "Fee structure not found" }, { status: 404 });
 
-  const amountPaid = Number(body.amountPaid);
-  const remainAmount = Math.max(Number(fee.total) - amountPaid, 0);
-  let status: "PENDING" | "PARTIAL" | "PAID" = "PENDING";
-  if (amountPaid >= Number(fee.total)) status = "PAID";
-  else if (amountPaid > 0) status = "PARTIAL";
+  const student = await db.student.findUnique({ where: { id: body.studentId } });
+  if (!student) return NextResponse.json({ error: "Student not found" }, { status: 404 });
 
-  const created = await db.feePayment.create({
-    data: {
-      studentId: String(body.studentId),
-      feeStructureId: String(body.feeStructureId),
-      amountPaid: new Prisma.Decimal(amountPaid.toFixed(2)),
-      status,
-      remainAmount: new Prisma.Decimal(remainAmount.toFixed(2)),
-      paymentDate: body.paymentDate ? new Date(body.paymentDate) : new Date(),
-      razorpayOrder: body.razorpayOrder ?? null,
-      razorpayPaymentId: body.razorpayPaymentId ?? null,
-      receiptUrl: body.receiptUrl ?? null,
-    },
+  // Adjust total for transport
+  let adjustedTotal = Number(fee.total);
+  if (fee.transportFee && !student.usesTransport) {
+    adjustedTotal -= Number(fee.transportFee);
+  }
+
+  const newAmount = Number(body.amountPaid);
+  const discount = body.discount != null ? Number(body.discount) : 0;
+  const lateFine = body.lateFine != null ? Number(body.lateFine) : 0;
+  const netAmount = newAmount + discount - lateFine;
+
+  // Find existing payment for this student+structure
+  const existing = await db.feePayment.findFirst({
+    where: { studentId: body.studentId, feeStructureId: body.feeStructureId },
   });
+
+  let result;
+
+  if (existing) {
+    // UPSERT: add to existing amountPaid
+    const totalPaid = Number(existing.amountPaid) + newAmount;
+    const remaining = Math.max(adjustedTotal - totalPaid, 0);
+    let status: "PENDING" | "PARTIAL" | "PAID" = "PENDING";
+    if (totalPaid >= adjustedTotal) status = "PAID";
+    else if (totalPaid > 0) status = "PARTIAL";
+
+    result = await db.feePayment.update({
+      where: { id: existing.id },
+      data: {
+        amountPaid: new Prisma.Decimal(totalPaid.toFixed(2)),
+        remainAmount: new Prisma.Decimal(remaining.toFixed(2)),
+        status,
+        paymentDate: body.paymentDate ? new Date(body.paymentDate) : new Date(),
+        paymentMode: body.paymentMode ?? existing.paymentMode,
+        discount: discount > 0 ? new Prisma.Decimal(discount.toFixed(2)) : existing.discount,
+        lateFine: lateFine > 0 ? new Prisma.Decimal(lateFine.toFixed(2)) : existing.lateFine,
+        receiptNo: body.receiptNo ?? existing.receiptNo,
+        remarks: body.remarks ?? existing.remarks,
+      },
+    });
+  } else {
+    // CREATE new
+    const remaining = Math.max(adjustedTotal - netAmount, 0);
+    let status: "PENDING" | "PARTIAL" | "PAID" = "PENDING";
+    if (netAmount >= adjustedTotal) status = "PAID";
+    else if (netAmount > 0) status = "PARTIAL";
+
+    // Generate receipt number
+    let receiptNo = body.receiptNo ?? "";
+    if (!receiptNo) {
+      const school = await db.schoolSettings.findFirst({ orderBy: { createdAt: "desc" } });
+      const prefix = school?.receiptPrefix ?? "RCP";
+      const count = await db.feePayment.count();
+      receiptNo = `${prefix}${String(count + 1).padStart(6, "0")}`;
+    }
+
+    result = await db.feePayment.create({
+      data: {
+        studentId: String(body.studentId),
+        feeStructureId: String(body.feeStructureId),
+        amountPaid: new Prisma.Decimal(netAmount.toFixed(2)),
+        remainAmount: new Prisma.Decimal(remaining.toFixed(2)),
+        status,
+        paymentDate: body.paymentDate ? new Date(body.paymentDate) : new Date(),
+        paymentMode: body.paymentMode ?? null,
+        discount: discount > 0 ? new Prisma.Decimal(discount.toFixed(2)) : null,
+        lateFine: lateFine > 0 ? new Prisma.Decimal(lateFine.toFixed(2)) : null,
+        receiptNo,
+        remarks: body.remarks ?? null,
+      },
+    });
+  }
 
   await db.auditLog.create({
     data: {
       userId: session.user.id,
-      action: "CREATE_FEE_PAYMENT",
+      action: existing ? "UPDATE_FEE_PAYMENT" : "CREATE_FEE_PAYMENT",
       entity: "FeePayment",
-      entityId: created.id,
+      entityId: result.id,
       newValue: {
-        studentId: created.studentId,
-        feeStructureId: created.feeStructureId,
-        amountPaid: created.amountPaid,
-        remainAmount: created.remainAmount,
-        status: created.status,
-        paymentDate: created.paymentDate,
+        studentId: result.studentId,
+        feeStructureId: result.feeStructureId,
+        amountPaid: result.amountPaid,
+        remainAmount: result.remainAmount,
+        status: result.status,
+        receiptNo: result.receiptNo,
       } as Prisma.InputJsonValue,
     },
   });
 
-  return NextResponse.json(created, { status: 201 });
+  return NextResponse.json(result, { status: existing ? 200 : 201 });
 }

@@ -1,0 +1,2 @@
+ALTER TABLE "FeeStructure" ADD COLUMN "monthlyFee" DECIMAL(12,2);
+ALTER TABLE "FeeStructure" ADD COLUMN "totalMonths" INTEGER NOT NULL DEFAULT 12;

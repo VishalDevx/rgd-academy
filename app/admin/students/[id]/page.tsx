@@ -33,7 +33,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/app/components/ui/dialog";
-import { KeyRound, Loader2 } from "lucide-react";
+import { KeyRound, Loader2, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import DeleteStudent from "@/app/components/DeleteStudent";
 
@@ -84,6 +84,17 @@ interface StudentData {
     id: string;
     date: string;
     status: "PRESENT" | "ABSENT" | "LATE" | "LEAVE";
+  }>;
+  usesTransport: boolean;
+  transport: Array<{
+    id: string;
+    routeName: string | null;
+    stopName: string | null;
+    busNumber: string | null;
+    driverName: string | null;
+    driverPhone: string | null;
+    feeAmount: number | null;
+    isActive: boolean;
   }>;
 }
 
@@ -270,10 +281,11 @@ export default function StudentProfilePage() {
       </Card>
 
       {/* Tabs */}
-      <Tabs defaultValue="personal" className="space-y-4">
+        <Tabs defaultValue="personal" className="space-y-4">
         <TabsList>
           <TabsTrigger value="personal">Personal</TabsTrigger>
           <TabsTrigger value="academic">Academic</TabsTrigger>
+          <TabsTrigger value="transport">Transport</TabsTrigger>
           <TabsTrigger value="fees">Fees</TabsTrigger>
           <TabsTrigger value="results">Results</TabsTrigger>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
@@ -352,11 +364,63 @@ export default function StudentProfilePage() {
             </CardContent>
           </Card>
         </TabsContent>
-        {/* Fees, */}
+        {/* Transport */}
+        <TabsContent value="transport">
+          <Card>
+            <CardHeader>
+              <CardTitle>Transport Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Uses Transport:</span>
+                {student.usesTransport ? (
+                  <Badge className="bg-green-100 text-green-700">Yes</Badge>
+                ) : (
+                  <Badge variant="outline" className="text-gray-500">No</Badge>
+                )}
+              </div>
+
+              {student.transport && student.transport.length > 0 && student.transport[0].isActive && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-600">
+                  <p><strong>Route:</strong> {student.transport[0].routeName || "N/A"}</p>
+                  <p><strong>Stop:</strong> {student.transport[0].stopName || "N/A"}</p>
+                  <p><strong>Bus Number:</strong> {student.transport[0].busNumber || "N/A"}</p>
+                  <p><strong>Transport Fee:</strong> {student.transport[0].feeAmount ? `₹${Number(student.transport[0].feeAmount).toLocaleString()}` : "N/A"}</p>
+                  <p><strong>Driver Name:</strong> {student.transport[0].driverName || "N/A"}</p>
+                  <p><strong>Driver Phone:</strong> {student.transport[0].driverPhone || "N/A"}</p>
+                </div>
+              )}
+
+              {(!student.transport || student.transport.length === 0 || !student.transport[0].isActive) && student.usesTransport && (
+                <p className="text-sm text-yellow-600">Student is marked as using transport but no transport assignment details found.</p>
+              )}
+
+              <div className="pt-4">
+                <a
+                  href="/admin/transport"
+                  className="text-sm text-blue-600 hover:underline font-medium"
+                >
+                  Manage Transport Assignments →
+                </a>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Fees */}
         <TabsContent value="fees">
           <Card>
             <CardHeader>
-              <CardTitle>Fees Information</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Fees Information</CardTitle>
+                <Link
+                  href={`/admin/fees/slip/${student.id}`}
+                  className="inline-flex items-center px-3 py-1.5 rounded-md bg-black text-white text-xs font-semibold hover:bg-gray-800 transition"
+                >
+                  <Receipt className="h-3.5 w-3.5 mr-1.5" />
+                  Download Fee Statement
+                </Link>
+              </div>
             </CardHeader>
 
             <CardContent className="space-y-4">

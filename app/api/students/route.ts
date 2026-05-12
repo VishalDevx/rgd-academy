@@ -2,14 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOption } from "@/app/lib/auth";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseClient } from "@/app/lib/supabaseClient";
 
 export const dynamic = "force-dynamic";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 type Gender = "MALE" | "FEMALE" | "OTHER" | null;
 
@@ -60,7 +55,7 @@ export async function POST(req: NextRequest) {
       const ext = file.name.split(".").pop();
       const fileName = `students/${Date.now()}-${name}.${ext}`;
 
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await getSupabaseClient().storage
         .from("rgd-school")
         .upload(fileName, buffer, {
           cacheControl: "3600",
@@ -75,7 +70,7 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const { data } = supabase.storage
+      const { data } = getSupabaseClient().storage
         .from("rgd-school")
         .getPublicUrl(fileName);
 
@@ -129,14 +124,21 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOption);
     if (!session?.user || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { searchParams } = new URL(req.url);
+    const activeOnly = searchParams.get("active");
+
+    const where: Record<string, unknown> = {};
+    if (activeOnly === "true") where.active = true;
+
     const students = await db.student.findMany({
+      where,
       orderBy: { admissionDate: "desc" },
       include: {
         user: true,
@@ -156,6 +158,7 @@ export async function GET() {
       class: s.class,
       user: s.user,
       active: s.active,
+      usesTransport: s.usesTransport,
     }));
 
     return NextResponse.json(data, { status: 200 });

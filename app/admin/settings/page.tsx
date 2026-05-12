@@ -34,6 +34,17 @@ interface SchoolSettings {
   featureFlags: string;
   createdAt: string;
   updatedAt: string;
+  principalName: string | null;
+  registrationNo: string | null;
+  receiptPrefix: string | null;
+  admissionPrefix: string | null;
+  staffIdPrefix: string | null;
+  gradingSystem: string | null;
+  dateFormat: string | null;
+  currency: string | null;
+  website: string | null;
+  pdfHeader: string | null;
+  pdfFooter: string | null;
 }
 
 export default function SettingsPage() {
@@ -50,6 +61,17 @@ export default function SettingsPage() {
     faviconUrl: "",
     primaryColor: "#2563eb",
     tier: "BASIC" as "BASIC" | "PRO" | "ENTERPRISE",
+    principalName: "",
+    registrationNo: "",
+    receiptPrefix: "",
+    admissionPrefix: "",
+    staffIdPrefix: "",
+    gradingSystem: "",
+    dateFormat: "DD/MM/YYYY",
+    currency: "₹ (INR)",
+    website: "",
+    pdfHeader: "",
+    pdfFooter: "",
   });
 
   useEffect(() => {
@@ -72,6 +94,17 @@ export default function SettingsPage() {
         faviconUrl: data.faviconUrl || "",
         primaryColor: data.primaryColor || "#2563eb",
         tier: data.tier || "BASIC",
+        principalName: data.principalName || "",
+        registrationNo: data.registrationNo || "",
+        receiptPrefix: data.receiptPrefix || "",
+        admissionPrefix: data.admissionPrefix || "",
+        staffIdPrefix: data.staffIdPrefix || "",
+        gradingSystem: data.gradingSystem || "",
+        dateFormat: data.dateFormat || "DD/MM/YYYY",
+        currency: data.currency || "₹ (INR)",
+        website: data.website || "",
+        pdfHeader: data.pdfHeader || "",
+        pdfFooter: data.pdfFooter || "",
       });
     } catch (err) {
       toast.error("Failed to load settings");
@@ -162,6 +195,36 @@ export default function SettingsPage() {
                   placeholder="2024-2025"
                 />
               </div>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="principalName">Principal Name</Label>
+                <Input
+                  id="principalName"
+                  value={formData.principalName}
+                  onChange={(e) => setFormData({ ...formData, principalName: e.target.value })}
+                  placeholder="Dr. John Doe"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="registrationNo">Registration Number</Label>
+                <Input
+                  id="registrationNo"
+                  value={formData.registrationNo}
+                  onChange={(e) => setFormData({ ...formData, registrationNo: e.target.value })}
+                  placeholder="RGD/2024/001"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="website">Website</Label>
+              <Input
+                id="website"
+                type="url"
+                value={formData.website}
+                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                placeholder="https://www.rgdschool.edu"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="address">Address</Label>
@@ -281,6 +344,130 @@ export default function SettingsPage() {
                   placeholder="https://example.com/favicon.ico"
                 />
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Document Configuration */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-blue-600" />
+              Document Configuration
+            </CardTitle>
+            <CardDescription>Configure prefixes for receipts, admissions, and staff IDs</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="receiptPrefix">Receipt Prefix</Label>
+                <Input
+                  id="receiptPrefix"
+                  value={formData.receiptPrefix}
+                  onChange={(e) => setFormData({ ...formData, receiptPrefix: e.target.value })}
+                  placeholder="RCPT-"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="admissionPrefix">Admission Number Prefix</Label>
+                <Input
+                  id="admissionPrefix"
+                  value={formData.admissionPrefix}
+                  onChange={(e) => setFormData({ ...formData, admissionPrefix: e.target.value })}
+                  placeholder="ADM-"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="staffIdPrefix">Staff ID Prefix</Label>
+                <Input
+                  id="staffIdPrefix"
+                  value={formData.staffIdPrefix}
+                  onChange={(e) => setFormData({ ...formData, staffIdPrefix: e.target.value })}
+                  placeholder="STF-"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Academic Configuration */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-blue-600" />
+              Academic Configuration
+            </CardTitle>
+            <CardDescription>Configure grading system, date format, and currency</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="gradingSystem">Grading System</Label>
+                <Input
+                  id="gradingSystem"
+                  value={formData.gradingSystem}
+                  onChange={(e) => setFormData({ ...formData, gradingSystem: e.target.value })}
+                  placeholder="A+, A, B+, B, C, D, F"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dateFormat">Date Format</Label>
+                <Select
+                  value={formData.dateFormat}
+                  onValueChange={(value) => setFormData({ ...formData, dateFormat: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
+                    <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
+                    <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="currency">Currency</Label>
+                <Input
+                  id="currency"
+                  value={formData.currency}
+                  onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                  placeholder="₹ (INR)"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* PDF Configuration */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-blue-600" />
+              PDF Configuration
+            </CardTitle>
+            <CardDescription>Configure header and footer text for generated PDFs</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="pdfHeader">PDF Header</Label>
+              <Textarea
+                id="pdfHeader"
+                value={formData.pdfHeader}
+                onChange={(e) => setFormData({ ...formData, pdfHeader: e.target.value })}
+                placeholder="Text that appears on all PDFs as header"
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pdfFooter">PDF Footer</Label>
+              <Textarea
+                id="pdfFooter"
+                value={formData.pdfFooter}
+                onChange={(e) => setFormData({ ...formData, pdfFooter: e.target.value })}
+                placeholder="Text that appears on all PDFs as footer"
+                rows={3}
+              />
             </div>
           </CardContent>
         </Card>

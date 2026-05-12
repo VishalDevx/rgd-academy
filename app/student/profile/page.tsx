@@ -22,6 +22,9 @@ import {
   Edit,
 } from "lucide-react";
 import Image from "next/image";
+import { PDFDownloadButton } from "@/app/components/PDFDownloadButton";
+import { usePDF } from "@/app/lib/usePDF";
+import { StudentProfilePDF, AdmissionFormPDF } from "@/app/components/PDFTemplates";
 
 interface StudentProfile {
   id: string;
@@ -85,6 +88,8 @@ interface ProfileData {
 export default function StudentProfilePage() {
   const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
+  const profilePdf = usePDF(`${data?.student?.user?.name ?? "Student"}_Profile.pdf`);
+  const admissionPdf = usePDF(`${data?.student?.user?.name ?? "Student"}_Admission_Form.pdf`);
 
   useEffect(() => {
     async function fetchProfile() {
@@ -121,6 +126,15 @@ export default function StudentProfilePage() {
 
   const { student } = data;
   const profileImage = student.profileImg || student.user.image || "/logo.jpeg";
+  const studentData: Record<string, string | null | undefined> = {
+    name: student.user.name, admissionNo: student.admissionNo,
+    rollNumber: student.rollNumber, className: student.class?.name,
+    fatherName: student.fatherName, motherName: student.motherName,
+    dob: student.dob ? format(new Date(student.dob), "MMM dd, yyyy") : null,
+    gender: student.gender, bloodGroup: null, category: null,
+    email: student.user.email, phone: student.user.phone,
+    address: student.address, guardianPhone: student.contactNo,
+  };
 
   return (
     <div className="space-y-6">
@@ -130,7 +144,15 @@ export default function StudentProfilePage() {
           <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
           <p className="text-gray-500 mt-1">View and manage your profile information</p>
         </div>
+        <div className="flex gap-2">
+          <PDFDownloadButton onClick={profilePdf.generatePDF} loading={profilePdf.loading} label="Download Profile" variant="outline" />
+          <PDFDownloadButton onClick={admissionPdf.generatePDF} loading={admissionPdf.loading} label="Admission Form" variant="outline" />
+        </div>
       </div>
+
+      {/* Hidden PDF content */}
+      <div className="hidden"><div ref={profilePdf.ref}><StudentProfilePDF student={studentData} /></div></div>
+      <div className="hidden"><div ref={admissionPdf.ref}><AdmissionFormPDF student={studentData} /></div></div>
 
       {/* Profile Header Card */}
       <Card>

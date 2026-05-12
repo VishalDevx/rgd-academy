@@ -2,16 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOption } from "@/app/lib/auth";
-import { createClient } from "@supabase/supabase-js";
+import { getSupabaseServiceClient } from "@/app/lib/supabaseClient";
 import type { Gender } from "@prisma/client";
 
-
 export const runtime = "nodejs";
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export async function PUT(
   req: NextRequest,
@@ -50,7 +44,7 @@ export async function PUT(
       const fileName = `students/${Date.now()}.${ext}`;
       const buffer = Buffer.from(await file.arrayBuffer());
 
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await getSupabaseServiceClient().storage
         .from("rgd-school")
         .upload(fileName, buffer, { contentType: file.type });
 
@@ -59,7 +53,7 @@ export async function PUT(
         return NextResponse.json({ error: "Image upload failed" }, { status: 500 });
       }
 
-      const { data } = supabase.storage.from("rgd-school").getPublicUrl(fileName);
+      const { data } = getSupabaseServiceClient().storage.from("rgd-school").getPublicUrl(fileName);
       profileImgUrl = data.publicUrl;
     }
 
@@ -128,6 +122,9 @@ export async function GET(
       include: {
         user: { select: { id: true, name: true, email: true, adharNo: true } },
         class: { select: { id: true, name: true, grade: true, section: true } },
+        transport: {
+          select: { id: true, routeName: true, stopName: true, busNumber: true, driverName: true, driverPhone: true, feeAmount: true, isActive: true },
+        },
         fees: {
           select: {
             id: true,

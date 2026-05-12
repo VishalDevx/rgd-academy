@@ -18,6 +18,9 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
+import { PDFDownloadButton } from "@/app/components/PDFDownloadButton";
+import { usePDF } from "@/app/lib/usePDF";
+import { ExamTimetablePDF } from "@/app/components/PDFTemplates";
 
 interface ExamDateSheet {
   id: string;
@@ -75,6 +78,7 @@ interface TimetableData {
 export default function StudentExamsPage() {
   const [data, setData] = useState<TimetableData | null>(null);
   const [loading, setLoading] = useState(true);
+  const timetablePdf = usePDF("Exam_Timetable.pdf");
 
   useEffect(() => {
     async function fetchTimetable() {
@@ -239,6 +243,25 @@ export default function StudentExamsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Hidden PDF content */}
+      <div className="hidden"><div ref={timetablePdf.ref}>
+        {data.exams.map(exam => (
+          <div key={exam.id} className="mb-8">
+            <ExamTimetablePDF
+              examName={exam.name}
+              className={exam.class.name}
+              dateSheet={exam.dateSheet.map(d => ({
+                date: format(new Date(d.examDate), "MMM dd, yyyy"),
+                day: format(new Date(d.examDate), "EEEE"),
+                subject: d.subject.name,
+                time: `${format(new Date(d.startTime), "hh:mm a")} - ${format(new Date(d.endTime), "hh:mm a")}`,
+                room: d.room ?? undefined,
+              }))}
+            />
+          </div>
+        ))}
+      </div></div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -249,6 +272,9 @@ export default function StudentExamsPage() {
               : "View your exam schedule and timetable"}
           </p>
         </div>
+        {data.exams.length > 0 && (
+          <PDFDownloadButton onClick={timetablePdf.generatePDF} loading={timetablePdf.loading} label="Download Timetable" variant="outline" />
+        )}
       </div>
 
       {/* Stats */}

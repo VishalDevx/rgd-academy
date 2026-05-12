@@ -10,7 +10,7 @@ import {
 } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
 import { Wallet, Receipt, AlertCircle, CheckCircle2, Clock } from "lucide-react";
-import { Button } from "@/app/components/ui/button";
+import Link from "next/link";
 
 interface FeePayment {
   id: string;
@@ -35,6 +35,8 @@ interface FeesData {
     id: string;
     name: string | null;
     total: string;
+    monthlyFee: string | null;
+    totalMonths: number;
     class: { name: string };
     payments?: Array<{ amountPaid: string; status: "PENDING" | "PARTIAL" | "PAID" }>;
   }>;
@@ -120,6 +122,13 @@ export default function StudentFeesPage() {
           <h1 className="text-2xl font-bold text-gray-900">Fees Management</h1>
           <p className="text-gray-500 mt-1">View and manage your fee payments</p>
         </div>
+        <Link
+          href="/student/fees/slip"
+          className="inline-flex items-center px-4 py-2 rounded-md bg-black text-white text-sm font-semibold hover:bg-gray-800 transition"
+        >
+          <Receipt className="h-4 w-4 mr-2" />
+          Download Fee Statement
+        </Link>
       </div>
 
       {/* Summary Cards */}
@@ -190,6 +199,8 @@ export default function StudentFeesPage() {
                 const totalAmount = Number(structure.total);
                 const paidAmount = payment ? Number(payment.amountPaid) : 0;
                 const remainingAmount = totalAmount - paidAmount;
+                const monthlyFee = structure.monthlyFee ? Number(structure.monthlyFee) : 0;
+                const totalMonths = structure.totalMonths || 12;
 
                 return (
                   <div
@@ -204,6 +215,11 @@ export default function StudentFeesPage() {
                         <p className="text-sm text-gray-500 mt-1">
                           {structure.class.name}
                         </p>
+                        {monthlyFee > 0 && (
+                          <p className="text-xs text-blue-600 font-medium mt-1">
+                            ₹{monthlyFee}/month × {totalMonths} months
+                          </p>
+                        )}
                         <div className="mt-3 grid grid-cols-3 gap-4 text-sm">
                           <div>
                             <p className="text-gray-500">Total Amount</p>

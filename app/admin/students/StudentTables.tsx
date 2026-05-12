@@ -26,8 +26,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/app/components/ui/dialog";
-import { KeyRound, Loader2 } from "lucide-react";
+import { KeyRound, Loader2, Download } from "lucide-react";
 import { toast } from "sonner";
+import { usePDF } from "@/app/lib/usePDF";
+import { ClassStudentListPDF } from "@/app/components/PDFTemplates";
 
 export interface Student {
   id: string;
@@ -45,6 +47,7 @@ export default function StudentsTable({ students }: { students: Student[] }) {
   const [openDialogId, setOpenDialogId] = useState<string | null>(null);
   const [resetPassword, setResetPassword] = useState<string | null>(null);
   const router = useRouter();
+  const classListPdf = usePDF("Student_List.pdf");
 
   const handleResetPassword = async (studentId: string, studentName: string) => {
     setResettingId(studentId);
@@ -91,6 +94,16 @@ export default function StudentsTable({ students }: { students: Student[] }) {
 
   return (
     <div className="space-y-6">
+      {/* Hidden PDF content */}
+      <div className="hidden"><div ref={classListPdf.ref}>
+        <ClassStudentListPDF
+          className={selectedClass === "all" ? "All Classes" : selectedClass}
+          session={""}
+          students={filtered.map((s, i) => ({ sNo: i + 1, name: s.user.name, admissionNo: s.admissionNo, rollNumber: s.rollNumber }))}
+          total={filtered.length}
+        />
+      </div></div>
+
       {/* Search & Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex gap-3">
@@ -112,6 +125,10 @@ export default function StudentsTable({ students }: { students: Student[] }) {
               ))}
             </SelectContent>
           </Select>
+          <Button variant="outline" size="sm" onClick={classListPdf.generatePDF} disabled={classListPdf.loading}>
+            <Download className="h-4 w-4 mr-1" />
+            {classListPdf.loading ? "..." : "PDF"}
+          </Button>
         </div>
         <p className="text-sm text-muted-foreground">
           {filtered.length} result{filtered.length !== 1 && "s"} found
