@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
-
 import { getServerSession } from "next-auth/next";
 import { Prisma } from "@prisma/client";
 import { authOption } from "@/app/lib/auth";
+import { createAuditLog } from "@/app/lib/audit";
 
 // ---------- Types ----------
 interface FeeStructureBody {
@@ -94,9 +94,9 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // ----- Fetch all students -----
+  // ----- Fetch active students only -----
   const students = await db.student.findMany({
-    where: { classId: body.classId },
+    where: { classId: body.classId, active: true },
   });
 
   // ----- Auto-create FeePayment (adjust transport fee per student) -----
@@ -119,6 +119,14 @@ export async function POST(req: NextRequest) {
       })
     );
   }
+
+  await createAuditLog({
+    userId: session.user.id,
+    action: "CREATE",
+    entity: "FEE_STRUCTURE",
+    entityId: created.id,
+    newValue: { classId: body.classId, total, studentsAffected: students.length },
+  });
 
   return NextResponse.json(created, { status: 201 });
 }

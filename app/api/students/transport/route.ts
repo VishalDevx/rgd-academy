@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   if (classId) where.classId = classId;
 
   const students = await db.student.findMany({
-    where,
+    where: { ...where, active: true },
     include: {
       user: { select: { name: true, email: true, phone: true } },
       class: { select: { name: true } },

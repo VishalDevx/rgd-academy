@@ -25,6 +25,42 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/app/components/ui/button";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+} from "recharts";
+import { CurrentMonthFeeStatusChart } from "@/app/components/charts/DashboardFeeCharts";
+
+const ATTENDANCE_COLORS = ["#4ade80", "#f87171", "#facc15", "#60a5fa"];
+const RADIAN = Math.PI / 180;
+
+const renderCustomizedLabel = ({
+  cx,
+  cy,
+  midAngle,
+  innerRadius,
+  outerRadius,
+  percent,
+}: {
+  cx?: number;
+  cy?: number;
+  midAngle?: number;
+  innerRadius?: number;
+  outerRadius?: number;
+  percent?: number;
+}) => {
+  if (cx == null || cy == null || innerRadius == null || outerRadius == null) return null;
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + radius * Math.cos(-(midAngle ?? 0) * RADIAN);
+  const y = cy + radius * Math.sin(-(midAngle ?? 0) * RADIAN);
+  return (
+    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-xs font-semibold">
+      {`${((percent ?? 0) * 100).toFixed(0)}%`}
+    </text>
+  );
+};
 
 interface DashboardData {
   student: {
@@ -45,6 +81,9 @@ interface DashboardData {
     attendance: {
       total: number;
       present: number;
+      absent: number;
+      late: number;
+      leave: number;
       percentage: number;
     };
     fees: {
@@ -240,6 +279,58 @@ export default function StudentDashboardPage() {
                 View All →
               </Button>
             </Link>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <Card className="lg:col-span-3 shadow-lg">
+          <CardHeader>
+            <CardTitle>Attendance Breakdown</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center">
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: "Present", value: stats.attendance.present },
+                      { name: "Absent", value: stats.attendance.absent },
+                      { name: "Late", value: stats.attendance.late },
+                      { name: "Leave", value: stats.attendance.leave },
+                    ].filter((d) => d.value > 0)}
+                    dataKey="value"
+                    labelLine={false}
+                    label={renderCustomizedLabel}
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={2}
+                  >
+                    {["Present", "Absent", "Late", "Leave"].map((name, idx) => (
+                      <Cell key={name} fill={ATTENDANCE_COLORS[idx]} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex justify-center gap-6 text-sm mt-2">
+              <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-400" /> Present ({stats.attendance.present})</div>
+              <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-400" /> Absent ({stats.attendance.absent})</div>
+              <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-yellow-400" /> Late ({stats.attendance.late})</div>
+              <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-blue-400" /> Leave ({stats.attendance.leave})</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="lg:col-span-2 shadow-lg">
+          <CardContent className="p-0">
+            <CurrentMonthFeeStatusChart
+              paid={stats.fees.totalPaid}
+              pending={stats.fees.totalPending}
+              overdue={0}
+              totalExpected={stats.fees.totalPaid + stats.fees.totalPending}
+              collectionRate={stats.fees.totalPaid + stats.fees.totalPending > 0 ? Math.round((stats.fees.totalPaid / (stats.fees.totalPaid + stats.fees.totalPending)) * 100) : 0}
+            />
           </CardContent>
         </Card>
       </div>

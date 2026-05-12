@@ -58,7 +58,7 @@ export default function NewFeePaymentPage() {
   const autoStatus = netAmount >= adjustedTotal ? "PAID" : netAmount > 0 ? "PARTIAL" : "PENDING";
 
   useEffect(() => {
-    fetch("/api/students")
+    fetch("/api/students?active=true")
       .then((res) => res.json())
       .then((data: Student[]) => setStudents(data))
       .catch(() => toast.error("Failed to load students"));

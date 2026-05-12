@@ -19,6 +19,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
+    if (!student.active) {
+      return NextResponse.json({ error: "Account deactivated. Contact admin." }, { status: 403 });
+    }
+
     // Get all fee payments for this student
     const feePayments = await db.feePayment.findMany({
       where: { studentId: student.id },

@@ -30,6 +30,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Staff not found" }, { status: 404 });
     }
 
+    if (!staff.active) {
+      return NextResponse.json({ error: "Account deactivated. Contact admin." }, { status: 403 });
+    }
+
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
@@ -131,6 +135,45 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    // ----- Attendance trend (last 7 days for staff's classes) -----
+    const classIds = classes.map((c) => c.id);
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(now);
+      d.setDate(d.getDate() - (6 - i));
+      const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59);
+      return { label: d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" }), dayStart, dayEnd };
+    });
+
+    const attendanceTrend = await Promise.all(
+      last7Days.map(async (d) => {
+        const [present, total] = await Promise.all([
+          db.attendance.count({ where: { classId: { in: classIds }, date: { gte: d.dayStart, lte: d.dayEnd }, status: "PRESENT" } }),
+          db.attendance.count({ where: { classId: { in: classIds }, date: { gte: d.dayStart, lte: d.dayEnd } } }),
+        ]);
+        return {
+          date: d.label,
+          percentage: total > 0 ? Math.round((present / total) * 100) : 0,
+        };
+      })
+    );
+
+    // ----- Fee overview for staff's students -----
+    const studentIds = classes.flatMap((c) => c.students.map((s: { id: string }) => s.id));
+    let feeOverview = { paid: 0, pending: 0, overdue: 0 };
+    if (studentIds.length > 0) {
+      const [paidAgg, partialAgg, outstandingAgg] = await Promise.all([
+        db.feePayment.aggregate({ _sum: { amountPaid: true }, where: { studentId: { in: studentIds }, status: "PAID" } }),
+        db.feePayment.aggregate({ _sum: { amountPaid: true }, where: { studentId: { in: studentIds }, status: "PARTIAL" } }),
+        db.feePayment.aggregate({ _sum: { remainAmount: true }, where: { studentId: { in: studentIds }, remainAmount: { gt: 0 } } }),
+      ]);
+      feeOverview = {
+        paid: Number(paidAgg._sum.amountPaid ?? 0),
+        pending: Number(partialAgg._sum.amountPaid ?? 0),
+        overdue: Number(outstandingAgg._sum.remainAmount ?? 0),
+      };
+    }
+
     return NextResponse.json({
       staff: {
         id: staff.id,
@@ -154,6 +197,10 @@ export async function GET(req: NextRequest) {
       recentAttendance,
       announcements,
       subjects,
+      charts: {
+        attendanceTrend,
+        feeOverview,
+      },
     });
   } catch (error) {
     console.error("Error fetching staff dashboard:", error);

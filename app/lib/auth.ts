@@ -52,6 +52,11 @@ export const authOption: AuthOptions = {
           throw new Error("Unauthorized role");
         }
 
+        if (!user.isActive) {
+          await recordLoginFailure({ req, identifier });
+          throw new Error("Account is deactivated. Contact admin.");
+        }
+
         const isValid = await bcrypt.compare(password, user.passwordHash);
         if (!isValid) {
           await recordLoginFailure({ req, identifier });
@@ -102,6 +107,11 @@ export const authOption: AuthOptions = {
         if (!user.passwordHash) {
           await recordLoginFailure({ req, identifier });
           throw new Error("Invalid credentials");
+        }
+
+        if (!user.isActive) {
+          await recordLoginFailure({ req, identifier });
+          throw new Error("Account is deactivated. Contact admin.");
         }
 
         const isValid = await bcrypt.compare(password, user.passwordHash);

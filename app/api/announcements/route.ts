@@ -61,6 +61,23 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Auto-create Notification records for users matching selected roles
+    const targetUsers = await tx.user.findMany({
+      where: { role: { in: safeRoles }, isActive: true },
+      select: { id: true },
+    });
+
+    if (targetUsers.length > 0) {
+      await tx.notification.createMany({
+        data: targetUsers.map((u) => ({
+          userId: u.id,
+          type: "ANNOUNCEMENT",
+          title: "New Announcement",
+          message: title,
+        })),
+      });
+    }
+
     return ann;
   });
 

@@ -1,68 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
-import { getServerSession } from "next-auth/next";
-import { authOption } from "@/app/lib/auth";
-import type { Attendance, Student, User } from "@prisma/client";
+import { authorizeCron, executeCronJob } from "@/app/lib/cron";
 
-// POST /api/cron/attendance-reminder
 export async function POST(req: NextRequest) {
-  // --- Allow ADMIN session or cron token ---
-  const session = await getServerSession(authOption);
-  const headerToken = req.headers.get("x-cron-token");
-  const authHeader = req.headers.get("authorization");
-  const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : authHeader;
-  const envToken = process.env.CRON_SECRET_TOKEN ?? process.env.CRON_SECRET;
-
-  const isAuthorized =
-    (session?.user?.role === "ADMIN") ||
-    (!!envToken && headerToken === envToken) ||
-    (!!envToken && bearer === envToken);
-
-  if (!isAuthorized) {
+  if (!(await authorizeCron(req))) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
-  // --- Date range for today ---
-  const today = new Date();
-  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  return executeCronJob("attendance-reminder", async () => {
+    const today = new Date();
+    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
-  // --- Explicitly typed result from Prisma ---
-  type AttendanceWithStudent = Attendance & {
-    student: Student & {
-      user: User;
-    };
-  };
-
-  // --- Fetch all ABSENT students for today ---
-  const absences: AttendanceWithStudent[] = await db.attendance.findMany({
-    where: {
-      status: "ABSENT",
-      date: { gte: start, lt: end },
-    },
-    include: {
-      student: {
-        include: { user: true },
+    const absences = await db.attendance.findMany({
+      where: {
+        status: "ABSENT",
+        date: { gte: start, lt: end },
       },
-    },
+      include: {
+        student: { include: { user: true } },
+      },
+    });
+
+    if (absences.length > 0) {
+      await db.notification.createMany({
+        data: absences.map((a) => ({
+          userId: a.student.userId,
+          type: "ATTENDANCE_ALERT" as const,
+          title: "Attendance Alert",
+          message: `You were marked ABSENT on ${start.toDateString()}`,
+        })),
+      });
+    }
+
+    return {
+      success: true,
+      message: `Attendance alerts sent: ${absences.length}`,
+      stats: { absentToday: absences.length },
+      durationMs: 0,
+    };
   });
-
-  if (absences.length === 0) {
-    return NextResponse.json({ ok: true, created: 0 });
-  }
-
-  // --- Create notification payload ---
-  const notifications = absences.map((a) => ({
-    userId: a.student.userId,
-    type: "ATTENDANCE_ALERT" as const,
-    title: "Attendance Alert",
-    message: `You were marked ABSENT on ${start.toDateString()}`,
-  }));
-
-  // --- Insert notifications ---
-  await db.notification.createMany({
-    data: notifications,
-  });
-
-  return NextResponse.json({ ok: true, created: absences.length });
 }

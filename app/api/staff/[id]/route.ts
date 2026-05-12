@@ -2,10 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOption } from "@/app/lib/auth";
+import type { Gender } from "@prisma/client";
 
 interface StaffPatchBody {
+  name?: string;
+  email?: string;
+  adharNo?: string;
   designation?: string;
+  department?: string;
   salary?: number;
+  qualification?: string;
+  experience?: string;
+  gender?: string;
+  phone?: string;
+  active?: boolean;
   joinDate?: string;
 }
 
@@ -45,10 +55,28 @@ export async function PATCH(
     where: { id },
     data: {
       designation: body.designation,
+      department: body.department,
       salary: body.salary,
+      qualification: body.qualification,
+      experience: body.experience,
+      gender: body.gender as Gender,
+      phone: body.phone,
+      active: body.active,
       joinDate: body.joinDate ? new Date(body.joinDate) : undefined,
     },
   });
+
+  if (body.name || body.email || body.adharNo || body.active !== undefined) {
+    await db.user.update({
+      where: { id: updated.userId },
+      data: {
+        name: body.name,
+        email: body.email ? body.email.toLowerCase() : undefined,
+        adharNo: body.adharNo,
+        isActive: body.active,
+      },
+    });
+  }
 
   return NextResponse.json(updated);
 }

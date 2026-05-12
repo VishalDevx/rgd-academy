@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOption } from "@/app/lib/auth";
 import { getSupabaseServiceClient } from "@/app/lib/supabaseClient";
 import type { Gender } from "@prisma/client";
+import { createAuditLog } from "@/app/lib/audit";
 
 export const runtime = "nodejs";
 
@@ -57,6 +58,12 @@ export async function PUT(
       profileImgUrl = data.publicUrl;
     }
 
+    // ---------------- ACTIVE TOGGLE ----------------
+    const activeRaw = form.get("active");
+    let activeToggle: boolean | undefined;
+    if (activeRaw === "true") activeToggle = true;
+    else if (activeRaw === "false") activeToggle = false;
+
     // ---------------- UPDATE STUDENT ----------------
     const updatedStudent = await db.student.update({
       where: { id: studentId },
@@ -75,8 +82,16 @@ export async function PUT(
         caste: getStringField("caste"),
         udiseCode: getStringField("udiseCode"),
         contactNo: getStringField("contactNo"),
+        active: activeToggle,
       },
     });
+
+    if (activeToggle !== undefined) {
+      await db.user.update({
+        where: { id: updatedStudent.userId },
+        data: { isActive: activeToggle },
+      });
+    }
 
     // ---------------- UPDATE CONNECTED USER ----------------
     const name = getStringField("name");
@@ -91,6 +106,14 @@ export async function PUT(
         },
       });
     }
+
+    await createAuditLog({
+      userId: session.user.id,
+      action: "UPDATE",
+      entity: "STUDENT",
+      entityId: studentId,
+      newValue: { admissionNo: updatedStudent.admissionNo },
+    });
 
     return NextResponse.json(updatedStudent, { status: 200 });
   } catch (err: unknown) {

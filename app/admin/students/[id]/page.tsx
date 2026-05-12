@@ -33,9 +33,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/app/components/ui/dialog";
-import { KeyRound, Loader2, Receipt } from "lucide-react";
+import { KeyRound, Loader2, Receipt, ToggleLeft, ToggleRight, Upload, FileText, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import DeleteStudent from "@/app/components/DeleteStudent";
+import DocumentsViewer from "@/app/components/DocumentsViewer";
 
 // -----------------------------
 // Type Definitions
@@ -96,6 +97,13 @@ interface StudentData {
     feeAmount: number | null;
     isActive: boolean;
   }>;
+  documents?: Array<{
+    id: string;
+    type: string;
+    title: string;
+    fileUrl: string;
+    createdAt: string;
+  }>;
 }
 
 // -----------------------------
@@ -109,6 +117,29 @@ export default function StudentProfilePage() {
   const [resettingPassword, setResettingPassword] = useState(false);
   const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
   const [resetPassword, setResetPassword] = useState<string | null>(null);
+  const [togglingActive, setTogglingActive] = useState(false);
+
+  const handleToggleActive = async () => {
+    if (!student) return;
+    setTogglingActive(true);
+    try {
+      const res = await fetch(`/api/students/${student.id}`, {
+        method: "PUT",
+        body: (() => {
+          const fd = new FormData();
+          fd.set("active", String(!student.active));
+          return fd;
+        })(),
+      });
+      if (!res.ok) throw new Error("Failed to toggle status");
+      setStudent(prev => prev ? { ...prev, active: !prev.active } : prev);
+      toast.success(`Student ${student.active ? "deactivated" : "activated"} successfully`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to toggle status");
+    } finally {
+      setTogglingActive(false);
+    }
+  };
 
   const handleResetPassword = async () => {
     if (!student) return;
@@ -202,6 +233,16 @@ export default function StudentProfilePage() {
         </div>
 
         <div className="absolute top-4 right-4 flex gap-2">
+          <Button
+            variant={student.active ? "destructive" : "default"}
+            onClick={handleToggleActive}
+            disabled={togglingActive}
+          >
+            {togglingActive ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> :
+              student.active ? <ToggleRight className="h-4 w-4 mr-2" /> : <ToggleLeft className="h-4 w-4 mr-2" />
+            }
+            {student.active ? "Deactivate" : "Activate"}
+          </Button>
           <Dialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline">
@@ -289,6 +330,7 @@ export default function StudentProfilePage() {
           <TabsTrigger value="fees">Fees</TabsTrigger>
           <TabsTrigger value="results">Results</TabsTrigger>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
         </TabsList>
 
         {/* Personal Details */}
@@ -512,6 +554,49 @@ export default function StudentProfilePage() {
             </CardContent>
           </Card>
         </TabsContent>
+        <TabsContent value="documents">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Documents</CardTitle>
+                <label className="cursor-pointer inline-flex items-center px-3 py-1.5 rounded-md bg-black text-white text-xs font-semibold hover:bg-gray-800 transition">
+                  <Upload className="h-3.5 w-3.5 mr-1.5" />
+                  Upload Document
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file || !student) return;
+                      const type = prompt("Document type (e.g. Aadhaar, Marksheet, TC):");
+                      const title = prompt("Document title:");
+                      if (!type || !title) { toast.error("Type and title required"); return; }
+                      const fd = new FormData();
+                      fd.set("file", file);
+                      fd.set("type", type);
+                      fd.set("title", title);
+                      try {
+                        const res = await fetch(`/api/students/${student.id}/documents`, { method: "POST", body: fd });
+                        if (!res.ok) throw new Error("Upload failed");
+                        toast.success("Document uploaded");
+                        setStudent(prev => prev ? { ...prev } : prev);
+                        const docsRes = await fetch(`/api/students/${student.id}/documents`);
+                        const docsJson = await docsRes.json();
+                        setStudent(prev => prev ? { ...prev, documents: docsJson.data } : prev);
+                      } catch { toast.error("Upload failed"); }
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <DocumentsViewer studentId={student.id} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="attendance">
           <Card>
             <CardHeader>

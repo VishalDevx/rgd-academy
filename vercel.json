@@ -1,12 +1,20 @@
 {
   "crons": [
     {
-      "path": "/api/cron/promote-students",
-      "schedule": "35 18 31 3 *"
-    },
-    {
       "path": "/api/cron/attendance-reminder",
       "schedule": "30 18 * * 1-5"
+    },
+    {
+      "path": "/api/cron/fee-reminder",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/daily-digest",
+      "schedule": "0 20 * * *"
+    },
+    {
+      "path": "/api/cron/promote-students",
+      "schedule": "35 18 31 3 *"
     }
   ]
 }

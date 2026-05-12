@@ -8,7 +8,7 @@ async function main() {
 
   const admin = await db.user.upsert({
     where: { email: "admin@school.com" },
-    update: {},
+    update: { passwordHash: hash, role: Role.ADMIN },
     create: {
       name: "School Admin",
       email: "admin@school.com",
@@ -21,7 +21,7 @@ async function main() {
 
   const staff = await db.user.upsert({
     where: { email: "teacher@school.com" },
-    update: {},
+    update: { passwordHash: hash, role: Role.STAFF },
     create: {
       name: "Rahul Teacher",
       email: "teacher@school.com",
@@ -45,7 +45,7 @@ async function main() {
 
   const studentUser = await db.user.upsert({
     where: { email: "student@school.com" },
-    update: {},
+    update: { passwordHash: hash, role: Role.STUDENT },
     create: {
       name: "Amit Student",
       email: "student@school.com",
@@ -66,7 +66,7 @@ async function main() {
   });
   console.log("✅ Student:", studentUser.email, "/ Pass@123");
 
-  console.log("\n🎉 All users created! Login at /login");
+  console.log("\n🎉 Done!");
 }
 
 main()

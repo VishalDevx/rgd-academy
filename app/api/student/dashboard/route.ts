@@ -29,6 +29,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
+    if (!student.active) {
+      return NextResponse.json({ error: "Account deactivated. Contact admin." }, { status: 403 });
+    }
+
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -44,6 +48,18 @@ export async function GET(req: NextRequest) {
         studentId: student.id,
         status: "PRESENT",
       },
+    });
+
+    const absentCount = await db.attendance.count({
+      where: { studentId: student.id, status: "ABSENT" },
+    });
+
+    const lateCount = await db.attendance.count({
+      where: { studentId: student.id, status: "LATE" },
+    });
+
+    const leaveCount = await db.attendance.count({
+      where: { studentId: student.id, status: "LEAVE" },
     });
 
     const attendancePercentage =
@@ -158,6 +174,9 @@ export async function GET(req: NextRequest) {
         attendance: {
           total: totalAttendance,
           present: presentCount,
+          absent: absentCount,
+          late: lateCount,
+          leave: leaveCount,
           percentage: attendancePercentage,
         },
         fees: {

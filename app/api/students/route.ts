@@ -3,6 +3,7 @@ import { db } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOption } from "@/app/lib/auth";
 import { getSupabaseClient } from "@/app/lib/supabaseClient";
+import { createAuditLog } from "@/app/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -117,6 +118,14 @@ export async function POST(req: NextRequest) {
       return { user, student };
     });
 
+    await createAuditLog({
+      userId: session.user.id,
+      action: "CREATE",
+      entity: "STUDENT",
+      entityId: created.student.id,
+      newValue: { admissionNo: created.student.admissionNo, name: created.user.name },
+    });
+
     return NextResponse.json(created, { status: 201 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal Server Error";
@@ -132,10 +141,16 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const activeOnly = searchParams.get("active");
+    const activeFilter = searchParams.get("active");
 
     const where: Record<string, unknown> = {};
-    if (activeOnly === "true") where.active = true;
+    if (activeFilter === "all") {
+      // show all
+    } else if (activeFilter === "false") {
+      where.active = false;
+    } else {
+      where.active = true; // default: active only
+    }
 
     const students = await db.student.findMany({
       where,

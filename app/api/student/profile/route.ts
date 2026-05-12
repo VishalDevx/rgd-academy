@@ -61,6 +61,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
+    if (!student.active) {
+      return NextResponse.json({ error: "Account deactivated. Contact admin." }, { status: 403 });
+    }
+
     return NextResponse.json({ student });
   } catch (error) {
     console.error("Error fetching student profile:", error);

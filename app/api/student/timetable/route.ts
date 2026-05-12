@@ -32,6 +32,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Student or class not found" }, { status: 404 });
     }
 
+    if (!student.active) {
+      return NextResponse.json({ error: "Account deactivated. Contact admin." }, { status: 403 });
+    }
+
     // Get all exams for student's class
     const exams = await db.exam.findMany({
       where: { classId: student.classId },

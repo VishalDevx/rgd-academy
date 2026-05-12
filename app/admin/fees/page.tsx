@@ -104,6 +104,7 @@ export default async function AdminFeesPage() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
+          <Button asChild variant="outline"><Link href="/admin/fees/structures">All Structures</Link></Button>
           <Button asChild><Link href="/admin/fees/structures/new">New Structure</Link></Button>
           <Button asChild variant="outline"><Link href="/admin/fees/payments/new">Record Payment</Link></Button>
         </div>

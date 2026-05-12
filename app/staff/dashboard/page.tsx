@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/app/components/ui/button";
+import AttendanceTrendCharts from "@/app/components/charts/attendanceTrendCharts";
+import { CurrentMonthFeeStatusChart } from "@/app/components/charts/DashboardFeeCharts";
 
 interface DashboardData {
   staff: {
@@ -81,6 +83,10 @@ interface DashboardData {
     creator: { name: string } | null;
   }>;
   subjects: unknown[];
+  charts: {
+    attendanceTrend: { date: string; percentage: number }[];
+    feeOverview: { paid: number; pending: number; overdue: number };
+  };
 }
 
 export default function StaffDashboardPage() {
@@ -121,7 +127,7 @@ export default function StaffDashboardPage() {
     );
   }
 
-  const { staff, stats, classes, upcomingExams, recentAttendance, announcements } = data;
+  const { staff, stats, classes, upcomingExams, recentAttendance, announcements, charts } = data;
 
   return (
     <div className="space-y-6">
@@ -216,6 +222,32 @@ export default function StaffDashboardPage() {
                 Manage Exams →
               </Button>
             </Link>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <Card className="lg:col-span-3 shadow-lg">
+          <CardHeader>
+            <CardTitle>Attendance Trend</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AttendanceTrendCharts data={charts.attendanceTrend} />
+          </CardContent>
+        </Card>
+        <Card className="lg:col-span-2 shadow-lg">
+          <CardHeader>
+            <CardTitle>Fee Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CurrentMonthFeeStatusChart
+              paid={charts.feeOverview.paid}
+              pending={charts.feeOverview.pending}
+              overdue={charts.feeOverview.overdue}
+              totalExpected={charts.feeOverview.paid + charts.feeOverview.pending + charts.feeOverview.overdue}
+              collectionRate={charts.feeOverview.paid + charts.feeOverview.pending > 0 ? Math.round((charts.feeOverview.paid / (charts.feeOverview.paid + charts.feeOverview.pending + charts.feeOverview.overdue)) * 100) : 0}
+            />
           </CardContent>
         </Card>
       </div>

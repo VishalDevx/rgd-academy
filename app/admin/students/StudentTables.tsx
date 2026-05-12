@@ -38,6 +38,7 @@ export interface Student {
   admissionNo: string;
   rollNumber: string;
   class: { name: string } | null;
+  active: boolean;
 }
 
 export default function StudentsTable({ students }: { students: Student[] }) {
@@ -146,6 +147,7 @@ export default function StudentsTable({ students }: { students: Student[] }) {
               <TableHead>Admission No</TableHead>
               <TableHead>Roll No</TableHead>
               <TableHead>Class</TableHead>
+              <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -182,6 +184,11 @@ export default function StudentsTable({ students }: { students: Student[] }) {
                   ) : (
                     "-"
                   )}
+                </TableCell>
+                <TableCell>
+                  <Badge variant={s.active ? "default" : "destructive"}>
+                    {s.active ? "Active" : "Inactive"}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <Dialog

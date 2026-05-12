@@ -18,6 +18,15 @@ export default async function AdminDashboardPage() {
   const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
+  // Build last 7 days array
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(now);
+    d.setDate(d.getDate() - (6 - i));
+    const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59);
+    return { label: d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" }), dayStart, dayEnd };
+  });
+
   const [
     totalStudents,
     totalStaff,
@@ -31,6 +40,7 @@ export default async function AdminDashboardPage() {
     latestAnnouncements,
     latestExpenses,
     latestExams,
+    ...dailyAttendance
   ] = await Promise.all([
     db.student.count(),
     db.staff.count(),
@@ -44,6 +54,15 @@ export default async function AdminDashboardPage() {
     db.announcement.findMany({ take: 5, orderBy: { createdAt: "desc" } }),
     db.expense.findMany({ take: 5, orderBy: { date: "desc" } }),
     db.exam.findMany({ take: 5, orderBy: { startDate: "asc" }, include: { class: true } }),
+    ...last7Days.map((d) =>
+      Promise.all([
+        db.attendance.count({ where: { date: { gte: d.dayStart, lte: d.dayEnd }, status: "PRESENT" } }),
+        db.attendance.count({ where: { date: { gte: d.dayStart, lte: d.dayEnd } } }),
+      ]).then(([present, total]) => ({
+        date: d.label,
+        percentage: total > 0 ? Math.round((present / total) * 100) : 0,
+      }))
+    ),
   ]);
 
   // Calculations (Simplified for brevity)
@@ -63,7 +82,7 @@ export default async function AdminDashboardPage() {
         stats={{ totalStudents, totalStaff, attandanceToday: attendanceToday }}
         monthlyRevenue={{ amount: monthlyRevenue }}
         recentStudents={recentStudents}
-        attendanceTrend={[]} // Add logic if needed
+        attendanceTrend={dailyAttendance}
         feeStatus={feeStatus}
         classWiseStudents={classesWithStudents.map(c => ({ name: c.name, studentCount: c._count.students }))}
       />

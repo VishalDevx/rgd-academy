@@ -10,11 +10,24 @@ const log = logger("staff-route");
 // -------------------------------------------------------
 // GET /staff
 // -------------------------------------------------------
-export async function GET() {
+export async function GET(req: NextRequest) {
   log.info("GET /staff called");
 
   try {
+    const { searchParams } = new URL(req.url);
+    const activeFilter = searchParams.get("active");
+
+    const where: Record<string, unknown> = {};
+    if (activeFilter === "all") {
+      // show all
+    } else if (activeFilter === "false") {
+      where.active = false;
+    } else {
+      where.active = true; // default: active only
+    }
+
     const staff = await db.staff.findMany({
+      where,
       include: { user: true },
       orderBy: { joinDate: "desc" },
     });

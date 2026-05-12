@@ -58,6 +58,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Staff not found" }, { status: 404 });
     }
 
+    if (!staff.active) {
+      return NextResponse.json({ error: "Account deactivated. Contact admin." }, { status: 403 });
+    }
+
     return NextResponse.json({ staff });
   } catch (error) {
     console.error("Error fetching staff profile:", error);
