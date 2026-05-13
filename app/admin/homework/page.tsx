@@ -10,7 +10,8 @@ import {
 } from "@/app/components/ui/table";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Plus } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
+import DeleteDialog from "@/app/components/DeleteDialog";
 
 interface Homework {
   id: string;
@@ -26,6 +27,8 @@ interface Homework {
 export default function AdminHomeworkPage() {
   const [homework, setHomework] = useState<Homework[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -41,6 +44,22 @@ export default function AdminHomeworkPage() {
     }
     load();
   }, []);
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/homework/${deleteId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(await res.text());
+      toast.success("Homework deleted");
+      setDeleteId(null);
+      setHomework((prev) => prev.filter((h) => h.id !== deleteId));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -90,9 +109,19 @@ export default function AdminHomeworkPage() {
                     </TableCell>
                     <TableCell>{h._count.submissions}</TableCell>
                     <TableCell>
-                      <Link href={`/staff/homework/${h.id}`}>
-                        <Button variant="outline" size="sm">View</Button>
-                      </Link>
+                      <div className="flex gap-2">
+                        <Link href={`/admin/homework/${h.id}`}>
+                          <Button variant="outline" size="sm">View</Button>
+                        </Link>
+                        <Link href={`/admin/homework/${h.id}/edit`}>
+                          <Button variant="outline" size="sm">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Button variant="destructive" size="sm" onClick={() => setDeleteId(h.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -101,6 +130,14 @@ export default function AdminHomeworkPage() {
           )}
         </CardContent>
       </Card>
+
+      <DeleteDialog
+        open={!!deleteId}
+        onOpenChange={(open) => { if (!open) setDeleteId(null); }}
+        onConfirm={handleDelete}
+        loading={deleting}
+        title="Delete Homework"
+      />
     </div>
   );
 }

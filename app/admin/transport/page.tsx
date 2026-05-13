@@ -15,7 +15,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/app/components/ui/dialog";
-import { Search, Bus, Loader2, XCircle, CheckCircle, Edit } from "lucide-react";
+import { Search, Bus, Loader2, XCircle, CheckCircle, Edit, Trash2 } from "lucide-react";
+import DeleteDialog from "@/app/components/DeleteDialog";
 
 interface TransportStudent {
   id: string;
@@ -60,6 +61,8 @@ export default function AdminTransportPage() {
     feeAmount: "",
   });
   const [saving, setSaving] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchAssignments = useCallback(async () => {
     try {
@@ -142,6 +145,22 @@ export default function AdminTransportPage() {
       toast.error(err instanceof Error ? err.message : "Failed to save");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/transport/${deleteId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete");
+      toast.success("Transport assignment deleted");
+      setDeleteId(null);
+      fetchAssignments();
+    } catch {
+      toast.error("Failed to delete");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -288,6 +307,9 @@ export default function AdminTransportPage() {
                               <CheckCircle className="h-4 w-4 text-green-500" />
                             )}
                           </Button>
+                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(a.id)}>
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -360,6 +382,14 @@ export default function AdminTransportPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <DeleteDialog
+        open={!!deleteId}
+        onOpenChange={(open) => { if (!open) setDeleteId(null); }}
+        onConfirm={handleDelete}
+        loading={deleting}
+        title="Delete Transport Assignment"
+      />
     </div>
   );
 }

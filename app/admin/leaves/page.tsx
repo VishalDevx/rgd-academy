@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/ca
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/ui/table";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
-import { Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import DeleteDialog from "@/app/components/DeleteDialog";
 
 interface Leave {
   id: string;
@@ -24,6 +25,8 @@ interface Leave {
 export default function AdminLeavesPage() {
   const [leaves, setLeaves] = useState<Leave[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchLeaves = async () => {
     try {
@@ -38,6 +41,22 @@ export default function AdminLeavesPage() {
   };
 
   useEffect(() => { fetchLeaves(); }, []);
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/leaves/${deleteId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed");
+      toast.success("Leave deleted");
+      setDeleteId(null);
+      fetchLeaves();
+    } catch {
+      toast.error("Failed to delete");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleStatus = async (id: string, status: string) => {
     try {
@@ -120,12 +139,12 @@ export default function AdminLeavesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Staff</TableHead><TableHead>From</TableHead><TableHead>To</TableHead><TableHead>Reason</TableHead><TableHead>Status</TableHead>
+                <TableHead>Staff</TableHead><TableHead>From</TableHead><TableHead>To</TableHead><TableHead>Reason</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {history.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-gray-500">No leave history</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-gray-500">No leave history</TableCell></TableRow>
               ) : (
                 history.map((l) => (
                   <TableRow key={l.id}>
@@ -136,6 +155,11 @@ export default function AdminLeavesPage() {
                     <TableCell>
                       <Badge variant={l.status === "APPROVED" ? "default" : "destructive"}>{l.status}</Badge>
                     </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="destructive" size="sm" onClick={() => setDeleteId(l.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -143,6 +167,14 @@ export default function AdminLeavesPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <DeleteDialog
+        open={!!deleteId}
+        onOpenChange={(open) => { if (!open) setDeleteId(null); }}
+        onConfirm={handleDelete}
+        loading={deleting}
+        title="Delete Leave"
+      />
     </div>
   );
 }

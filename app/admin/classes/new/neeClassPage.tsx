@@ -1,4 +1,3 @@
-// app/admin/classes/new/NewClassClient.tsx
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -21,8 +20,6 @@ import {
 } from "@/app/components/ui/select";
 import { toast } from "sonner";
 
-/* ----------------------------- Types ----------------------------- */
-
 type Staff = {
   id: string;
   user: { name: string };
@@ -32,8 +29,6 @@ type AcademicSession = {
   id: string;
   name: string;
 };
-
-/* ----------------------------- Constants ----------------------------- */
 
 const GRADES = [
   "NURSERY","LKG","UKG","ONE","TWO","THREE","FOUR",
@@ -45,27 +40,21 @@ export default function NewClassClient() {
 
   const [staff, setStaff] = useState<Staff[]>([]);
   const [sessions, setSessions] = useState<AcademicSession[]>([]);
-
   const [loadingStaff, setLoadingStaff] = useState(true);
   const [loadingSessions, setLoadingSessions] = useState(true);
 
   const [name, setName] = useState("");
   const [grade, setGrade] = useState("TEN");
   const [section, setSection] = useState("");
-
   const [classTeacherId, setClassTeacherId] = useState<string>();
   const [academicSessionId, setAcademicSessionId] = useState<string>();
-
   const [submitting, setSubmitting] = useState(false);
-
-  /* ----------------------------- Load Staff ----------------------------- */
 
   useEffect(() => {
     (async () => {
       try {
         const res = await fetch("/api/staff");
         const json = await res.json();
-
         if (json.success) setStaff(json.data);
       } catch {
         toast.error("Failed to load staff");
@@ -75,63 +64,34 @@ export default function NewClassClient() {
     })();
   }, []);
 
-  /* ----------------------------- Load Sessions ----------------------------- */
-useEffect(() => {
-  console.log("🔥 useEffect mounted");
-
-  (async () => {
-    try {
-      const res = await fetch("/api/academic-sessions");
-      console.log("🔥 HTTP STATUS:", res.status);
-
-      const text = await res.text();
-      console.log("🔥 RAW TEXT RESPONSE:", text);
-
-      const json = JSON.parse(text);
-      console.log("🔥 PARSED JSON:", json);
-      console.log("🔥 json.data:", json.data);
-      console.log("🔥 isArray:", Array.isArray(json.data));
-
-      setSessions(json.data);
-      console.log("🔥 setSessions CALLED");
-    } catch (e) {
-      console.error("🔥 FETCH FAILED:", e);
-    } finally {
-      setLoadingSessions(false);
-      console.log("🔥 loadingSessions = false");
-    }
-  })();
-}, []);
-
-
-
-  /* ----------------------------- Submit ----------------------------- */
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/academic-sessions");
+        const json = await res.json();
+        setSessions(json.data);
+      } catch {
+        toast.error("Failed to load sessions");
+      } finally {
+        setLoadingSessions(false);
+      }
+    })();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-
     if (!classTeacherId || !academicSessionId) {
       toast.error("Missing required fields");
       return;
     }
-
     setSubmitting(true);
-
     try {
       const res = await fetch("/api/classes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          grade,
-          section,
-          teacherId: classTeacherId,
-          academicSessionId,
-        }),
+        body: JSON.stringify({ name, grade, section, teacherId: classTeacherId, academicSessionId }),
       });
-
       if (!res.ok) throw new Error();
-
       toast.success("Class created");
       router.push("/admin/classes");
     } catch {
@@ -141,22 +101,16 @@ useEffect(() => {
     }
   }
 
-  /* ----------------------------- UI ----------------------------- */
-
   return (
     <div className="p-6">
       <Card className="max-w-lg mx-auto">
-        <CardHeader>
-          <CardTitle>New Class</CardTitle>
-        </CardHeader>
-
+        <CardHeader><CardTitle>New Class</CardTitle></CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label>Name</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} />
             </div>
-
             <div>
               <Label>Grade</Label>
               <Select value={grade} onValueChange={setGrade}>
@@ -168,12 +122,10 @@ useEffect(() => {
                 </SelectContent>
               </Select>
             </div>
-
             <div>
               <Label>Section</Label>
               <Input value={section} onChange={(e) => setSection(e.target.value)} />
             </div>
-
             <div>
               <Label>Academic Session</Label>
               <Select value={academicSessionId} onValueChange={setAcademicSessionId}>
@@ -187,7 +139,6 @@ useEffect(() => {
                 </SelectContent>
               </Select>
             </div>
-
             <div>
               <Label>Class Teacher</Label>
               <Select value={classTeacherId} onValueChange={setClassTeacherId}>
@@ -201,14 +152,9 @@ useEffect(() => {
                 </SelectContent>
               </Select>
             </div>
-
             <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => router.back()}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting ? "Creating..." : "Create"}
-              </Button>
+              <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
+              <Button type="submit" disabled={submitting}>{submitting ? "Creating..." : "Create"}</Button>
             </div>
           </form>
         </CardContent>

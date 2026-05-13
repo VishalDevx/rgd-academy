@@ -71,6 +71,7 @@ const icons: Record<string, React.ComponentType<{ size?: number }>> = {
   calendar: CalendarDays,
   trending: TrendingUp,
   cron: Timer,
+  files: FileText,
 };
 
 export function Sidebar({ role, collapsed = false, onToggleCollapsed }: SidebarProps) {

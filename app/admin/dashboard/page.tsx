@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { format } from "date-fns";
-import { MoreVertical } from "lucide-react"; // Install lucide-react if you haven't
+import { MoreVertical } from "lucide-react";
 
 import { authOption } from "@/app/lib/auth";
 import { db } from "@/lib/prisma";
@@ -18,7 +18,11 @@ export default async function AdminDashboardPage() {
   const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  // Build last 7 days array
+  // Previous period for trend comparison (previous 30 days)
+  const prevPeriodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 60);
+  const prevPeriodEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
+  const buildDayRange = (start: Date, end: Date) => ({ gte: start, lte: end });
+
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(now);
     d.setDate(d.getDate() - (6 - i));
@@ -30,6 +34,8 @@ export default async function AdminDashboardPage() {
   const [
     totalStudents,
     totalStaff,
+    totalClasses,
+    totalSubjects,
     attendanceToday,
     monthlyRevenueAgg,
     recentStudents,
@@ -40,11 +46,17 @@ export default async function AdminDashboardPage() {
     latestAnnouncements,
     latestExpenses,
     latestExams,
+    prevStudentsCount,
+    prevStaffCount,
+    prevAttendanceCount,
+    prevRevenueAgg,
     ...dailyAttendance
   ] = await Promise.all([
     db.student.count(),
     db.staff.count(),
-    db.attendance.count({ where: { date: { gte: startOfToday, lte: endOfToday } } }),
+    db.class.count(),
+    db.subject.count(),
+    db.attendance.count({ where: { date: buildDayRange(startOfToday, endOfToday) } }),
     db.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: startOfMonth } } }),
     db.student.findMany({ take: 5, orderBy: { admissionDate: "desc" } }),
     db.feePayment.aggregate({ _sum: { amountPaid: true }, where: { status: "PAID" } }),
@@ -54,10 +66,16 @@ export default async function AdminDashboardPage() {
     db.announcement.findMany({ take: 5, orderBy: { createdAt: "desc" } }),
     db.expense.findMany({ take: 5, orderBy: { date: "desc" } }),
     db.exam.findMany({ take: 5, orderBy: { startDate: "asc" }, include: { class: true } }),
+    // Previous period for trends
+    db.student.count({ where: { admissionDate: { gte: prevPeriodStart, lte: prevPeriodEnd } } }),
+    db.staff.count({ where: { joinDate: { gte: prevPeriodStart, lte: prevPeriodEnd } } }),
+    db.attendance.count({ where: { date: buildDayRange(prevPeriodStart, prevPeriodEnd) } }),
+    db.expense.aggregate({ _sum: { amount: true }, where: { date: { gte: prevPeriodStart, lte: prevPeriodEnd } } }),
+    // Daily attendance for trend chart
     ...last7Days.map((d) =>
       Promise.all([
-        db.attendance.count({ where: { date: { gte: d.dayStart, lte: d.dayEnd }, status: "PRESENT" } }),
-        db.attendance.count({ where: { date: { gte: d.dayStart, lte: d.dayEnd } } }),
+        db.attendance.count({ where: { date: buildDayRange(d.dayStart, d.dayEnd), status: "PRESENT" } }),
+        db.attendance.count({ where: { date: buildDayRange(d.dayStart, d.dayEnd) } }),
       ]).then(([present, total]) => ({
         date: d.label,
         percentage: total > 0 ? Math.round((present / total) * 100) : 0,
@@ -65,21 +83,44 @@ export default async function AdminDashboardPage() {
     ),
   ]);
 
-  // Calculations (Simplified for brevity)
+  const totalPaid = Number(feePaidAgg._sum?.amountPaid ?? 0);
+  const totalPartial = Number(feePartialAgg._sum?.amountPaid ?? 0);
+  const totalOverdue = Number(feeOutstandingAgg._sum?.remainAmount ?? 0);
+  const totalCollected = totalPaid + totalPartial;
+  const totalExpected = totalCollected + totalOverdue;
+  const collectionRate = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0;
+
   const monthlyRevenue = Number(monthlyRevenueAgg._sum.amount ?? 0);
-  const feeStatus = { 
-    paid: Number(feePaidAgg._sum?.amountPaid ?? 0), 
-    pending: Number(feePartialAgg._sum?.amountPaid ?? 0), 
-    overdue: Number(feeOutstandingAgg._sum?.remainAmount ?? 0),
-    totalExpected: 0, collectionRate: 0 
+  const prevRevenue = Number(prevRevenueAgg._sum.amount ?? 0);
+
+  // Calculate attendance as percentage of total students who were present today
+  const attendancePercent = totalStudents > 0 ? Math.round((attendanceToday / totalStudents) * 100) : 0;
+  const prevAttendancePercent = totalStudents > 0 ? Math.round((prevAttendanceCount / totalStudents) * 100) : 0;
+
+  const feeStatus = {
+    paid: totalPaid,
+    pending: totalPartial,
+    overdue: totalOverdue,
+    collectionRate,
+    totalExpected,
   };
 
   return (
     <div className="space-y-8 p-6 bg-gray-50 min-h-screen">
       <h1 className="text-2xl font-bold">Welcome {session.user.name}</h1>
 
-      <AdminDashboard 
-        stats={{ totalStudents, totalStaff, attandanceToday: attendanceToday }}
+      <AdminDashboard
+        stats={{
+          totalStudents,
+          totalStaff,
+          totalClasses,
+          totalSubjects,
+          attendanceToday: attendancePercent,
+          prevStudents: prevStudentsCount,
+          prevStaff: prevStaffCount,
+          prevAttendance: prevAttendancePercent,
+          prevRevenue,
+        }}
         monthlyRevenue={{ amount: monthlyRevenue }}
         recentStudents={recentStudents}
         attendanceTrend={dailyAttendance}
@@ -89,7 +130,7 @@ export default async function AdminDashboardPage() {
 
       <DashBoardQuickAction />
 
-      {/* Announcements Section (Full Width) */}
+      {/* Announcements Section */}
       <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-bold text-gray-800">Latest Announcements</h2>
@@ -110,7 +151,7 @@ export default async function AdminDashboardPage() {
 
       {/* Grid for Expenses and Exams */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
+
         {/* Recent Expenses */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex justify-between items-center mb-6">
@@ -150,7 +191,7 @@ export default async function AdminDashboardPage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg font-bold text-gray-800">Upcoming Exams</h2>
-            <Link  href="/admin/exams" className="text-sm font-medium text-blue-600 pointer">View all</Link>
+            <Link href="/admin/exams" className="text-sm font-medium text-blue-600 pointer">View all</Link>
           </div>
           <table className="w-full">
             <thead className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
@@ -169,7 +210,7 @@ export default async function AdminDashboardPage() {
                     <div className="font-medium text-gray-900">{exam.name}</div>
                     <div className="text-xs text-gray-400">{exam.class?.name || "N/A"}</div>
                   </td>
-                  <td className="py-4 text-gray-600">Grade 10</td>
+                  <td className="py-4 text-gray-600">{exam.class?.name || "N/A"}</td>
                   <td className="py-4 text-gray-500">{format(new Date(exam.startDate), "yyyy-MM-dd")}</td>
                   <td className="py-4 text-gray-700 font-medium">{format(new Date(exam.startDate), "hh:mm a")}</td>
                   <td className="py-4 text-right"><MoreVertical size={16} className="text-gray-300" /></td>
@@ -178,7 +219,6 @@ export default async function AdminDashboardPage() {
             </tbody>
           </table>
         </div>
-
       </div>
     </div>
   );

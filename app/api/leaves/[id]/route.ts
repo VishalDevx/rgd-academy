@@ -46,3 +46,28 @@ export async function GET(
   if (!leave) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ data: leave });
 }
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOption);
+    if (!session?.user || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const existing = await db.leave.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: "Leave record not found" }, { status: 404 });
+    }
+
+    await db.leave.delete({ where: { id } });
+
+    return NextResponse.json({ success: true, message: "Leave record deleted" });
+  } catch (error) {
+    console.error("DELETE /api/leaves/[id] failed:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}

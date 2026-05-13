@@ -26,7 +26,8 @@ import {
   DialogFooter,
 } from "@/app/components/ui/dialog";
 import { Badge } from "@/app/components/ui/badge";
-import { Plus, Pencil, Trash2, CalendarDays } from "lucide-react";
+import { Plus, Pencil, Trash2, CalendarDays, Printer } from "lucide-react";
+import { usePDF } from "@/app/lib/usePDF";
 
 interface Class {
   id: string;
@@ -73,6 +74,7 @@ const DISPLAY_DAYS = DAYS.slice(1);
 
 export default function AdminTimetablePage() {
   const [entries, setEntries] = useState<TimetableEntry[]>([]);
+  const timetablePdf = usePDF("Timetable.pdf");
   const [classes, setClasses] = useState<Class[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [staffList, setStaffList] = useState<Staff[]>([]);
@@ -254,10 +256,20 @@ export default function AdminTimetablePage() {
           <h1 className="text-2xl font-bold text-gray-900">Weekly Timetable</h1>
           <p className="text-gray-500 mt-1">Manage class timetable schedules</p>
         </div>
-        <Button onClick={openAddDialog} disabled={selectedClassId === "all"}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Period
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={timetablePdf.generatePDF}
+            disabled={timetablePdf.loading || selectedClassId === "all" || entries.length === 0}
+          >
+            <Printer className="h-4 w-4 mr-2" />
+            {timetablePdf.loading ? "Printing..." : "Print"}
+          </Button>
+          <Button onClick={openAddDialog} disabled={selectedClassId === "all"}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Period
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -294,7 +306,7 @@ export default function AdminTimetablePage() {
       ) : (
         <Card>
           <CardContent className="overflow-x-auto p-0">
-            <div className="min-w-[700px]">
+            <div ref={timetablePdf.ref} className="min-w-[700px]">
               <table className="w-full border-collapse">
                 <thead>
                   <tr>

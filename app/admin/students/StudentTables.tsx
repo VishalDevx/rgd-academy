@@ -26,10 +26,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/app/components/ui/dialog";
-import { KeyRound, Loader2, Download } from "lucide-react";
+import { KeyRound, Loader2, Download, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { usePDF } from "@/app/lib/usePDF";
 import { ClassStudentListPDF } from "@/app/components/PDFTemplates";
+import Link from "next/link";
+import DeleteDialog from "@/app/components/DeleteDialog";
+import Pagination from "@/app/components/Pagination";
 
 export interface Student {
   id: string;
@@ -41,12 +44,18 @@ export interface Student {
   active: boolean;
 }
 
+const PAGE_SIZE = 15;
+
 export default function StudentsTable({ students }: { students: Student[] }) {
   const [query, setQuery] = useState("");
   const [selectedClass, setSelectedClass] = useState("all");
   const [resettingId, setResettingId] = useState<string | null>(null);
   const [openDialogId, setOpenDialogId] = useState<string | null>(null);
   const [resetPassword, setResetPassword] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteName, setDeleteName] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const router = useRouter();
   const classListPdf = usePDF("Student_List.pdf");
 
@@ -74,6 +83,22 @@ export default function StudentsTable({ students }: { students: Student[] }) {
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/students/${deleteId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete");
+      toast.success("Student deleted");
+      setDeleteId(null);
+      router.refresh();
+    } catch {
+      toast.error("Failed to delete student");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const classList = useMemo(() => {
     const unique = Array.from(
       new Set(students.map((s) => s.class?.name).filter(Boolean))
@@ -93,6 +118,9 @@ export default function StudentsTable({ students }: { students: Student[] }) {
     });
   }, [students, query, selectedClass]);
 
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <div className="space-y-6">
       {/* Hidden PDF content */}
@@ -111,10 +139,10 @@ export default function StudentsTable({ students }: { students: Student[] }) {
           <Input
             placeholder="Search students..."
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => { setQuery(e.target.value); setPage(1); }}
             className="w-64 border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-300"
           />
-          <Select value={selectedClass} onValueChange={setSelectedClass}>
+          <Select value={selectedClass} onValueChange={(v) => { setSelectedClass(v); setPage(1); }}>
             <SelectTrigger className="w-48 border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-300">
               <SelectValue placeholder="Select Class" />
             </SelectTrigger>
@@ -148,135 +176,142 @@ export default function StudentsTable({ students }: { students: Student[] }) {
               <TableHead>Roll No</TableHead>
               <TableHead>Class</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map((s) => (
-              <motion.tr
-                key={s.id}
-                className="cursor-pointer"
-                whileHover={{ scale: 1.02, backgroundColor: "rgba(243,244,246,0.5)" }}
-                transition={{ duration: 0.15 }}
-                onClick={() => router.push(`/admin/students/${s.id}`)}
-              >
-                <TableCell>
-                  {s.profileImg ? (
-                    <Image
-                      src={s.profileImg}
-                      alt={s.user.name}
-                      width={40}
-                      height={40}
-                      className="w-10 h-10 rounded-full object-cover border border-gray-200"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-xs text-gray-500">
-                      N/A
-                    </div>
-                  )}
+            {paginated.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                  No students found
                 </TableCell>
-                <TableCell>{s.user.name}</TableCell>
-                <TableCell>{s.user.email}</TableCell>
-                <TableCell>{s.admissionNo}</TableCell>
-                <TableCell>{s.rollNumber}</TableCell>
-                <TableCell>
-                  {s.class?.name ? (
-                    <Badge variant="secondary">{s.class.name}</Badge>
-                  ) : (
-                    "-"
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={s.active ? "default" : "destructive"}>
-                    {s.active ? "Active" : "Inactive"}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Dialog
-                    open={openDialogId === s.id}
-                    onOpenChange={(open) => {
-                      setOpenDialogId(open ? s.id : null);
-                      if (!open) {
-                        setResetPassword(null);
-                      }
-                    }}
-                  >
-                    <DialogTrigger asChild>
+              </TableRow>
+            ) : (
+              paginated.map((s) => (
+                <motion.tr
+                  key={s.id}
+                  className="cursor-pointer"
+                  whileHover={{ scale: 1.02, backgroundColor: "rgba(243,244,246,0.5)" }}
+                  transition={{ duration: 0.15 }}
+                  onClick={() => router.push(`/admin/students/${s.id}`)}
+                >
+                  <TableCell>
+                    {s.profileImg ? (
+                      <Image
+                        src={s.profileImg}
+                        alt={s.user.name}
+                        width={40}
+                        height={40}
+                        className="w-10 h-10 rounded-full object-cover border border-gray-200"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-xs text-gray-500">
+                        N/A
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>{s.user.name}</TableCell>
+                  <TableCell>{s.user.email}</TableCell>
+                  <TableCell>{s.admissionNo}</TableCell>
+                  <TableCell>{s.rollNumber}</TableCell>
+                  <TableCell>
+                    {s.class?.name ? (
+                      <Badge variant="secondary">{s.class.name}</Badge>
+                    ) : (
+                      "-"
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={s.active ? "default" : "destructive"}>
+                      {s.active ? "Active" : "Inactive"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/admin/students/${s.id}/edit`}>
+                          <Pencil className="h-4 w-4" />
+                        </Link>
+                      </Button>
                       <Button
-                        variant="outline"
+                        variant="destructive"
                         size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenDialogId(s.id);
+                        onClick={() => { setDeleteId(s.id); setDeleteName(s.user.name); }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <Dialog
+                        open={openDialogId === s.id}
+                        onOpenChange={(open) => {
+                          setOpenDialogId(open ? s.id : null);
+                          if (!open) setResetPassword(null);
                         }}
                       >
-                        <KeyRound className="h-4 w-4 mr-1" />
-                        Reset Password
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Reset Password</DialogTitle>
-                        <DialogDescription>
-                          Are you sure you want to reset the password for {s.user.name}?
-                          {resetPassword && (
-                            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
-                              <p className="text-sm font-semibold text-green-800 mb-1">
-                                New Password:
-                              </p>
-                              <p className="text-lg font-mono text-green-900 bg-white p-2 rounded border">
-                                {resetPassword}
-                              </p>
-                              <p className="text-xs text-green-700 mt-2">
-                                Please share this password with the student securely.
-                              </p>
-                            </div>
-                          )}
-                        </DialogDescription>
-                      </DialogHeader>
-                      <DialogFooter>
-                        {resetPassword ? (
+                        <DialogTrigger asChild>
                           <Button
-                            onClick={() => {
-                              setOpenDialogId(null);
-                              setResetPassword(null);
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenDialogId(s.id);
                             }}
                           >
-                            Close
+                            <KeyRound className="h-4 w-4" />
                           </Button>
-                        ) : (
-                          <>
-                            <Button
-                              variant="outline"
-                              onClick={() => {
-                                setOpenDialogId(null);
-                              }}
-                            >
-                              Cancel
-                            </Button>
-                            <Button
-                              onClick={() => handleResetPassword(s.id, s.user.name)}
-                              disabled={resettingId === s.id}
-                            >
-                              {resettingId === s.id ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Resetting...
-                                </>
-                              ) : (
-                                "Reset Password"
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Reset Password</DialogTitle>
+                            <DialogDescription>
+                              Are you sure you want to reset the password for {s.user.name}?
+                              {resetPassword && (
+                                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                                  <p className="text-sm font-semibold text-green-800 mb-1">New Password:</p>
+                                  <p className="text-lg font-mono text-green-900 bg-white p-2 rounded border">{resetPassword}</p>
+                                  <p className="text-xs text-green-700 mt-2">Please share this password with the student securely.</p>
+                                </div>
                               )}
-                            </Button>
-                          </>
-                        )}
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </TableCell>
-              </motion.tr>
-            ))}
+                            </DialogDescription>
+                          </DialogHeader>
+                          <DialogFooter>
+                            {resetPassword ? (
+                              <Button onClick={() => { setOpenDialogId(null); setResetPassword(null); }}>Close</Button>
+                            ) : (
+                              <>
+                                <Button variant="outline" onClick={() => setOpenDialogId(null)}>Cancel</Button>
+                                <Button onClick={() => handleResetPassword(s.id, s.user.name)} disabled={resettingId === s.id}>
+                                  {resettingId === s.id ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Resetting...</> : "Reset Password"}
+                                </Button>
+                              </>
+                            )}
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </TableCell>
+                </motion.tr>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        total={filtered.length}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+      />
+
+      <DeleteDialog
+        open={!!deleteId}
+        onOpenChange={(open) => { if (!open) setDeleteId(null); }}
+        onConfirm={handleDelete}
+        loading={deleting}
+        title="Delete Student"
+        entityName={deleteName}
+      />
     </div>
   );
 }

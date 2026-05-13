@@ -1,9 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Eye, PlusCircle } from "lucide-react";
+import { Button } from "../ui/button";
+import { Eye, PlusCircle, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { format } from "date-fns";
+import { toast } from "sonner";
+import DeleteDialog from "../DeleteDialog";
 import {
   LineChart,
   Line,
@@ -30,6 +35,26 @@ export type Expense = {
 const COLORS = ["#6366f1", "#ef4444", "#10b981", "#f59e0b", "#3b82f6"];
 
 export default function ExpenseDashboard({ expenses }: { expenses: Expense[] }) {
+  const router = useRouter();
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/expenses/${deleteId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed");
+      toast.success("Expense deleted");
+      setDeleteId(null);
+      router.refresh();
+    } catch {
+      toast.error("Failed to delete");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   // ----------- BASIC STATS ---------------
   const totalExpense = expenses
     .filter((x) => x.transactionType === TransactionType.DEBIT)
@@ -182,7 +207,7 @@ export default function ExpenseDashboard({ expenses }: { expenses: Expense[] }) 
                   <th className="px-4 py-2 border">Amount</th>
                   <th className="px-4 py-2 border">Type</th>
                   <th className="px-4 py-2 border">Date</th>
-                  <th className="px-4 py-2 border text-center">View</th>
+                  <th className="px-4 py-2 border">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -200,10 +225,22 @@ export default function ExpenseDashboard({ expenses }: { expenses: Expense[] }) 
                     <td className="px-4 py-2">
                       {format(new Date(expense.date), "dd/MM/yyyy")}
                     </td>
-                    <td className="px-4 py-2 text-center">
-                      <Link href={`/admin/expenses/${expense.id}`}>
-                        <Eye className="h-4 w-4 hover:text-primary" />
-                      </Link>
+                    <td className="px-4 py-2">
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/admin/expenses/${expense.id}`}>
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/admin/expenses/${expense.id}/edit`}>
+                            <Pencil className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => setDeleteId(expense.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -212,6 +249,14 @@ export default function ExpenseDashboard({ expenses }: { expenses: Expense[] }) 
           </div>
         </CardContent>
       </Card>
+
+      <DeleteDialog
+        open={!!deleteId}
+        onOpenChange={(open) => { if (!open) setDeleteId(null); }}
+        onConfirm={handleDelete}
+        loading={deleting}
+        title="Delete Expense"
+      />
     </div>
   );
 }
