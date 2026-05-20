@@ -89,7 +89,7 @@ export default function AdminResultPage() {
     setLoading(true);
     const params = new URLSearchParams();
     if (examId) params.set("examId", examId);
-    if (studentId) params.set("studentId", studentId);
+    if (studentId && studentId !== "_all") params.set("studentId", studentId);
     if (classId) params.set("classId", classId);
     fetch(`/api/results?${params}`)
       .then((r) => r.json())
@@ -149,13 +149,13 @@ export default function AdminResultPage() {
             <Select value={studentId} onValueChange={(v) => { setStudentId(v); setPage(1); }} disabled={!classId}>
               <SelectTrigger><SelectValue placeholder="All Students" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Students</SelectItem>
+                <SelectItem value="_all">All Students</SelectItem>
                 {students.map((s) => (
                   <SelectItem key={s.id} value={s.id}>{s.user.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Button onClick={() => router.push(`/admin/marksheet/${studentId}`)} disabled={!studentId} variant="outline">
+            <Button onClick={() => router.push(`/admin/marksheet/${studentId}`)} disabled={!studentId || studentId === "_all"} variant="outline">
               View Marksheet
             </Button>
           </div>

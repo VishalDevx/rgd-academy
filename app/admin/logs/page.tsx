@@ -67,8 +67,8 @@ export default function LogsPage() {
         limit: pagination.limit.toString(),
       });
 
-      if (filters.entity) params.append("entity", filters.entity);
-      if (filters.action) params.append("action", filters.action);
+      if (filters.entity && filters.entity !== "_all") params.append("entity", filters.entity);
+      if (filters.action && filters.action !== "_all") params.append("action", filters.action);
       if (filters.startDate) params.append("startDate", filters.startDate);
       if (filters.endDate) params.append("endDate", filters.endDate);
 
@@ -147,7 +147,7 @@ export default function LogsPage() {
                   <SelectValue placeholder="All entities" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All entities</SelectItem>
+                  <SelectItem value="_all">All entities</SelectItem>
                   <SelectItem value="Student">Student</SelectItem>
                   <SelectItem value="Staff">Staff</SelectItem>
                   <SelectItem value="Class">Class</SelectItem>
@@ -167,7 +167,7 @@ export default function LogsPage() {
                   <SelectValue placeholder="All actions" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All actions</SelectItem>
+                  <SelectItem value="_all">All actions</SelectItem>
                   <SelectItem value="CREATE">Create</SelectItem>
                   <SelectItem value="UPDATE">Update</SelectItem>
                   <SelectItem value="DELETE">Delete</SelectItem>
