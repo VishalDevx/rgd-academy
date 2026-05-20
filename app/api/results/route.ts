@@ -149,6 +149,7 @@ export async function POST(req: Request) {
       grade: body.grade ?? null,
       remarks: body.remarks ?? null,
       uploadedBy: session.user.id,
+      organizationId: session.user.organizationId ?? "",
     },
   });
 

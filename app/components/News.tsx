@@ -5,7 +5,7 @@ import { Button } from "./ui/button";
 const newsItems = [
   {
     id: 1,
-    title: "RGD Students Excel in State Science Olympiad",
+    title: "KakshaOne Students Excel in State Science Olympiad",
     excerpt: "Our students secured top positions in the State Science Olympiad, bringing pride to our school community.",
     date: "Jan 15, 2024",
     category: "Achievement",
@@ -60,7 +60,7 @@ export const News = () => {
             News & <span className="text-gradient">Events</span>
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            Stay informed about the latest happenings at RGD School
+            Stay informed about the latest happenings at KakshaOne
           </p>
         </div>
 

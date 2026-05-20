@@ -63,7 +63,7 @@ export async function PATCH(req: NextRequest) {
     });
     if (!existing) {
       await db.transportAssignment.create({
-        data: { studentId: body.studentId, isActive: true },
+        data: { studentId: body.studentId, isActive: true, organizationId: session.user.organizationId ?? "" },
       });
     } else {
       await db.transportAssignment.update({

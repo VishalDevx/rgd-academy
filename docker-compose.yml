@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: rgd_school
+      POSTGRES_USER: rgd
+      POSTGRES_PASSWORD: rgd_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://rgd:rgd_password@postgres:5432/rgd_school
+      NEXTAUTH_SECRET: your-strong-secret-change-in-production
+      NEXTAUTH_URL: http://localhost:3000
+    depends_on:
+      - postgres
+    command: sh -c "npx prisma migrate deploy && node server.js"
+
+volumes:
+  pgdata:

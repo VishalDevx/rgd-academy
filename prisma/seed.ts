@@ -41,7 +41,7 @@ async function main() {
   // ================= SCHOOL SETTINGS =================
   await db.schoolSettings.create({
     data: {
-      name: "RGD Public School",
+      name: "KakshaOne Public School",
       academicYear: "2024-2025",
       tier: "BASIC",
       primaryColor: "#2563eb",

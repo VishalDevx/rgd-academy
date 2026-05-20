@@ -78,6 +78,7 @@ export async function POST(req: NextRequest) {
         code: body.code,
         classId: normalizedClassId,
         teacherId: normalizedTeacherId,
+        organizationId: session.user.organizationId ?? "",
       },
     });
 

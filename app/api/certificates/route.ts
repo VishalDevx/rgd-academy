@@ -126,6 +126,7 @@ export async function POST(req: NextRequest) {
         staffId: body.staffId ?? null,
         remarks: body.remarks ?? null,
         content,
+        organizationId: session.user.organizationId ?? "",
       },
       include: {
         student: {

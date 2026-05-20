@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
       paidTo: paidTo ?? null,
       paymentMode: paymentMode ?? null,
       billUrl: billUrl ?? null,
+      organizationId: session.user.organizationId ?? "",
     },
   });
 

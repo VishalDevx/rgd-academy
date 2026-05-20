@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
 
     const { error: uploadError } = await getSupabaseServiceClient().storage
-      .from("rgd-school")
+.from("kakshaone")
       .upload(fileName, buffer, { contentType: file.type });
 
     if (uploadError) {
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get public URL
-    const { data } = getSupabaseServiceClient().storage.from("rgd-school").getPublicUrl(fileName);
+    const { data } = getSupabaseServiceClient().storage.from("kakshaone").getPublicUrl(fileName);
     const imageUrl = data.publicUrl;
 
     // Add to hero images in settings

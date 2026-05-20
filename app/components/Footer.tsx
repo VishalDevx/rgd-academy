@@ -42,7 +42,7 @@ export const Footer = () => {
                 <GraduationCap className="w-6 h-6 text-primary-foreground" />
               </div>
               <div>
-                <span className="text-xl font-bold text-background">RGD School</span>
+                <span className="text-xl font-bold text-background">KakshaOne</span>
                 <span className="block text-xs text-background/60">
                   Empowering Minds, Shaping Futures
                 </span>
@@ -63,7 +63,7 @@ export const Footer = () => {
               </p>
               <p className="flex items-center gap-2 text-background/70">
                 <Mail className="w-4 h-4 text-primary" />
-                info@rgdschool.edu
+                info@kakshaone.edu
               </p>
             </div>
           </div>
@@ -129,7 +129,7 @@ export const Footer = () => {
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-background/60">
-              © {new Date().getFullYear()} RGD School. All rights reserved.
+              © {new Date().getFullYear()} KakshaOne. All rights reserved.
             </p>
             <div className="flex items-center gap-6 text-sm text-background/60">
               <a href="#" className="hover:text-primary transition-colors">

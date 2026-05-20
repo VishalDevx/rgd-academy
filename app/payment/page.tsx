@@ -39,7 +39,7 @@ function PaymentContent() {
         key: orderData.key,
         amount: orderData.amount,
         currency: orderData.currency,
-        name: "RGD Academy",
+        name: "KakshaOne",
         description: "Subscription Payment",
         order_id: orderData.order_id,
         handler: async function (response: {

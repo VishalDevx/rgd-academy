@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RGD School - Modern School Management System",
+  title: "KakshaOne - School Management Platform",
   description: "Comprehensive school management platform for administrators, staff, and students. Streamline operations, track attendance, manage fees, and enhance learning experiences.",
 };
 

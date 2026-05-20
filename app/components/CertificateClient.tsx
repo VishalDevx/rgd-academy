@@ -129,7 +129,7 @@ export function CertificateClient({ certificateId }: { certificateId: string }) 
         <Card className="p-12 border-2 border-yellow-600 bg-white relative overflow-hidden">
           <div className="absolute inset-0 opacity-5">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-8xl font-bold text-yellow-600 rotate-[-30deg]">
-              RGD
+              KakshaOne
             </div>
           </div>
 

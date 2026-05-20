@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/app/components/ui/card";
+import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
-import { Settings, Save, Loader2, Building2, Mail, Phone, Calendar, Palette, Upload, CheckCircle2, Image as ImageIcon, X, Trash2, Plus } from "lucide-react";
+import { Settings, Save, Loader2, Building2, Mail, Phone, Calendar, Palette, Upload, CheckCircle2, Image as ImageIcon, X, Trash2, Plus, CreditCard, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -74,9 +75,94 @@ export default function SettingsPage() {
     pdfFooter: "",
   });
 
+  const [razorpayKeyId, setRazorpayKeyId] = useState("");
+  const [razorpayKeySecret, setRazorpayKeySecret] = useState("");
+  const [showSecret, setShowSecret] = useState(false);
+  const [savingRazorpay, setSavingRazorpay] = useState(false);
+  const [testingRazorpay, setTestingRazorpay] = useState(false);
+  const [razorpayConnected, setRazorpayConnected] = useState(false);
+  const [razorpayAccountName, setRazorpayAccountName] = useState("");
+
   useEffect(() => {
     fetchSettings();
   }, []);
+
+  useEffect(() => {
+    fetchRazorpayConfig();
+  }, []);
+
+  const fetchRazorpayConfig = async () => {
+    try {
+      const res = await fetch("/api/organization/razorpay");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.razorpayKeyId) {
+          setRazorpayKeyId(data.razorpayKeyId);
+          setRazorpayKeySecret("********");
+          setRazorpayConnected(true);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch razorpay config:", err);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    const testId = razorpayKeyId
+    const testSecret = razorpayKeySecret === "********" ? undefined : razorpayKeySecret
+    if (!testId || !testSecret) {
+      toast.error("Enter Key ID and Key Secret first")
+      return
+    }
+    setTestingRazorpay(true)
+    try {
+      const res = await fetch("/api/organization/razorpay/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ razorpayKeyId: testId, razorpayKeySecret: testSecret }),
+      })
+      const data = await res.json()
+      if (data.valid) {
+        setRazorpayConnected(true)
+        setRazorpayAccountName(data.accountName || "")
+        toast.success(data.accountName ? `Connected as ${data.accountName}` : "Connection successful!")
+      } else {
+        setRazorpayConnected(false)
+        toast.error(data.error || "Invalid keys")
+      }
+    } catch {
+      toast.error("Failed to test connection")
+    } finally {
+      setTestingRazorpay(false)
+    }
+  }
+
+  const handleSaveRazorpay = async () => {
+    const saveSecret = razorpayKeySecret === "********" ? undefined : razorpayKeySecret
+    if (!razorpayKeyId || !saveSecret) {
+      toast.error("Please enter both Key ID and Key Secret");
+      return;
+    }
+    setSavingRazorpay(true);
+    try {
+      const res = await fetch("/api/organization/razorpay", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ razorpayKeyId, razorpayKeySecret: saveSecret }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to save");
+      }
+      toast.success("Razorpay keys saved!");
+      setRazorpayKeySecret("********");
+      setRazorpayConnected(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save Razorpay keys");
+    } finally {
+      setSavingRazorpay(false);
+    }
+  };
 
   const fetchSettings = async () => {
     try {
@@ -183,7 +269,7 @@ export default function SettingsPage() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
-                  placeholder="RGD School"
+                  placeholder="KakshaOne School"
                 />
               </div>
               <div className="space-y-2">
@@ -212,7 +298,7 @@ export default function SettingsPage() {
                   id="registrationNo"
                   value={formData.registrationNo}
                   onChange={(e) => setFormData({ ...formData, registrationNo: e.target.value })}
-                  placeholder="RGD/2024/001"
+                  placeholder="KKS/2024/001"
                 />
               </div>
             </div>
@@ -223,7 +309,7 @@ export default function SettingsPage() {
                 type="url"
                 value={formData.website}
                 onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                placeholder="https://www.rgdschool.edu"
+                placeholder="https://www.kakshaone.edu"
               />
             </div>
             <div className="space-y-2">
@@ -257,7 +343,7 @@ export default function SettingsPage() {
                   type="email"
                   value={formData.contactEmail}
                   onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
-                  placeholder="info@rgdschool.edu"
+                  placeholder="info@kakshaone.edu"
                 />
               </div>
               <div className="space-y-2">
@@ -434,6 +520,111 @@ export default function SettingsPage() {
                   onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
                   placeholder="₹ (INR)"
                 />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Payment Gateway */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-start justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-blue-600" />
+                  Payment Gateway
+                </CardTitle>
+                <CardDescription>
+                  Connect your Razorpay account. Students pay fees online &mdash; money goes directly to your bank account.
+                </CardDescription>
+              </div>
+              {razorpayConnected && (
+                <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Connected
+                </Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {razorpayConnected && razorpayAccountName && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
+                Connected as <strong>{razorpayAccountName}</strong>
+              </div>
+            )}
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="razorpayKeyId">Razorpay Key ID</Label>
+                <Input
+                  id="razorpayKeyId"
+                  value={razorpayKeyId}
+                  onChange={(e) => {
+                    setRazorpayKeyId(e.target.value)
+                    setRazorpayConnected(false)
+                  }}
+                  placeholder="rzp_live_..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="razorpayKeySecret">Razorpay Key Secret</Label>
+                <div className="relative">
+                  <Input
+                    id="razorpayKeySecret"
+                    type={showSecret ? "text" : "password"}
+                    value={razorpayKeySecret}
+                    onChange={(e) => {
+                      setRazorpayKeySecret(e.target.value)
+                      setRazorpayConnected(false)
+                    }}
+                    placeholder="Enter your key secret"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                    onClick={() => setShowSecret(!showSecret)}
+                  >
+                    {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between pt-2">
+              <p className="text-xs text-muted-foreground">
+                Don&apos;t have a Razorpay account?{" "}
+                <a href="https://razorpay.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  Sign up free
+                </a>
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleTestConnection}
+                  disabled={testingRazorpay || !razorpayKeyId || !razorpayKeySecret}
+                  size="sm"
+                >
+                  {testingRazorpay ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                  )}
+                  Test Connection
+                </Button>
+                <Button onClick={handleSaveRazorpay} disabled={savingRazorpay} size="sm">
+                  {savingRazorpay ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save Keys
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           </CardContent>

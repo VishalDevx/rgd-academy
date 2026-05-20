@@ -86,6 +86,7 @@ export async function POST(req: NextRequest) {
       driverPhone: body.driverPhone ?? null,
       feeAmount: body.feeAmount != null ? Number(body.feeAmount) : null,
       isActive: body.isActive ?? true,
+      organizationId: session.user.organizationId ?? "",
     },
     include: {
       student: {

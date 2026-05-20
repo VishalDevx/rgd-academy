@@ -130,7 +130,7 @@ export function Sidebar({ role, collapsed = false, onToggleCollapsed }: SidebarP
          <Link href="/admin/dashboard"><Image className="rounded-full" src="/logo.jpeg" width={40} height={40} alt="Logo" /></Link> 
           </div>
           {!collapsed && (
-            <span className="text-lg font-semibold tracking-wide">RGD School</span>
+            <span className="text-lg font-semibold tracking-wide">KakshaOne</span>
           )}
         </div>
         <div className="flex items-center gap-1">
@@ -243,7 +243,7 @@ export function Sidebar({ role, collapsed = false, onToggleCollapsed }: SidebarP
       >
         {!collapsed ? (
           <span>
-            © 2025 RGD School —{" "}
+            © 2025 KakshaOne —{" "}
             <a
               href="https://github.com/VishalDevx"
               target="_blank"

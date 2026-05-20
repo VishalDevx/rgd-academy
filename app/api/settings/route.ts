@@ -18,9 +18,9 @@ export async function GET() {
       // Create default settings if none exist
       const defaultSettings = await db.schoolSettings.create({
         data: {
-          name: "RGD School",
-          tier: "BASIC",
+          name: "KakshaOne School",
           primaryColor: "#2563eb",
+          organizationId: session.user.organizationId ?? "",
         },
       });
       return NextResponse.json(defaultSettings);
@@ -106,7 +106,6 @@ export async function PUT(req: NextRequest) {
             logoUrl: logoUrl !== undefined ? logoUrl : existing.logoUrl,
             faviconUrl: faviconUrl !== undefined ? faviconUrl : existing.faviconUrl,
             primaryColor: primaryColor !== undefined ? primaryColor : existing.primaryColor,
-            tier: tier ?? existing.tier,
             featureFlags: featureFlags !== undefined 
               ? (featureFlags as Prisma.InputJsonValue) 
               : (existing.featureFlags ?? Prisma.DbNull),
@@ -125,7 +124,7 @@ export async function PUT(req: NextRequest) {
         })
       : await db.schoolSettings.create({
           data: {
-            name: name || "RGD School",
+            name: name || "KakshaOne School",
             address,
             contactEmail,
             contactPhone,
@@ -133,8 +132,8 @@ export async function PUT(req: NextRequest) {
             logoUrl,
             faviconUrl,
             primaryColor: primaryColor || "#2563eb",
-            tier: tier || "BASIC",
             featureFlags: featureFlags as Prisma.InputJsonValue | undefined,
+            organizationId: session.user.organizationId ?? "",
             principalName,
             registrationNo,
             receiptPrefix,

@@ -46,7 +46,7 @@ export async function PUT(
       const buffer = Buffer.from(await file.arrayBuffer());
 
       const { error: uploadError } = await getSupabaseServiceClient().storage
-        .from("rgd-school")
+        .from("kakshaone")
         .upload(fileName, buffer, { contentType: file.type });
 
       if (uploadError) {
@@ -54,7 +54,7 @@ export async function PUT(
         return NextResponse.json({ error: "Image upload failed" }, { status: 500 });
       }
 
-      const { data } = getSupabaseServiceClient().storage.from("rgd-school").getPublicUrl(fileName);
+      const { data } = getSupabaseServiceClient().storage.from("kakshaone").getPublicUrl(fileName);
       profileImgUrl = data.publicUrl;
     }
 
@@ -110,7 +110,7 @@ export async function PUT(
         });
       } else {
         await db.transportAssignment.create({
-          data: { studentId, isActive: true },
+          data: { studentId, isActive: true, organizationId: session.user.organizationId ?? "" },
         });
       }
     } else if (existingTransport) {

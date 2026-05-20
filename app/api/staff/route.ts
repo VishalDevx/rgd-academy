@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
           designation: String(body.designation),
           salary: body.salary ? Number(body.salary) : null,
           joinDate: body.joinDate ? new Date(body.joinDate) : new Date(),
+          organizationId: session.user.organizationId ?? "",
         },
       });
 

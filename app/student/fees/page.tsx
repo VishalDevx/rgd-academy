@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { format } from "date-fns";
 import {
   Card,
@@ -9,9 +9,18 @@ import {
   CardTitle,
 } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
-import { Wallet, Receipt, AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import { Button } from "@/app/components/ui/button";
+import { Wallet, Receipt, AlertCircle, CheckCircle2, Clock, Loader2, CreditCard } from "lucide-react";
 import Link from "next/link";
 import Pagination from "@/app/components/Pagination";
+import { toast } from "sonner";
+import { loadRazorpayScript } from "@/app/lib/razorpay";
+
+declare global {
+  interface Window {
+    Razorpay: new (options: Record<string, unknown>) => { open: () => void }
+  }
+}
 
 interface FeePayment {
   id: string;
@@ -54,14 +63,22 @@ export default function StudentFeesPage() {
   const [data, setData] = useState<FeesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [onlineEnabled, setOnlineEnabled] = useState(false);
+  const [payingId, setPayingId] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchFees() {
+    async function fetchAll() {
       try {
-        const res = await fetch("/api/student/fees");
-        if (res.ok) {
-          const feesData = await res.json();
-          setData(feesData);
+        const [feesRes, configRes] = await Promise.all([
+          fetch("/api/student/fees"),
+          fetch("/api/fees/payment-config"),
+        ]);
+        if (feesRes.ok) {
+          setData(await feesRes.json());
+        }
+        if (configRes.ok) {
+          const cfg = await configRes.json();
+          setOnlineEnabled(cfg.enabled);
         }
       } catch (error) {
         console.error("Error fetching fees:", error);
@@ -69,8 +86,71 @@ export default function StudentFeesPage() {
         setLoading(false);
       }
     }
-    fetchFees();
+    fetchAll();
   }, []);
+
+  const handlePayOnline = useCallback(async (feePaymentId: string) => {
+    setPayingId(feePaymentId);
+    try {
+      const loaded = await loadRazorpayScript()
+      if (!loaded) {
+        toast.error("Failed to load payment gateway. Please try again.")
+        setPayingId(null)
+        return
+      }
+
+      const orderRes = await fetch("/api/fees/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feePaymentId }),
+      });
+      const orderData = await orderRes.json();
+      if (!orderRes.ok) throw new Error(orderData.error || "Failed to create order");
+
+      const options = {
+        key: orderData.key_id,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: "KakshaOne",
+        description: "Fee Payment",
+        order_id: orderData.order_id,
+        handler: async function (response: {
+          razorpay_payment_id: string
+          razorpay_order_id: string
+          razorpay_signature: string
+        }) {
+          const verifyRes = await fetch("/api/fees/verify-payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              feePaymentId,
+            }),
+          })
+          const verifyData = await verifyRes.json()
+          if (!verifyRes.ok) throw new Error(verifyData.error || "Verification failed")
+          toast.success("Payment successful!")
+          const feesRes = await fetch("/api/student/fees")
+          if (feesRes.ok) setData(await feesRes.json())
+        },
+        modal: {
+          ondismiss: function () {
+            setPayingId(null)
+          },
+        },
+        theme: { color: "#6366f1" },
+      }
+
+      const rzp = new window.Razorpay(options)
+      rzp.open()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Payment failed")
+    } finally {
+      setPayingId(null)
+    }
+  }, [])
 
   const feePayments = data?.feePayments ?? [];
   const PAGE_SIZE = 10;
@@ -311,42 +391,64 @@ export default function StudentFeesPage() {
                     <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
                       Payment Date
                     </th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">
+                      Action
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedPayments.map((payment) => (
-                    <tr
-                      key={payment.id}
-                      className="border-b hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="py-4 px-4">
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {payment.feeStructure.name || "Fee Payment"}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {payment.feeStructure.class.name}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="font-semibold text-green-600">
-                          ₹{Number(payment.amountPaid).toLocaleString()}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="font-semibold text-red-600">
-                          ₹{Number(payment.remainAmount).toLocaleString()}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4">{getStatusBadge(payment.status)}</td>
-                      <td className="py-4 px-4 text-sm text-gray-500">
-                        {payment.paymentDate
-                          ? format(new Date(payment.paymentDate), "MMM dd, yyyy")
-                          : "N/A"}
-                      </td>
-                    </tr>
-                  ))}
+                  {paginatedPayments.map((payment) => {
+                    const canPay = onlineEnabled && (payment.status === "PENDING" || payment.status === "PARTIAL") && Number(payment.remainAmount) > 0;
+                    return (
+                      <tr
+                        key={payment.id}
+                        className="border-b hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="py-4 px-4">
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {payment.feeStructure.name || "Fee Payment"}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {payment.feeStructure.class.name}
+                            </p>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="font-semibold text-green-600">
+                            ₹{Number(payment.amountPaid).toLocaleString()}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="font-semibold text-red-600">
+                            ₹{Number(payment.remainAmount).toLocaleString()}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">{getStatusBadge(payment.status)}</td>
+                        <td className="py-4 px-4 text-sm text-gray-500">
+                          {payment.paymentDate
+                            ? format(new Date(payment.paymentDate), "MMM dd, yyyy")
+                            : "N/A"}
+                        </td>
+                        <td className="py-4 px-4">
+                          {canPay && (
+                            <Button
+                              size="sm"
+                              onClick={() => handlePayOnline(payment.id)}
+                              disabled={payingId === payment.id}
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              {payingId === payment.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                "Pay Online"
+                              )}
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

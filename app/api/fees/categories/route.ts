@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   }
 
   const created = await db.feeCategory.create({
-    data: { name: body.name.trim(), description: body.description?.trim() || null },
+    data: { name: body.name.trim(), description: body.description?.trim() || null, organizationId: session.user.organizationId ?? "" },
   })
 
   return NextResponse.json(created, { status: 201 })

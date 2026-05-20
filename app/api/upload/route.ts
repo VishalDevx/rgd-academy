@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   // ✅ Upload to the real bucket
   const filePath = `${type}s/${id}/${Date.now()}_${file.name}`;
   const { error } = await getSupabaseClient().storage
-    .from("rgd-school") // ✅ correct bucket
+    .from("kakshaone") // ✅ correct bucket
     .upload(filePath, file, { upsert: true });
 
   if (error) {
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
   // ✅ Generate signed URL
   const { data: signed } = await getSupabaseClient().storage
-    .from("rgd-school") // ✅ same bucket
+    .from("kakshaone") // ✅ same bucket
     .createSignedUrl(filePath, 60 * 60);
 
   return NextResponse.json({

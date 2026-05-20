@@ -141,13 +141,13 @@ export const Hero = () => {
 
           {/* Heading */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 animate-fade-in" style={{ animationDelay: "0.1s" }}>
-            RGD ACADEMY ,{" "}
+            KAKSHAONE ,{" "}
             <span className="text-gradient">Shaping Futures</span>
           </h1>
 
           {/* Subheading */}
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-in" style={{ animationDelay: "0.2s" }}>
-            Welcome to RGD , where excellence meets opportunity. We nurture
+            Welcome to KakshaOne, where excellence meets opportunity. We nurture
             young minds with quality education, strong values, and a passion for
             lifelong learning.
           </p>

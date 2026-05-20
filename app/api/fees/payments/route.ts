@@ -140,6 +140,7 @@ export async function POST(req: NextRequest) {
           lateFine: lateFine > 0 ? new Prisma.Decimal(lateFine.toFixed(2)) : null,
           receiptNo,
           remarks,
+          organizationId: session.user.organizationId ?? "",
         },
       })
     }

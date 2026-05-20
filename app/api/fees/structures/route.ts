@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
       monthlyFee: new Prisma.Decimal(monthlyFee.toFixed(2)),
       totalMonths,
       total: new Prisma.Decimal(total.toFixed(2)),
+      organizationId: session.user.organizationId ?? "",
     },
   })
 
@@ -93,6 +94,7 @@ export async function POST(req: NextRequest) {
               remainAmount: new Prisma.Decimal(adjustedMonthly.toFixed(2)),
               status: "PENDING",
               feeMonth: i + 1,
+              organizationId: session.user.organizationId ?? "",
             },
           })
         )

@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
       const fileName = `students/${Date.now()}-${name}.${ext}`;
 
       const { error: uploadError } = await getSupabaseClient().storage
-        .from("rgd-school")
+        .from("kakshaone")
         .upload(fileName, buffer, {
           cacheControl: "3600",
           upsert: false,
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
       }
 
       const { data } = getSupabaseClient().storage
-        .from("rgd-school")
+        .from("kakshaone")
         .getPublicUrl(fileName);
 
       profileImgUrl = data.publicUrl;
@@ -114,6 +114,7 @@ export async function POST(req: NextRequest) {
           udiseCode,
           contactNo,
           usesTransport,
+          organizationId: session.user.organizationId ?? "",
         },
       });
 
@@ -122,6 +123,7 @@ export async function POST(req: NextRequest) {
           data: {
             studentId: student.id,
             isActive: true,
+            organizationId: session.user.organizationId ?? "",
           },
         });
       }

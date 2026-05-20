@@ -55,7 +55,7 @@ export const Gallery = () => {
             Photo Gallery
           </span>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            Memories at <span className="text-gradient">RGD School</span>
+            Memories at <span className="text-gradient">KakshaOne</span>
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
             Explore the vibrant life at our school through these captured moments

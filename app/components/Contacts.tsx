@@ -10,7 +10,7 @@ const contactInfo = [
   {
     icon: MapPin,
     title: "Address",
-    details: ["RGD School Campus", "Bhurapur near Masjid", "Bijnor, UP - 246762"],
+    details: ["KakshaOne Campus", "Bhurapur near Masjid", "Bijnor, UP - 246762"],
   },
   {
     icon: Phone,
@@ -20,7 +20,7 @@ const contactInfo = [
   {
     icon: Mail,
     title: "Email",
-    details: ["info@rgdschool.edu", "admissions@rgdschool.edu"],
+    details: ["info@kakshaone.edu", "admissions@kakshaone.edu"],
   },
   {
     icon: Clock,

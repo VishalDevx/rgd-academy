@@ -1,128 +1,280 @@
-# RGD School – SaaS (Next.js + TypeScript + Prisma + PostgreSQL)
+# KakshaOne
 
-## Prerequisites
-- Node.js 18+
-- PostgreSQL database URL in your env (`DATABASE_URL`)
-- Strong `NEXTAUTH_SECRET`
+<div align="center">
 
-## Setup
-1. Install deps:
-   ```bash
-   npm install
-   ```
-2. Set env vars (create `.env`):
-   ```bash
-   DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB_NAME?schema=public
-   NEXTAUTH_SECRET=your-strong-secret
-   NEXTAUTH_URL=http://localhost:3000
-   # Supabase (uploads/notifications features)
-   SUPABASE_URL=...
-   SUPABASE_SERVICE_ROLE_KEY=...
+### Open-Source School Management Platform
 
-   # Vercel Cron protection (either works)
-   CRON_SECRET_TOKEN=...
-   # or (Vercel-native)
-   CRON_SECRET=...
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-6.18-2D3748?logo=prisma)](https://www.prisma.io/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql)](https://www.postgresql.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss)](https://tailwindcss.com/)
+[![Razorpay](https://img.shields.io/badge/Razorpay-Payments-02042B?logo=razorpay)](https://razorpay.com/)
 
-   # Upstash (login rate limiting)
-   UPSTASH_REDIS_REST_URL=...
-   UPSTASH_REDIS_REST_TOKEN=...
-   ```
-3. Generate Prisma client and run migrations:
-   ```bash
-   npx prisma generate
-   npx prisma migrate deploy
-   # or during dev: npx prisma migrate dev
-   ```
-4. Seed sample data (optional):
-   ```bash
-   npm run seed
-   ```
-5. Run locally:
-   ```bash
-   npm run dev
-   ```
+**A production-ready, multi-tenant school management system with fee management, online payments, and super admin platform.**
 
-## Roles
-- ADMIN, STAFF (email + password)
-- STUDENT (Aadhar + password)
+[Features](#features) • [Demo](#demo) • [Getting Started](#getting-started) • [Architecture](#architecture) • [Contributing](CONTRIBUTING.md)
 
-Login test users (if seeded):
-- admin@school.com / Admin@123
-- staff@school.com / Staff@123
-- student@school.com / Student@123
+</div>
 
-## Deploy to Vercel
-- Push repo to GitHub/GitLab
-- Create Vercel project
-- Set Environment Variables in Vercel:
-  - `DATABASE_URL`
-  - `NEXTAUTH_SECRET`
-  - `NEXTAUTH_URL` (e.g., your Vercel domain)
-  - `SUPABASE_URL`
-  - `SUPABASE_SERVICE_ROLE_KEY`
-  - `RAZORPAY_KEY_ID` (if using Razorpay)
-  - `RAZORPAY_KEY_SECRET` (if using Razorpay)
-  - `CRON_SECRET_TOKEN` (shared secret for cron routes; supported via `Authorization: Bearer` or `x-cron-token`)
-    - Alternatively set Vercel’s `CRON_SECRET` env var and it will call cron jobs with `Authorization: Bearer $CRON_SECRET`
-  - `UPSTASH_REDIS_REST_URL`
-  - `UPSTASH_REDIS_REST_TOKEN`
-- Vercel runs `npm install` (triggers `postinstall: prisma generate`) and `next build`
-- Run migrations via Vercel CLI or a one-off job:
-  ```bash
-  npx prisma migrate deploy
-  ```
+---
 
-## Notes
-- Middleware enforces role-based access and redirects.
-- Per-role layouts include a sidebar from `app/config/sidebarItem.ts`.
-- Prisma client is in `lib/prisma.ts`.
- - Subscription tiers stored in `SchoolSettings.tier` (BASIC/PRO/ENTERPRISE) with optional `featureFlags` overrides.
- - Feature gating helper in `app/lib/features.ts`.
+## Features
 
-## Cron jobs (single school)
-- Student promotion (year-end):
-  - Route: `POST /api/cron/promote-students`
-  - Auth: ADMIN session, or cron secret via `Authorization: Bearer $CRON_SECRET_TOKEN` / `x-cron-token: $CRON_SECRET_TOKEN`
-  - Vercel Cron: configured in `vercel.json` (UTC schedule; adjust as needed)
-- Attendance reminder (daily):
-  - Route: `POST /api/cron/attendance-reminder`
-  - Auth: header `x-cron-token: $CRON_SECRET_TOKEN`
-  - Vercel Cron example (daily): `0 15 * * *` (15:00 UTC)
+### :school: School Management
+| Feature | Description |
+|---------|-------------|
+| **Student Management** | Admission, profiles, attendance tracking, certificates, ID cards |
+| **Staff Management** | Teacher profiles, assignments, payroll tracking |
+| **Class & Subject Management** | Create classes, assign subjects, manage timetables |
+| **Exam & Results** | Grade entry, report cards, progress tracking |
+| **Homework & Study Material** | Upload assignments, share learning resources |
+| **Timetable** | Visual class schedules with teacher assignments |
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+### :moneybag: Fee Management
+- **Monthly-only fee model** — Simple, predictable billing
+- **Fee Categories & Structures** — Flexible fee configuration
+- **Payment Tracking** — PENDING / PARTIAL / PAID status with receipt generation
+- **Online Payments** — Razorpay integration for student fees
+- **Per-School Razorpay** — Each school connects their own account; money goes directly to them
+- **Downloadable Receipts & Slips** — PDF fee receipts and annual statements
+- **Audit Logging** — All fee transactions tracked
+
+### :cloud: Multi-Tenant SaaS
+- **Organization-based isolation** — Each school is a separate tenant
+- **6 Pricing Tiers** — Free Trial, Starter, Basic, Growth, Professional, Enterprise
+- **Feature Gating** — Plan-based limits on students, staff, storage, and features
+- **Subscription Lifecycle** — Trial → Active → Past Due → Suspended → Cancelled
+- **Super Admin Platform** — Manage all schools, plans, and subscriptions
+- **School Registration** — Self-service 4-step registration wizard
+- **Landing Page** — Marketing site with pricing, features grid, FAQ
+
+### :lock: Security & Access Control
+- **Role-based access** — ADMIN, STAFF, STUDENT, SUPER_ADMIN roles
+- **Rate limiting** — Login brute-force protection via Upstash Redis
+- **Session management** — NextAuth.js with JWT
+- **Audit logging** — All CRUD operations tracked
+- **Input validation** — Zod schemas throughout
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Framework** | Next.js 15 (App Router) |
+| **Language** | TypeScript (strict mode) |
+| **Database** | PostgreSQL 16 |
+| **ORM** | Prisma 6 |
+| **Auth** | NextAuth.js v4 |
+| **UI** | Tailwind CSS 4 + shadcn/ui |
+| **Payments** | Razorpay |
+| **File Storage** | Supabase |
+| **Rate Limiting** | Upstash Redis |
+| **PDF Generation** | jsPDF + html2canvas |
+
+## Demo
+
+### Landing Page
+![Landing Page](public/result.png)
+
+### Student Fee Dashboard
+- View fee summary (total paid, pending, all payments)
+- Pay fees online via Razorpay
+- Download fee statements
+
+### Admin Panel
+- Full school settings with Razorpay key configuration
+- Fee structure and payment management
+- Student and staff management
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 20+
+- PostgreSQL 16+
+- Razorpay account (for online payments)
+- (Optional) Supabase account for file uploads
+- (Optional) Upstash Redis for rate limiting
+
+### Quick Start
 
 ```bash
+# Clone the repository
+git clone https://github.com/yourusername/kakshaone.git
+cd kakshaone
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your database URL and secrets
+
+# Initialize database
+npx prisma generate
+npx prisma migrate dev
+npm run seed
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Environment Variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+# Required
+DATABASE_URL=postgresql://user:password@host:5432/dbname
+NEXTAUTH_SECRET=your-strong-secret
+NEXTAUTH_URL=http://localhost:3000
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Razorpay (for online fee payments)
+RAZORPAY_KEY_ID=rzp_live_...
+RAZORPAY_KEY_SECRET=...
+RAZORPAY_WEBHOOK_SECRET=...
 
-## Learn More
+# Supabase (for file uploads)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
-To learn more about Next.js, take a look at the following resources:
+# Rate Limiting (optional)
+UPSTASH_REDIS_REST_URL=https://your-region.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your-token
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Cron Jobs
+CRON_SECRET_TOKEN=your-cron-secret
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Docker
 
-## Deploy on Vercel
+```bash
+# Build and run with Docker Compose
+docker-compose up -d
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# This starts PostgreSQL + the app
+# App available at http://localhost:3000
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│                    Next.js 15                    │
+│  ┌──────────┐  ┌──────────┐  ┌───────────────┐ │
+│  │   Pages  │  │API Routes│  │  Middleware    │ │
+│  └──────────┘  └──────────┘  └───────────────┘ │
+│  ┌──────────────────────────────────────────┐   │
+│  │          NextAuth.js (Auth)              │   │
+│  └──────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────┘
+                       │
+        ┌──────────────┼──────────────┐
+        ▼              ▼              ▼
+┌──────────────┐ ┌──────────┐ ┌──────────────┐
+│  PostgreSQL  │ │ Razorpay │ │   Supabase   │
+│  (Prisma)    │ │ Payments │ │    Files     │
+└──────────────┘ └──────────┘ └──────────────┘
+```
+
+### Multi-Tenant Model
+
+Each school is an **Organization** with its own:
+- Slug-based URL routing (`/app/[slug]/`)
+- Isolated data (students, staff, fees, exams)
+- Razorpay payment keys
+- Subscription plan with feature limits
+
+## API Routes
+
+| Route | Description |
+|-------|-------------|
+| `POST /api/auth/register-school` | Register new school |
+| `GET /api/plans` | List pricing plans |
+| `POST /api/fees/create-order` | Create Razorpay order for fee payment |
+| `POST /api/fees/verify-payment` | Verify Razorpay payment |
+| `GET/PUT /api/organization/razorpay` | Manage school Razorpay keys |
+| `POST /api/webhooks/razorpay-fees` | Webhook for fee payments |
+| `GET /api/fees/payment-config` | Check if online payments enabled |
+| `GET /api/fees/payments` | List/manage fee payments |
+| `GET /api/fees/categories` | Manage fee categories |
+| `GET /api/fees/structures` | Manage fee structures |
+
+## Testing
+
+```bash
+# Run tests
+npm test
+
+# Run linter
+npm run lint
+
+# Build for production
+npm run build
+```
+
+## Deployment
+
+### Vercel (Recommended)
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy
+vercel --prod
+```
+
+See [VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md) for detailed instructions.
+
+### Docker
+
+```bash
+# Build image
+docker build -t kakshaone .
+
+# Run
+docker run -p 3000:3000 --env-file .env kakshaone
+```
+
+## Project Structure
+
+```
+rgd-academy/
+├── app/
+│   ├── admin/           # Admin dashboard
+│   ├── api/             # API routes
+│   ├── components/      # Shared UI components
+│   ├── lib/             # Auth, utilities, feature gates
+│   ├── platform/        # Super admin platform
+│   ├── staff/           # Staff pages
+│   ├── student/         # Student pages
+│   ├── register-school/ # School registration
+│   └── payment/         # Razorpay checkout
+├── lib/                 # Prisma client
+├── prisma/              # Schema & migrations
+├── types/               # TypeScript definitions
+├── public/              # Static assets
+└── script/              # Utility scripts
+```
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+- [Documentation](https://github.com/yourusername/kakshaone/wiki)
+- [Issue Tracker](https://github.com/yourusername/kakshaone/issues)
+- [Security Policy](SECURITY.md)
+
+---
+
+<div align="center">
+Made with ❤️ for schools everywhere
+</div>

@@ -93,6 +93,7 @@ export async function POST(req: NextRequest) {
         fileUrl: fileUrl ?? null,
         videoLink: videoLink ?? null,
         type,
+        organizationId: session.user.organizationId ?? "",
       },
     });
 

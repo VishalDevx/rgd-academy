@@ -85,6 +85,7 @@ export async function promoteAllActiveStudents() {
           gradeCode: cls.gradeCode ?? null,
           name: `${nextGrade}${cls.section ? `-${cls.section}` : ""}`,
           teacherId: null,
+          organizationId: cls.organizationId ?? "",
         },
       }));
 

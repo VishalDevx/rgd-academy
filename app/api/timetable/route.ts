@@ -74,6 +74,7 @@ export async function POST(req: NextRequest) {
         startTime,
         endTime,
         room: room ?? null,
+        organizationId: session.user.organizationId ?? "",
       },
     });
 

@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
         gradeCode: body.gradeCode ?? null,
         teacherId: body.teacherId ?? null,
         academicSessionId: body.academicSessionId,
+        organizationId: session.user.organizationId ?? "",
       },
     });
 

@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
     data: {
       name: body.name,
       description: body.description ?? null,
+      organizationId: session.user.organizationId ?? "",
     },
   });
 

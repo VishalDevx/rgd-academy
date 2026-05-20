@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
         title,
         content,
         createdBy: session.user.id,
+        organizationId: session.user.organizationId ?? "",
       },
     });
 

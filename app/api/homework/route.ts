@@ -87,6 +87,7 @@ export async function POST(req: NextRequest) {
         description: body.description || null,
         dueDate: new Date(body.dueDate),
         attachment: body.attachment || null,
+        organizationId: session.user.organizationId ?? "",
       },
     });
 

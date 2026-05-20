@@ -84,7 +84,7 @@ Set these in your Vercel project settings:
 
 - Prisma Client is auto-generated on `npm install` via `postinstall` script
 - Database migrations must be run manually after first deployment
-- Image uploads require Supabase storage bucket named `rgd-school`
+- Image uploads require Supabase storage bucket named `kakshaone`
 - Rate limiting requires Upstash Redis (free tier available)
 
 ## Troubleshooting
@@ -100,7 +100,7 @@ Set these in your Vercel project settings:
 - Ensure SSL is enabled if required
 
 ### Image Upload Issues
-- Verify Supabase bucket `rgd-school` exists
+- Verify Supabase bucket `kakshaone` exists
 - Check `SUPABASE_SERVICE_ROLE_KEY` has correct permissions
 - Verify bucket is public or CORS is configured
 

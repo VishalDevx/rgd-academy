@@ -133,6 +133,7 @@ export async function POST(request: NextRequest) {
             date,
             status: record.status,
             markedById: staff.id,
+            organizationId: session.user.organizationId ?? "",
           },
         });
 

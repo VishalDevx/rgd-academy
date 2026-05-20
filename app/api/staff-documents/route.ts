@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   const buffer = Buffer.from(await file.arrayBuffer());
 
   const { error: uploadError } = await getSupabaseClient().storage
-    .from("rgd-school")
+    .from("kakshaone")
     .upload(fileName, buffer, { contentType: file.type, upsert: true });
 
   if (uploadError) {
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { data: publicUrl } = getSupabaseClient().storage
-    .from("rgd-school")
+    .from("kakshaone")
     .getPublicUrl(fileName);
 
   const doc = await db.staffDocument.create({
