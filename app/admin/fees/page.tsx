@@ -95,7 +95,7 @@ export default async function AdminFeesPage() {
   const totalStructures = structuresRaw.length;
 
   return (
-    <div className="min-h-screen p-6 md:p-8 space-y-6 bg-gradient-to-b from-gray-50 to-white">
+    <div className="min-h-screen p-6 md:p-8 space-y-6">
       <div className="flex flex-col md:flex-row items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-800">Fee Management</h1>

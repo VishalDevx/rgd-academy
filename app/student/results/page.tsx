@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { format } from "date-fns";
 import {
@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import Link from "next/link";
+import Pagination from "@/app/components/Pagination";
 
 interface Result {
   id: string;
@@ -47,6 +48,7 @@ export default function StudentResultsPage() {
   const [results, setResults] = useState<Result[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedExam, setSelectedExam] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     async function fetchResults() {
@@ -91,6 +93,10 @@ export default function StudentResultsPage() {
 
   const examGroups = Object.values(resultsByExam);
   const uniqueExams = examGroups.map((g) => g.exam);
+
+  const PAGE_SIZE = 5;
+  const totalPages = Math.ceil(examGroups.length / PAGE_SIZE);
+  const paginatedGroups = examGroups.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // Calculate overall statistics
   const totalMarks = results.reduce((sum, r) => sum + r.marks, 0);
@@ -333,7 +339,7 @@ export default function StudentResultsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {examGroups.map((group) => {
+              {paginatedGroups.map((group) => {
                 const examTotal = group.results.reduce((sum, r) => sum + r.marks, 0);
                 const examMax = group.results.reduce((sum, r) => sum + r.maxMarks, 0);
                 const examPercentage = Math.round((examTotal / examMax) * 100);
@@ -367,6 +373,16 @@ export default function StudentResultsPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {examGroups.length > 0 && (
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={examGroups.length}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
+        />
       )}
 
       {results.length === 0 && (

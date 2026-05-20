@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import Link from "next/link";
 import {
   Table,
@@ -82,7 +81,7 @@ export default function SubjectsTableClient({ subjects }: Props) {
 
       <Table>
         <TableHeader>
-          <TableRow className="bg-gradient-to-r from-indigo-100 via-purple-100 to-pink-100">
+          <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Code</TableHead>
             <TableHead>Class ID</TableHead>
@@ -99,12 +98,7 @@ export default function SubjectsTableClient({ subjects }: Props) {
             </TableRow>
           ) : (
             paginated.map((s) => (
-              <motion.tr
-                key={s.id}
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="hover:bg-gray-50 transition-colors"
-              >
+              <TableRow key={s.id}>
                 <TableCell>{s.name}</TableCell>
                 <TableCell>{s.code}</TableCell>
                 <TableCell>{s.classId ?? "-"}</TableCell>
@@ -125,7 +119,7 @@ export default function SubjectsTableClient({ subjects }: Props) {
                     </Button>
                   </div>
                 </TableCell>
-              </motion.tr>
+              </TableRow>
             ))
           )}
         </TableBody>

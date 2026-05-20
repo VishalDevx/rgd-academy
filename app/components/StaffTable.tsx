@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/ui/table";
@@ -34,8 +33,6 @@ interface Staff {
 type Props = { staff: Staff[] };
 
 const PAGE_SIZE = 10;
-
-const MotionTableRow = motion(TableRow);
 
 export default function StaffTable({ staff }: Props) {
   const router = useRouter();
@@ -110,7 +107,7 @@ export default function StaffTable({ staff }: Props) {
 
       <Table className="min-w-full divide-y divide-gray-200">
         <TableHeader>
-          <TableRow className="bg-gradient-to-r from-indigo-100 via-purple-100 to-pink-100">
+          <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Designation</TableHead>
@@ -130,11 +127,7 @@ export default function StaffTable({ staff }: Props) {
             </TableRow>
           ) : (
             paginated.map((s) => (
-              <MotionTableRow
-                key={s.id}
-                whileHover={{ scale: 1.02, backgroundColor: "rgba(243,244,246,0.5)" }}
-                transition={{ duration: 0.2 }}
-              >
+              <TableRow key={s.id}>
                 <TableCell>{s.user.name}</TableCell>
                 <TableCell>{s.user.email}</TableCell>
                 <TableCell>{s.designation}</TableCell>
@@ -212,7 +205,7 @@ export default function StaffTable({ staff }: Props) {
                     </Button>
                   </div>
                 </TableCell>
-              </MotionTableRow>
+              </TableRow>
             ))
           )}
         </TableBody>

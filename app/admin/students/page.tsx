@@ -5,6 +5,7 @@ import { db } from "@/lib/prisma";
 import StudentsTable from "./StudentTables";
 import { authOption } from "@/app/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
+import { Button } from "@/app/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ export default async function AdminStudentsPage() {
   ]);
 
   return (
-    <div className="p-6 md:p-8 min-h-screen bg-gradient-to-b from-gray-50 to-white space-y-6">
+    <div className="p-6 md:p-8 min-h-screen space-y-6">
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="shadow-xl rounded-xl">
           <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Students</CardTitle></CardHeader>
@@ -46,22 +47,16 @@ export default async function AdminStudentsPage() {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight text-gray-800">Students</h1>
         <div className="flex gap-2">
-          <Link
-            href="/admin/students/import"
-            className="px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white text-sm font-semibold shadow-md transition-all"
-          >
-            Bulk Import
-          </Link>
-          <Link
-            href="/admin/students/new"
-            className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white text-sm font-semibold shadow-md transition-all"
-          >
-            + Add Student
-          </Link>
+          <Button asChild variant="outline">
+            <Link href="/admin/students/import">Bulk Import</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/admin/students/new">+ Add Student</Link>
+          </Button>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4">
+      <div className="bg-white rounded-xl border p-4">
         <StudentsTable students={students} />
       </div>
     </div>

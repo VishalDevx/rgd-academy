@@ -107,7 +107,7 @@ export default function PromotionPage() {
         <Button
           onClick={handlePromote}
           disabled={promoting || promotableClasses.length === 0}
-          className="bg-gradient-to-r from-orange-500 to-red-500 text-white"
+
         >
           {promoting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Promoting...</> : <><ArrowUpRight className="h-4 w-4 mr-2" /> Promote All Students</>}
         </Button>

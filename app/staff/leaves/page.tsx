@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import Pagination from "@/app/components/Pagination";
 
 interface Leave {
   id: string;
@@ -26,6 +27,11 @@ export default function StaffLeavesPage() {
   const [leaves, setLeaves] = useState<Leave[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [page, setPage] = useState(1);
+
+  const PAGE_SIZE = 10;
+  const totalPages = Math.ceil(leaves.length / PAGE_SIZE);
+  const paginated = leaves.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [reason, setReason] = useState("");
@@ -130,7 +136,7 @@ export default function StaffLeavesPage() {
               {leaves.length === 0 ? (
                 <TableRow><TableCell colSpan={5} className="text-center py-8 text-gray-500">No leave applications</TableCell></TableRow>
               ) : (
-                leaves.map((l) => (
+                paginated.map((l) => (
                   <TableRow key={l.id}>
                     <TableCell>{new Date(l.fromDate).toLocaleDateString()}</TableCell>
                     <TableCell>{new Date(l.toDate).toLocaleDateString()}</TableCell>
@@ -148,6 +154,14 @@ export default function StaffLeavesPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        total={leaves.length}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+      />
     </div>
   );
 }

@@ -26,6 +26,7 @@ import {
   TableRow,
 } from "@/app/components/ui/table";
 import { toast } from "sonner";
+import Pagination from "@/app/components/Pagination";
 
 interface FeeCategory {
   id: string;
@@ -34,6 +35,8 @@ interface FeeCategory {
   createdAt: string;
 }
 
+const PAGE_SIZE = 10;
+
 export default function FeeCategoriesPage() {
   const [categories, setCategories] = useState<FeeCategory[]>([]);
   const [open, setOpen] = useState(false);
@@ -41,6 +44,10 @@ export default function FeeCategoriesPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+
+  const totalPages = Math.ceil(categories.length / PAGE_SIZE);
+  const paginated = categories.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const fetchCategories = async () => {
     try {
@@ -176,14 +183,14 @@ export default function FeeCategoriesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {categories.length === 0 ? (
+              {paginated.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center text-muted-foreground">
                     No categories found
                   </TableCell>
                 </TableRow>
               ) : (
-                categories.map((cat) => (
+                paginated.map((cat) => (
                   <TableRow key={cat.id}>
                     <TableCell className="font-medium">{cat.name}</TableCell>
                     <TableCell>{cat.description ?? "—"}</TableCell>
@@ -203,6 +210,14 @@ export default function FeeCategoriesPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        total={categories.length}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+      />
     </div>
   );
 }

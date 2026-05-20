@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Plus } from "lucide-react";
+import Pagination from "@/app/components/Pagination";
 
 interface Homework {
   id: string;
@@ -22,10 +23,16 @@ interface Homework {
   _count: { submissions: number };
 }
 
+const PAGE_SIZE = 10;
+
 export default function StaffHomeworkPage() {
   const router = useRouter();
   const [homework, setHomework] = useState<Homework[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+
+  const totalPages = Math.ceil(homework.length / PAGE_SIZE);
+  const paginated = homework.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   useEffect(() => {
     async function load() {
@@ -64,19 +71,20 @@ export default function StaffHomeworkPage() {
           ) : homework.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">No homework assigned yet.</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Class</TableHead>
-                  <TableHead>Subject</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead>Submissions</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {homework.map((h) => (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Class</TableHead>
+                    <TableHead>Subject</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead>Submissions</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginated.map((h) => (
                   <TableRow key={h.id}>
                     <TableCell className="font-medium">{h.title}</TableCell>
                     <TableCell>{h.class.name}</TableCell>
@@ -96,6 +104,14 @@ export default function StaffHomeworkPage() {
                 ))}
               </TableBody>
             </Table>
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={homework.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setPage}
+            />
+          </>
           )}
         </CardContent>
       </Card>

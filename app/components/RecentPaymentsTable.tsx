@@ -1,7 +1,6 @@
 // app/admin/fees/RecentPaymentsTable.tsx
 "use client";
 
-import { motion } from "framer-motion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/ui/table";
 import { Badge } from "@/app/components/ui/badge";
 
@@ -19,13 +18,11 @@ type Props = {
   payments: PaymentRecord[];
 };
 
-const MotionTableRow = motion(TableRow);
-
 export default function RecentPaymentsTable({ payments }: Props) {
   return (
     <Table className="min-w-full divide-y divide-gray-200">
       <TableHeader>
-        <TableRow className="bg-gradient-to-r from-indigo-100 via-purple-100 to-pink-100">
+        <TableRow>
           <TableHead>Student</TableHead>
           <TableHead className="hidden sm:table-cell">Structure</TableHead>
           <TableHead className="hidden md:table-cell">Date</TableHead>
@@ -35,12 +32,7 @@ export default function RecentPaymentsTable({ payments }: Props) {
       </TableHeader>
       <TableBody>
         {payments.map((p) => (
-          <MotionTableRow
-            key={p.id}
-            whileHover={{ scale: 1.02, backgroundColor: "rgba(243,244,246,0.5)" }}
-            transition={{ duration: 0.2 }}
-            className="cursor-pointer"
-          >
+          <TableRow key={p.id} className="cursor-pointer">
             <TableCell>
               <div className="font-medium">{p.studentName}</div>
               <div className="text-sm text-muted-foreground hidden md:inline">{p.studentEmail}</div>
@@ -58,7 +50,7 @@ export default function RecentPaymentsTable({ payments }: Props) {
                 {p.status}
               </Badge>
             </TableCell>
-          </MotionTableRow>
+          </TableRow>
         ))}
       </TableBody>
     </Table>

@@ -3,8 +3,6 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { motion } from "framer-motion";
-
 import {
   Table,
   TableBody,
@@ -140,10 +138,10 @@ export default function StudentsTable({ students }: { students: Student[] }) {
             placeholder="Search students..."
             value={query}
             onChange={(e) => { setQuery(e.target.value); setPage(1); }}
-            className="w-64 border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-300"
+            className="w-64"
           />
           <Select value={selectedClass} onValueChange={(v) => { setSelectedClass(v); setPage(1); }}>
-            <SelectTrigger className="w-48 border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-300">
+            <SelectTrigger className="w-48">
               <SelectValue placeholder="Select Class" />
             </SelectTrigger>
             <SelectContent>
@@ -165,10 +163,10 @@ export default function StudentsTable({ students }: { students: Student[] }) {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto border rounded-xl shadow-lg bg-white">
+      <div className="overflow-x-auto">
         <Table className="min-w-full">
           <TableHeader>
-            <TableRow className="bg-gradient-to-r from-indigo-100 via-purple-100 to-pink-100 text-gray-800">
+            <TableRow>
               <TableHead>Profile</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
@@ -188,11 +186,9 @@ export default function StudentsTable({ students }: { students: Student[] }) {
               </TableRow>
             ) : (
               paginated.map((s) => (
-                <motion.tr
+                <TableRow
                   key={s.id}
                   className="cursor-pointer"
-                  whileHover={{ scale: 1.02, backgroundColor: "rgba(243,244,246,0.5)" }}
-                  transition={{ duration: 0.15 }}
                   onClick={() => router.push(`/admin/students/${s.id}`)}
                 >
                   <TableCell>
@@ -289,7 +285,7 @@ export default function StudentsTable({ students }: { students: Student[] }) {
                       </Dialog>
                     </div>
                   </TableCell>
-                </motion.tr>
+                </TableRow>
               ))
             )}
           </TableBody>

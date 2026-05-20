@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/app/components/ui/badge";
 import { Wallet, Receipt, AlertCircle, CheckCircle2, Clock } from "lucide-react";
 import Link from "next/link";
+import Pagination from "@/app/components/Pagination";
 
 interface FeePayment {
   id: string;
@@ -52,6 +53,7 @@ interface FeesData {
 export default function StudentFeesPage() {
   const [data, setData] = useState<FeesData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     async function fetchFees() {
@@ -69,6 +71,11 @@ export default function StudentFeesPage() {
     }
     fetchFees();
   }, []);
+
+  const feePayments = data?.feePayments ?? [];
+  const PAGE_SIZE = 10;
+  const totalPages = Math.ceil(feePayments.length / PAGE_SIZE);
+  const paginatedPayments = feePayments.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   if (loading) {
     return (
@@ -307,7 +314,7 @@ export default function StudentFeesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.feePayments.map((payment) => (
+                  {paginatedPayments.map((payment) => (
                     <tr
                       key={payment.id}
                       className="border-b hover:bg-gray-50 transition-colors"
@@ -348,6 +355,15 @@ export default function StudentFeesPage() {
               <Wallet className="h-12 w-12 mx-auto mb-4 text-gray-400" />
               <p className="text-gray-500">No payment history found</p>
             </div>
+          )}
+          {paginatedPayments.length > 0 && (
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={feePayments.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setPage}
+            />
           )}
         </CardContent>
       </Card>

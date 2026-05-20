@@ -47,6 +47,7 @@ const StudentEditSchema = z.object({
   caste: z.string().optional(),
   udiseCode: z.string().optional(),
   contactNo: z.string().optional(),
+  usesTransport: z.boolean().optional(),
 });
 
 export type StudentEditValues = z.infer<typeof StudentEditSchema>;
@@ -71,6 +72,7 @@ interface EditStudentFormProps {
     caste: string | null;
     udiseCode: string | null;
     contactNo: string | null;
+    usesTransport?: boolean;
     user: {
       name: string;
       email: string;
@@ -111,6 +113,7 @@ export default function EditStudentForm({ student, onSubmit }: EditStudentFormPr
       caste: student.caste ?? "",
       udiseCode: student.udiseCode ?? "",
       contactNo: student.contactNo ?? "",
+      usesTransport: student.usesTransport ?? false,
     },
   });
 
@@ -124,8 +127,9 @@ export default function EditStudentForm({ student, onSubmit }: EditStudentFormPr
 
       // Append text fields
       for (const [key, value] of Object.entries(values)) {
-        if (value) formData.append(key, value);
+        if (value !== undefined) formData.append(key, String(value));
       }
+      formData.set("usesTransport", values.usesTransport ? "yes" : "no");
 
       // Append file if selected
       if (file) formData.append("file", file);
@@ -336,6 +340,32 @@ export default function EditStudentForm({ student, onSubmit }: EditStudentFormPr
                   )}
                 />
               ))}
+
+              {/* USES TRANSPORT */}
+              <FormField
+                control={form.control}
+                name="usesTransport"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Uses Transport</FormLabel>
+                    <Select
+                      onValueChange={(v) => field.onChange(v === "yes")}
+                      defaultValue={field.value ? "yes" : "no"}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="no">No</SelectItem>
+                        <SelectItem value="yes">Yes</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               {/* FILE */}
               <div className="md:col-span-2">

@@ -10,6 +10,7 @@ import { Badge } from "@/app/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/app/components/ui/dialog";
 import { Pencil, Plus, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import Pagination from "@/app/components/Pagination";
 
 interface Structure {
   id: string;
@@ -25,12 +26,18 @@ interface Structure {
   class: { name: string } | null;
 }
 
+const PAGE_SIZE = 10;
+
 export default function FeeStructuresPage() {
   const router = useRouter();
   const [structures, setStructures] = useState<Structure[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [page, setPage] = useState(1);
+
+  const totalPages = Math.ceil(structures.length / PAGE_SIZE);
+  const paginated = structures.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   useEffect(() => {
     fetch("/api/fees/structures")
@@ -85,10 +92,10 @@ export default function FeeStructuresPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {structures.length === 0 ? (
+              {paginated.length === 0 ? (
                 <TableRow><TableCell colSpan={9} className="text-center py-8 text-gray-500">No fee structures found</TableCell></TableRow>
               ) : (
-                structures.map((s) => (
+                paginated.map((s) => (
                   <TableRow key={s.id}>
                     <TableCell>{s.name || "Untitled"}</TableCell>
                     <TableCell>{s.class?.name || "-"}</TableCell>
@@ -135,6 +142,14 @@ export default function FeeStructuresPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        total={structures.length}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+      />
     </div>
   );
 }

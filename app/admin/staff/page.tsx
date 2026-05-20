@@ -24,7 +24,7 @@ export default async function AdminStaffPage() {
   ]);
 
   return (
-    <div className="p-6 space-y-6 bg-gradient-to-b from-gray-50 to-white min-h-screen">
+    <div className="p-6 space-y-6 min-h-screen">
       <div className="flex gap-4">
         <Card className="shadow-xl rounded-xl flex-1">
           <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Staff</CardTitle></CardHeader>
@@ -43,7 +43,7 @@ export default async function AdminStaffPage() {
       <Card className="shadow-xl rounded-xl border border-gray-200">
         <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0">
           <CardTitle className="text-2xl font-bold tracking-tight text-gray-800">Staff</CardTitle>
-          <Button asChild className="mt-2 md:mt-0 bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md hover:shadow-lg">
+          <Button asChild className="mt-2 md:mt-0">
             <Link href="/admin/staff/new">+ New Staff</Link>
           </Button>
         </CardHeader>

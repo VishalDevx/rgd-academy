@@ -11,6 +11,7 @@ import {
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Eye, CheckCircle2, Clock } from "lucide-react";
+import Pagination from "@/app/components/Pagination";
 
 interface HomeworkItem {
   id: string;
@@ -28,6 +29,11 @@ export default function StudentHomeworkPage() {
   const router = useRouter();
   const [homework, setHomework] = useState<HomeworkItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+
+  const PAGE_SIZE = 10;
+  const totalPages = Math.ceil(homework.length / PAGE_SIZE);
+  const paginated = homework.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const getSubmissionStatus = (h: HomeworkItem) => {
     if (h.submissions && h.submissions.length > 0) {
@@ -65,19 +71,20 @@ export default function StudentHomeworkPage() {
           ) : homework.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">No homework assigned.</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Subject</TableHead>
-                  <TableHead>Teacher</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {homework.map((h) => {
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Subject</TableHead>
+                    <TableHead>Teacher</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginated.map((h) => {
                   const status = getSubmissionStatus(h);
                   return (
                     <TableRow key={h.id}>
@@ -113,6 +120,14 @@ export default function StudentHomeworkPage() {
                 })}
               </TableBody>
             </Table>
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={homework.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setPage}
+            />
+          </>
           )}
         </CardContent>
       </Card>

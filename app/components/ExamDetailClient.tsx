@@ -22,6 +22,8 @@ import {
 import { Lock, Unlock, Pencil, ArrowLeft, Calendar, Clock, Users } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { usePDF } from "@/app/lib/usePDF";
+import { PDFDownloadButton } from "@/app/components/PDFDownloadButton";
 
 interface Subject {
   id: string;
@@ -59,6 +61,7 @@ export default function ExamDetailClient({ exam }: { exam: ExamDetail }) {
   const router = useRouter();
   const [locked, setLocked] = useState(exam.isLocked);
   const [toggling, setToggling] = useState(false);
+  const pdf = usePDF(`exam-${exam.id}`);
 
   const now = new Date();
   const startDate = new Date(exam.startDate);
@@ -111,6 +114,7 @@ export default function ExamDetailClient({ exam }: { exam: ExamDetail }) {
         </div>
 
         <div className="flex gap-2">
+          <PDFDownloadButton onClick={pdf.generatePDF} loading={pdf.loading} label="PDF" />
           <Button
             variant={locked ? "outline" : "destructive"}
             size="sm"
@@ -128,6 +132,7 @@ export default function ExamDetailClient({ exam }: { exam: ExamDetail }) {
         </div>
       </div>
 
+      <div ref={pdf.ref}>
       {/* Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <InfoCard icon={Calendar} label="Start Date" value={format(startDate, "MMM dd, yyyy")} />
@@ -188,6 +193,7 @@ export default function ExamDetailClient({ exam }: { exam: ExamDetail }) {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

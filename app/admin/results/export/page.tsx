@@ -88,7 +88,7 @@ export default function ResultsExportPage() {
   };
 
   return (
-    <div className="p-6 md:p-8 min-h-screen bg-gradient-to-b from-gray-50 to-white space-y-6">
+    <div className="p-6 md:p-8 min-h-screen space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-gray-800">Export Results</h1>
         <p className="text-sm text-muted-foreground">Download class-wise exam results as CSV or JSON</p>

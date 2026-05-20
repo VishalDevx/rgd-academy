@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import {
@@ -29,6 +29,7 @@ import {
 } from "@/app/components/ui/table";
 import { Badge } from "@/app/components/ui/badge";
 import { BookOpen, Plus, Trash2, FileText, Video, Link as LinkIcon, ScrollText, ClipboardList } from "lucide-react";
+import Pagination from "@/app/components/Pagination";
 
 interface Class {
   id: string;
@@ -86,6 +87,7 @@ export default function AdminStudyMaterialsPage() {
 
   const [filterClassId, setFilterClassId] = useState("all");
   const [filterSubjectId, setFilterSubjectId] = useState("all");
+  const [page, setPage] = useState(1);
 
   const [showForm, setShowForm] = useState(false);
   const [formClassId, setFormClassId] = useState("");
@@ -202,6 +204,10 @@ export default function AdminStudyMaterialsPage() {
     (s) => formClassId === "all" || s.classId === formClassId
   );
 
+  const PAGE_SIZE = 10;
+  const totalPages = Math.ceil(materials.length / PAGE_SIZE);
+  const paginated = materials.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -297,19 +303,19 @@ export default function AdminStudyMaterialsPage() {
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex items-center gap-2">
               <Label>Class:</Label>
-              <Select value={filterClassId} onValueChange={setFilterClassId}>
-                <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Classes</SelectItem>
-                  {classes.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2">
-              <Label>Subject:</Label>
-              <Select value={filterSubjectId} onValueChange={setFilterSubjectId}>
+                <Select value={filterClassId} onValueChange={(v) => { setFilterClassId(v); setPage(1); }}>
+                  <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Classes</SelectItem>
+                    {classes.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Label>Subject:</Label>
+                <Select value={filterSubjectId} onValueChange={(v) => { setFilterSubjectId(v); setPage(1); }}>
                 <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Subjects</SelectItem>
@@ -325,6 +331,7 @@ export default function AdminStudyMaterialsPage() {
         </CardHeader>
         <CardContent>
           {materials.length > 0 ? (
+            <>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -337,7 +344,7 @@ export default function AdminStudyMaterialsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {materials.map((m) => (
+                {paginated.map((m) => (
                   <TableRow key={m.id}>
                     <TableCell className="font-medium">{m.title}</TableCell>
                     <TableCell>{m.class.name}</TableCell>
@@ -360,6 +367,14 @@ export default function AdminStudyMaterialsPage() {
                 ))}
               </TableBody>
             </Table>
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={materials.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setPage}
+            />
+            </>
           ) : (
             <div className="text-center py-12">
               <BookOpen className="h-12 w-12 mx-auto mb-4 text-gray-400" />

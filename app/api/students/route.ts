@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
     const caste = form.get("caste") as string | null;
     const udiseCode = form.get("udiseCode") as string | null;
     const contactNo = form.get("contactNo") as string | null;
+    const usesTransport = form.get("usesTransport") === "yes";
 
     const file = form.get("file") as File | null;
 
@@ -112,8 +113,18 @@ export async function POST(req: NextRequest) {
           caste: caste ?? undefined,
           udiseCode,
           contactNo,
+          usesTransport,
         },
       });
+
+      if (usesTransport) {
+        await tx.transportAssignment.create({
+          data: {
+            studentId: student.id,
+            isActive: true,
+          },
+        });
+      }
 
       return { user, student };
     });

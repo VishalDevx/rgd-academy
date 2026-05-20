@@ -49,6 +49,7 @@ interface FormState {
   motherName: string;
   udiseCode: string;
   contactNo: string;
+  usesTransport: string;
 }
 
 export default function NewStudentPage() {
@@ -78,6 +79,7 @@ export default function NewStudentPage() {
     motherName: "",
     udiseCode: "",
     contactNo: "",
+    usesTransport: "no",
   });
 
   useEffect(() => {
@@ -231,6 +233,23 @@ export default function NewStudentPage() {
                 value={form.address}
                 onChange={(e) => onChange("address", e.target.value)}
               />
+            </div>
+
+            {/* USES TRANSPORT */}
+            <div>
+              <Label>Uses Transport</Label>
+              <Select
+                value={form.usesTransport}
+                onValueChange={(v) => onChange("usesTransport", v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="no">No</SelectItem>
+                  <SelectItem value="yes">Yes</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

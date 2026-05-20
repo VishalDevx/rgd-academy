@@ -8,6 +8,7 @@ import { Badge } from "@/app/components/ui/badge";
 import { FileText, Loader2, Eye } from "lucide-react";
 import { CertificateClient } from "@/app/components/CertificateClient";
 import { useSession } from "next-auth/react";
+import Pagination from "@/app/components/Pagination";
 
 interface CertificateData {
   id: string;
@@ -21,6 +22,11 @@ export default function StudentCertificatesPage() {
   const [certificates, setCertificates] = useState<CertificateData[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewId, setViewId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+
+  const PAGE_SIZE = 10;
+  const totalPages = Math.ceil(certificates.length / PAGE_SIZE);
+  const paginated = certificates.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const [studentId, setStudentId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -102,7 +108,7 @@ export default function StudentCertificatesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {certificates.map((c) => (
+                  {paginated.map((c) => (
                     <tr key={c.id} className="border-b hover:bg-gray-50">
                       <td className="py-3 px-3 font-medium">
                         {c.certificateNo}
@@ -129,6 +135,15 @@ export default function StudentCertificatesPage() {
                 </tbody>
               </table>
             </div>
+          )}
+          {certificates.length > 0 && (
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={certificates.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setPage}
+            />
           )}
         </CardContent>
       </Card>

@@ -64,6 +64,9 @@ export async function PUT(
     if (activeRaw === "true") activeToggle = true;
     else if (activeRaw === "false") activeToggle = false;
 
+    // ---------------- TRANSPORT ----------------
+    const usesTransport = form.get("usesTransport") === "yes";
+
     // ---------------- UPDATE STUDENT ----------------
     const updatedStudent = await db.student.update({
       where: { id: studentId },
@@ -83,6 +86,7 @@ export async function PUT(
         udiseCode: getStringField("udiseCode"),
         contactNo: getStringField("contactNo"),
         active: activeToggle,
+        usesTransport,
       },
     });
 
@@ -90,6 +94,29 @@ export async function PUT(
       await db.user.update({
         where: { id: updatedStudent.userId },
         data: { isActive: activeToggle },
+      });
+    }
+
+    // ---------------- UPDATE TRANSPORT ASSIGNMENT ----------------
+    const existingTransport = await db.transportAssignment.findUnique({
+      where: { studentId },
+    });
+
+    if (usesTransport) {
+      if (existingTransport) {
+        await db.transportAssignment.update({
+          where: { studentId },
+          data: { isActive: true },
+        });
+      } else {
+        await db.transportAssignment.create({
+          data: { studentId, isActive: true },
+        });
+      }
+    } else if (existingTransport) {
+      await db.transportAssignment.update({
+        where: { studentId },
+        data: { isActive: false },
       });
     }
 

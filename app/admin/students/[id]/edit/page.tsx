@@ -19,6 +19,7 @@ import EditStudentForm from "@/app/components/StudentForm";
   caste: string | null;
   udiseCode: string | null;
   contactNo: string | null;
+  usesTransport?: boolean;
   user: {
     name: string;
     email: string;
@@ -58,6 +59,7 @@ export default function EditStudentPage() {
           caste: data.caste ?? null,
           udiseCode: data.udiseCode ?? null,
           contactNo: data.contactNo ?? null,
+          usesTransport: data.usesTransport,
           user: {
             name: data.user.name,
             email: data.user.email,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -28,6 +28,7 @@ import {
   Eye,
 } from "lucide-react";
 import { IDCardClient } from "@/app/components/IDCardClient";
+import Pagination from "@/app/components/Pagination";
 
 interface IDCardData {
   id: string;
@@ -48,6 +49,7 @@ export default function AdminIDCardsPage() {
   const [cards, setCards] = useState<IDCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({
@@ -148,16 +150,20 @@ export default function AdminIDCardsPage() {
     }
   };
 
-  const filtered = cards.filter((c) => {
+  const filtered = useMemo(() => cards.filter((c) => {
     if (!search) return true;
     const q = search.toLowerCase();
     const name = c.student?.user.name ?? c.staff?.user.name ?? "";
     return name.toLowerCase().includes(q) || c.cardNo.toLowerCase().includes(q);
-  });
+  }), [cards, search]);
+
+  const PAGE_SIZE = 10;
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   if (viewId) {
     return (
-      <div className="p-6 md:p-8 min-h-screen bg-gradient-to-b from-gray-50 to-white space-y-6">
+      <div className="p-6 md:p-8 min-h-screen space-y-6">
         <Button variant="ghost" onClick={() => setViewId(null)}>
           &larr; Back to ID Cards
         </Button>
@@ -167,7 +173,7 @@ export default function AdminIDCardsPage() {
   }
 
   return (
-    <div className="p-6 md:p-8 min-h-screen bg-gradient-to-b from-gray-50 to-white space-y-6">
+    <div className="p-6 md:p-8 min-h-screen space-y-6">
       <div className="flex flex-col md:flex-row items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-800">
@@ -193,7 +199,7 @@ export default function AdminIDCardsPage() {
                 placeholder="Search..."
                 className="pl-8 w-48"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               />
             </div>
           </div>
@@ -234,7 +240,7 @@ export default function AdminIDCardsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((c) => (
+                  {paginated.map((c) => (
                     <tr key={c.id} className="border-b hover:bg-gray-50">
                       <td className="py-3 px-3 font-medium">{c.cardNo}</td>
                       <td className="py-3 px-3">
@@ -274,6 +280,15 @@ export default function AdminIDCardsPage() {
                 </tbody>
               </table>
             </div>
+          )}
+          {filtered.length > 0 && (
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={filtered.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setPage}
+            />
           )}
         </CardContent>
       </Card>

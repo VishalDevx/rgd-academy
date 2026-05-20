@@ -11,6 +11,8 @@ import { Textarea } from "@/app/components/ui/textarea";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ArrowLeft, Upload, CheckCircle2, Clock } from "lucide-react";
+import { usePDF } from "@/app/lib/usePDF";
+import { PDFDownloadButton } from "@/app/components/PDFDownloadButton";
 
 interface HomeworkData {
   id: string;
@@ -40,6 +42,7 @@ export default function StudentHomeworkDetailPage() {
   const [answerFile, setAnswerFile] = useState("");
   const [remarks, setRemarks] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const pdf = usePDF(`homework-${params.id}`);
 
   useEffect(() => {
     async function load() {
@@ -99,12 +102,16 @@ export default function StudentHomeworkDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Button variant="ghost" onClick={() => router.back()}>
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back
-      </Button>
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+        <PDFDownloadButton onClick={pdf.generatePDF} loading={pdf.loading} label="Download PDF" />
+      </div>
 
-      <Card>
+      <div ref={pdf.ref}>
+        <Card>
         <CardHeader>
           <CardTitle>{homework.title}</CardTitle>
         </CardHeader>
@@ -197,6 +204,7 @@ export default function StudentHomeworkDetailPage() {
           </CardContent>
         </Card>
       )}
+      </div>
     </div>
   );
 }

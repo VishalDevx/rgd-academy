@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import Link from "next/link";
 import {
   Table,
@@ -16,6 +15,7 @@ import { Button } from "@/app/components/ui/button";
 import { Pencil, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import DeleteDialog from "@/app/components/DeleteDialog";
+import Pagination from "@/app/components/Pagination";
 
 type ExamWithClass = {
   id: string;
@@ -28,12 +28,15 @@ type ExamWithClass = {
 
 type Props = { exams: ExamWithClass[] };
 
-const MotionTableRow = motion(TableRow);
-
 export default function ExamsTable({ exams }: Props) {
   const router = useRouter();
+  const [page, setPage] = useState(1);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const PAGE_SIZE = 10;
+  const totalPages = Math.ceil(exams.length / PAGE_SIZE);
+  const paginated = exams.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -55,7 +58,7 @@ export default function ExamsTable({ exams }: Props) {
     <>
       <Table className="min-w-full divide-y divide-gray-200">
         <TableHeader>
-          <TableRow className="bg-gradient-to-r from-indigo-100 via-purple-100 to-pink-100">
+          <TableRow>
             <TableHead className="text-left">Name</TableHead>
             <TableHead className="text-left">Class</TableHead>
             <TableHead className="text-left">Category</TableHead>
@@ -73,12 +76,8 @@ export default function ExamsTable({ exams }: Props) {
               </TableCell>
             </TableRow>
           ) : (
-            exams.map((exam) => (
-              <MotionTableRow
-                key={exam.id}
-                whileHover={{ scale: 1.02, backgroundColor: "rgba(243,244,246,0.5)" }}
-                transition={{ duration: 0.2 }}
-              >
+            paginated.map((exam) => (
+              <TableRow key={exam.id}>
                 <TableCell>{exam.name}</TableCell>
                 <TableCell>{exam.class?.name ?? "-"}</TableCell>
                 <TableCell>{exam.category}</TableCell>
@@ -100,11 +99,19 @@ export default function ExamsTable({ exams }: Props) {
                     </Button>
                   </div>
                 </TableCell>
-              </MotionTableRow>
+              </TableRow>
             ))
           )}
         </TableBody>
       </Table>
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        total={exams.length}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+      />
 
       <DeleteDialog
         open={!!deleteId}

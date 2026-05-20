@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import Link from "next/link";
 import {
   Table,
@@ -34,8 +33,6 @@ type DateSheetWithRelations = {
 type Props = {
   groupedByClass: Record<string, DateSheetWithRelations[]>;
 };
-
-const MotionTableRow = motion(TableRow);
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -83,7 +80,7 @@ export default function DateSheetTable({ groupedByClass }: Props) {
     <>
       <Table className="min-w-full divide-y divide-gray-200">
         <TableHeader>
-          <TableRow className="bg-gradient-to-r from-indigo-100 via-purple-100 to-pink-100">
+          <TableRow>
             <TableHead>Class</TableHead>
             <TableHead>Exam</TableHead>
             <TableHead>Subject</TableHead>
@@ -105,7 +102,7 @@ export default function DateSheetTable({ groupedByClass }: Props) {
           ) : (
             Object.entries(groupedByClass).map(([className, sheets]) => (
               <React.Fragment key={className}>
-                <TableRow className="bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 font-semibold">
+                <TableRow className="font-semibold">
                   <TableCell colSpan={7}>{className}</TableCell>
                   <TableCell className="text-right">
                     <Button
@@ -119,11 +116,7 @@ export default function DateSheetTable({ groupedByClass }: Props) {
                 </TableRow>
 
                 {sheets.map((ds) => (
-                  <MotionTableRow
-                    key={ds.id}
-                    whileHover={{ scale: 1.02, backgroundColor: "rgba(243,244,246,0.5)" }}
-                    transition={{ duration: 0.2 }}
-                  >
+                  <TableRow key={ds.id}>
                     <TableCell>{ds.class?.name ?? "-"}</TableCell>
                     <TableCell>{ds.exam?.name ?? "-"}</TableCell>
                     <TableCell>{ds.subject?.name ?? "-"}</TableCell>
@@ -147,7 +140,7 @@ export default function DateSheetTable({ groupedByClass }: Props) {
                         </Button>
                       </div>
                     </TableCell>
-                  </MotionTableRow>
+                  </TableRow>
                 ))}
               </React.Fragment>
             ))

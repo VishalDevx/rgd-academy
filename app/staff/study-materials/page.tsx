@@ -38,6 +38,7 @@ import {
   ScrollText,
   ClipboardList,
 } from "lucide-react";
+import Pagination from "@/app/components/Pagination";
 
 interface StudyMaterial {
   id: string;
@@ -81,6 +82,7 @@ export default function StaffStudyMaterialsPage() {
   const [materials, setMaterials] = useState<StudyMaterial[]>([]);
   const [subjects, setSubjects] = useState<StaffSubject[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
 
   const [showForm, setShowForm] = useState(false);
   const [formSubjectId, setFormSubjectId] = useState("");
@@ -190,6 +192,10 @@ export default function StaffStudyMaterialsPage() {
     }
   };
 
+  const PAGE_SIZE = 10;
+  const totalPages = Math.ceil(materials.length / PAGE_SIZE);
+  const paginated = materials.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -297,7 +303,7 @@ export default function StaffStudyMaterialsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {materials.map((m) => (
+                {paginated.map((m) => (
                   <TableRow key={m.id}>
                     <TableCell className="font-medium">{m.title}</TableCell>
                     <TableCell>{m.class.name}</TableCell>
@@ -319,6 +325,13 @@ export default function StaffStudyMaterialsPage() {
                 ))}
               </TableBody>
             </Table>
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={materials.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setPage}
+            />
           </CardContent>
         </Card>
       ) : (

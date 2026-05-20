@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import Link from "next/link";
 import DeleteDialog from "@/app/components/DeleteDialog";
 import { format } from "date-fns";
+import { usePDF } from "@/app/lib/usePDF";
+import { PDFDownloadButton } from "@/app/components/PDFDownloadButton";
 
 interface ExpenseDetail {
   id: string;
@@ -27,6 +29,7 @@ export default function ExpenseDetailPage() {
   const [loading, setLoading] = useState(true);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const pdf = usePDF(`expense-${params.id}`);
 
   useEffect(() => {
     (async () => {
@@ -67,6 +70,7 @@ export default function ExpenseDetailPage() {
           <ArrowLeft className="h-4 w-4 mr-2" /> Back
         </Button>
         <div className="flex gap-2">
+          <PDFDownloadButton onClick={pdf.generatePDF} loading={pdf.loading} label="PDF" />
           <Button variant="outline" asChild>
             <Link href={`/admin/expenses/${expense.id}/edit`}>
               <Edit className="h-4 w-4 mr-2" /> Edit
@@ -78,7 +82,8 @@ export default function ExpenseDetailPage() {
         </div>
       </div>
 
-      <Card>
+      <div ref={pdf.ref}>
+        <Card>
         <CardHeader>
           <CardTitle>{expense.title}</CardTitle>
         </CardHeader>
@@ -107,6 +112,7 @@ export default function ExpenseDetailPage() {
           )}
         </CardContent>
       </Card>
+      </div>
 
       <DeleteDialog
         open={deleteOpen}

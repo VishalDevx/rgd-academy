@@ -13,6 +13,8 @@ import { format } from "date-fns";
 import { ArrowLeft, Edit, Trash2 } from "lucide-react";
 import DeleteDialog from "@/app/components/DeleteDialog";
 import Link from "next/link";
+import { usePDF } from "@/app/lib/usePDF";
+import { PDFDownloadButton } from "@/app/components/PDFDownloadButton";
 
 interface Submission {
   id: string;
@@ -47,6 +49,7 @@ export default function AdminHomeworkDetailPage() {
   const [loading, setLoading] = useState(true);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const pdf = usePDF(`homework-${params.id}`);
 
   useEffect(() => {
     async function load() {
@@ -95,6 +98,7 @@ export default function AdminHomeworkDetailPage() {
           Back
         </Button>
         <div className="flex gap-2">
+          <PDFDownloadButton onClick={pdf.generatePDF} loading={pdf.loading} label="Download PDF" />
           <Button variant="outline" asChild>
             <Link href={`/admin/homework/${homework.id}/edit`}>
               <Edit className="h-4 w-4 mr-2" />
@@ -108,7 +112,8 @@ export default function AdminHomeworkDetailPage() {
         </div>
       </div>
 
-      <Card>
+      <div ref={pdf.ref}>
+        <Card>
         <CardHeader>
           <CardTitle>{homework.title}</CardTitle>
         </CardHeader>
@@ -173,6 +178,7 @@ export default function AdminHomeworkDetailPage() {
           )}
         </CardContent>
       </Card>
+      </div>
 
       <DeleteDialog
         open={deleteOpen}

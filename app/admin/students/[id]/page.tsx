@@ -37,6 +37,8 @@ import { KeyRound, Loader2, Receipt, ToggleLeft, ToggleRight, Upload, FileText, 
 import { toast } from "sonner";
 import DeleteStudent from "@/app/components/DeleteStudent";
 import DocumentsViewer from "@/app/components/DocumentsViewer";
+import { usePDF } from "@/app/lib/usePDF";
+import { PDFDownloadButton } from "@/app/components/PDFDownloadButton";
 
 // -----------------------------
 // Type Definitions
@@ -118,6 +120,7 @@ export default function StudentProfilePage() {
   const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
   const [resetPassword, setResetPassword] = useState<string | null>(null);
   const [togglingActive, setTogglingActive] = useState(false);
+  const pdf = usePDF(`student-${params.id}`);
 
   const handleToggleActive = async () => {
     if (!student) return;
@@ -233,6 +236,7 @@ export default function StudentProfilePage() {
         </div>
 
         <div className="absolute top-4 right-4 flex gap-2">
+          <PDFDownloadButton onClick={pdf.generatePDF} loading={pdf.loading} label="PDF" variant="outline" />
           <Button
             variant={student.active ? "destructive" : "default"}
             onClick={handleToggleActive}

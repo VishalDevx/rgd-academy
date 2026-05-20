@@ -28,7 +28,7 @@ export default async function AdminDateSheetPage() {
   }, {});
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-b from-gray-50 to-white space-y-6">
+    <div className="min-h-screen p-6 space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight text-gray-800">Exam Datesheet</h1>
         <Button asChild variant="default" size="sm">
@@ -37,7 +37,7 @@ export default async function AdminDateSheetPage() {
       </div>
 
       <Card className="shadow-xl border border-gray-200 rounded-xl">
-        <CardHeader className="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 rounded-t-xl">
+        <CardHeader>
           <CardTitle className="text-lg font-semibold text-gray-700">All Classes</CardTitle>
         </CardHeader>
 

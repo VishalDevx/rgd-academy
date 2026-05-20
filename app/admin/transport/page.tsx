@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -17,6 +17,7 @@ import {
 } from "@/app/components/ui/dialog";
 import { Search, Bus, Loader2, XCircle, CheckCircle, Edit, Trash2 } from "lucide-react";
 import DeleteDialog from "@/app/components/DeleteDialog";
+import Pagination from "@/app/components/Pagination";
 
 interface TransportStudent {
   id: string;
@@ -48,6 +49,7 @@ export default function AdminTransportPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
 
+  const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [studentOptions, setStudentOptions] = useState<StudentOption[]>([]);
@@ -182,7 +184,7 @@ export default function AdminTransportPage() {
     }
   };
 
-  const filtered = assignments.filter((a) => {
+  const filtered = useMemo(() => assignments.filter((a) => {
     if (!search) return true;
     const q = search.toLowerCase();
     return (
@@ -191,10 +193,14 @@ export default function AdminTransportPage() {
       a.routeName?.toLowerCase().includes(q) ||
       a.busNumber?.toLowerCase().includes(q)
     );
-  });
+  }), [assignments, search]);
+
+  const PAGE_SIZE = 10;
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
-    <div className="p-6 md:p-8 min-h-screen bg-gradient-to-b from-gray-50 to-white space-y-6">
+    <div className="p-6 md:p-8 min-h-screen space-y-6">
       <div className="flex flex-col md:flex-row items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-800">Transport Management</h1>
@@ -209,7 +215,7 @@ export default function AdminTransportPage() {
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <CardTitle>Transport Assignments ({filtered.length})</CardTitle>
+            <CardTitle>Transport Assignments ({assignments.length})</CardTitle>
             <div className="flex items-center gap-2">
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
@@ -217,7 +223,7 @@ export default function AdminTransportPage() {
                   placeholder="Search..."
                   className="pl-8 w-48"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                 />
               </div>
               <Select value={filter} onValueChange={setFilter}>
@@ -238,7 +244,7 @@ export default function AdminTransportPage() {
             <div className="flex justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
             </div>
-          ) : filtered.length === 0 ? (
+          ) : paginated.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               <Bus className="h-12 w-12 mx-auto mb-3 text-gray-300" />
               <p>No transport assignments found</p>
@@ -259,7 +265,7 @@ export default function AdminTransportPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((a) => (
+                  {paginated.map((a) => (
                     <tr key={a.id} className="border-b hover:bg-gray-50">
                       <td className="py-3 px-3 font-medium">{a.student.user.name}</td>
                       <td className="py-3 px-3 text-gray-500">{a.student.class?.name ?? "—"}</td>
@@ -317,6 +323,15 @@ export default function AdminTransportPage() {
                 </tbody>
               </table>
             </div>
+          )}
+          {filtered.length > 0 && (
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              total={filtered.length}
+              pageSize={PAGE_SIZE}
+              onPageChange={setPage}
+            />
           )}
         </CardContent>
       </Card>

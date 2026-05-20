@@ -8,6 +8,7 @@ import { Button } from "@/app/components/ui/button";
 import { Pencil, Trash2, Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import DeleteDialog from "@/app/components/DeleteDialog";
+import Pagination from "@/app/components/Pagination";
 
 type Announcement = {
   id: string;
@@ -21,8 +22,13 @@ export default function AdminAnnouncementsPage() {
   const router = useRouter();
   const [items, setItems] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const PAGE_SIZE = 9;
+  const totalPages = Math.ceil(items.length / PAGE_SIZE);
+  const paginated = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const fetchAnnouncements = async () => {
     try {
@@ -60,10 +66,10 @@ export default function AdminAnnouncementsPage() {
   return (
     <div className="p-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+        <h1 className="text-2xl font-bold">
           Announcements
         </h1>
-        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md shadow-md" asChild>
+        <Button asChild>
           <Link href="/admin/announcements/new"><Plus className="h-4 w-4 mr-2" />New Announcement</Link>
         </Button>
       </div>
@@ -72,12 +78,9 @@ export default function AdminAnnouncementsPage() {
         {items.length === 0 ? (
           <div className="col-span-full text-center py-12 text-gray-500">No announcements found</div>
         ) : (
-          items.map((a) => (
-            <Card
-              key={a.id}
-              className="transition-transform transform hover:-translate-y-1 hover:shadow-xl shadow-md border border-gray-200 rounded-xl overflow-hidden"
-            >
-              <CardHeader className="flex flex-col gap-2 bg-gradient-to-r from-indigo-100 to-purple-50 p-4">
+          paginated.map((a) => (
+            <Card key={a.id}>
+              <CardHeader className="flex flex-col gap-2 p-4">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg md:text-xl font-bold text-gray-800">{a.title}</CardTitle>
                   <div className="flex gap-1">
@@ -106,6 +109,14 @@ export default function AdminAnnouncementsPage() {
           ))
         )}
       </div>
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        total={items.length}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+      />
 
       <DeleteDialog
         open={!!deleteId}
