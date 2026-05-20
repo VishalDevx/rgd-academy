@@ -1,12 +1,7 @@
-"use client";
+import { use } from "react"
+import { FeeReceiptClient } from "@/app/components/FeeReceiptClient"
 
-import { useParams } from "next/navigation";
-import { FeeReceiptClient } from "@/app/components/FeeReceiptClient";
-
-export default function PaymentReceiptPage() {
-  const params = useParams<{ paymentId: string }>();
-  const paymentId = params?.paymentId ?? "";
-
-  return <FeeReceiptClient paymentId={paymentId} />;
+export default function ReceiptPage({ params }: { params: Promise<{ paymentId: string }> }) {
+  const { paymentId } = use(params)
+  return <FeeReceiptClient paymentId={paymentId} />
 }
-

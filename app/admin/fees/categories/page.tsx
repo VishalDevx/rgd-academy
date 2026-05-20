@@ -1,22 +1,27 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { Button } from "@/app/components/ui/button";
-import { Input } from "@/app/components/ui/input";
-import { Label } from "@/app/components/ui/label";
+import { useEffect, useState } from "react"
+import { Plus, Pencil, Trash2, Search } from "lucide-react"
+import { toast } from "sonner"
+import { Button } from "@/app/components/ui/button"
+import { Input } from "@/app/components/ui/input"
+import { Label } from "@/app/components/ui/label"
+import { Textarea } from "@/app/components/ui/textarea"
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-} from "@/app/components/ui/card";
+} from "@/app/components/ui/card"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from "@/app/components/ui/dialog";
+} from "@/app/components/ui/dialog"
 import {
   Table,
   TableBody,
@@ -24,153 +29,147 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/app/components/ui/table";
-import { toast } from "sonner";
-import Pagination from "@/app/components/Pagination";
+} from "@/app/components/ui/table"
+import { Badge } from "@/app/components/ui/badge"
 
 interface FeeCategory {
-  id: string;
-  name: string;
-  description: string | null;
-  createdAt: string;
+  id: string
+  name: string
+  description: string | null
+  _count?: { structures: number }
 }
 
-const PAGE_SIZE = 10;
-
 export default function FeeCategoriesPage() {
-  const [categories, setCategories] = useState<FeeCategory[]>([]);
-  const [open, setOpen] = useState(false);
-  const [editItem, setEditItem] = useState<FeeCategory | null>(null);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
-
-  const totalPages = Math.ceil(categories.length / PAGE_SIZE);
-  const paginated = categories.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const [categories, setCategories] = useState<FeeCategory[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState("")
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editing, setEditing] = useState<FeeCategory | null>(null)
+  const [form, setForm] = useState({ name: "", description: "" })
+  const [saving, setSaving] = useState(false)
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch("/api/fees/categories");
-      if (!res.ok) throw new Error("Failed to fetch");
-      const data = await res.json();
-      setCategories(data);
+      const res = await fetch("/api/fees/categories")
+      if (!res.ok) throw new Error("Failed to load")
+      setCategories(await res.json())
     } catch {
-      toast.error("Failed to load categories");
+      toast.error("Failed to load categories")
+    } finally {
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
-    fetchCategories();
-  }, []);
+    fetchCategories()
+  }, [])
 
-  const resetForm = () => {
-    setName("");
-    setDescription("");
-    setEditItem(null);
-  };
+  const openCreate = () => {
+    setEditing(null)
+    setForm({ name: "", description: "" })
+    setDialogOpen(true)
+  }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const openEdit = (cat: FeeCategory) => {
+    setEditing(cat)
+    setForm({ name: cat.name, description: cat.description || "" })
+    setDialogOpen(true)
+  }
 
+  const handleSave = async () => {
+    if (!form.name.trim()) {
+      toast.error("Name is required")
+      return
+    }
+
+    setSaving(true)
     try {
-      if (editItem) {
-        const res = await fetch(`/api/fees/categories/${editItem.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, description }),
-        });
-        if (!res.ok) throw new Error("Failed to update");
-        toast.success("Category updated");
-      } else {
-        const res = await fetch("/api/fees/categories", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, description }),
-        });
-        if (!res.ok) throw new Error("Failed to create");
-        toast.success("Category created");
-      }
+      const url = editing
+        ? `/api/fees/categories/${editing.id}`
+        : "/api/fees/categories"
+      const method = editing ? "PUT" : "POST"
 
-      setOpen(false);
-      resetForm();
-      fetchCategories();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong");
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      })
+
+      if (!res.ok) throw new Error("Failed to save")
+
+      toast.success(editing ? "Category updated" : "Category created")
+      setDialogOpen(false)
+      fetchCategories()
+    } catch {
+      toast.error("Failed to save category")
     } finally {
-      setLoading(false);
+      setSaving(false)
     }
-  };
+  }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this category?")) return;
+  const handleDelete = async (cat: FeeCategory) => {
+    if (!confirm(`Delete category "${cat.name}"?`)) return
 
     try {
-      const res = await fetch(`/api/fees/categories/${id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Failed to delete");
-      toast.success("Category deleted");
-      fetchCategories();
+      const res = await fetch(`/api/fees/categories/${cat.id}`, { method: "DELETE" })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "Failed to delete")
+      }
+      toast.success("Category deleted")
+      fetchCategories()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong");
+      toast.error(err instanceof Error ? err.message : "Failed to delete")
     }
-  };
+  }
 
-  const openEdit = (item: FeeCategory) => {
-    setEditItem(item);
-    setName(item.name);
-    setDescription(item.description ?? "");
-    setOpen(true);
-  };
+  const filtered = categories.filter(
+    (c) =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.description?.toLowerCase().includes(search.toLowerCase())
+  )
+
+  if (loading) {
+    return (
+      <div className="p-8 space-y-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />
+        ))}
+      </div>
+    )
+  }
 
   return (
-    <div className="max-w-4xl mx-auto py-8 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Fee Categories</h1>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button>Add Category</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editItem ? "Edit Category" : "Add Category"}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Input
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => { setOpen(false); resetForm(); }}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? "Saving..." : "Save"}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Fee Categories</h1>
+          <p className="text-sm text-muted-foreground">
+            Manage fee categories for your fee structures
+          </p>
+        </div>
+        <Button onClick={openCreate}>
+          <Plus className="mr-2 h-4 w-4" /> Add Category
+        </Button>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>All Categories</CardTitle>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle>All Categories</CardTitle>
+            <div className="relative w-64">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search categories..."
+                className="pl-8"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+          <CardDescription>
+            {filtered.length} category{filtered.length !== 1 ? "ies" : "y"} found
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -178,30 +177,41 @@ export default function FeeCategoriesPage() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Description</TableHead>
-                <TableHead>Created At</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>Structures</TableHead>
+                <TableHead className="w-24 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginated.length === 0 ? (
+              {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
+                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                     No categories found
                   </TableCell>
                 </TableRow>
               ) : (
-                paginated.map((cat) => (
+                filtered.map((cat) => (
                   <TableRow key={cat.id}>
                     <TableCell className="font-medium">{cat.name}</TableCell>
-                    <TableCell>{cat.description ?? "—"}</TableCell>
-                    <TableCell>{new Date(cat.createdAt).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => openEdit(cat)}>
-                        Edit
-                      </Button>
-                      <Button variant="destructive" size="sm" onClick={() => handleDelete(cat.id)}>
-                        Delete
-                      </Button>
+                    <TableCell className="text-muted-foreground">
+                      {cat.description || "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{cat._count?.structures ?? 0}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(cat)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(cat)}
+                          disabled={(cat._count?.structures ?? 0) > 0}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -211,13 +221,45 @@ export default function FeeCategoriesPage() {
         </CardContent>
       </Card>
 
-      <Pagination
-        page={page}
-        totalPages={totalPages}
-        total={categories.length}
-        pageSize={PAGE_SIZE}
-        onPageChange={setPage}
-      />
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editing ? "Edit Category" : "Add Category"}</DialogTitle>
+            <DialogDescription>
+              {editing ? "Update the category details" : "Create a new fee category"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="e.g. Tuition Fee"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="desc">Description</Label>
+              <Textarea
+                id="desc"
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                placeholder="Optional description"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Saving..." : editing ? "Update" : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
-  );
+  )
 }

@@ -1,16 +1,18 @@
-'use client'
+"use client"
 
-import { useSearchParams } from 'next/navigation'
-import Link from 'next/link'
-import { Badge } from '@/app/components/ui/badge'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { Search, Eye, IndianRupee } from "lucide-react"
+import { toast } from "sonner"
+import { Button } from "@/app/components/ui/button"
+import { Input } from "@/app/components/ui/input"
 import {
   Card,
   CardContent,
-  CardHeader,
   CardDescription,
+  CardHeader,
   CardTitle,
-} from '@/app/components/ui/card'
+} from "@/app/components/ui/card"
 import {
   Table,
   TableBody,
@@ -18,164 +20,193 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/app/components/ui/table'
+} from "@/app/components/ui/table"
+import { Badge } from "@/app/components/ui/badge"
 
-// Strongly typed payment
-type NormalizedPayment = {
+const statusStyles: Record<string, string> = {
+  PAID: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  PARTIAL: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+  PENDING: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+}
+
+interface Payment {
   id: string
-  amountPaid: string | number
-  remainAmount: string | number
-  status: 'PAID' | 'PARTIAL' | 'PENDING'
+  amountPaid: number
+  remainAmount: number
+  monthlyFee: number
+  feeMonth: number
+  status: string
   paymentDate: string | null
+  paymentMode: string | null
+  discount: number | null
+  lateFine: number | null
+  receiptNo: string | null
   createdAt: string
   student: {
     id: string
-    admissionNo: string
-    rollNumber: string
-    user: {
-      name: string
-      email: string
-    }
-    class: { name: string } | null
+    admissionNo: string | null
+    rollNumber: string | null
+    user: { name: string | null }
+    class: { name: string }
   }
   feeStructure: {
+    id: string
     name: string | null
-    total: string | number
-  }
+    monthlyFee: number
+    totalMonths: number
+  } | null
 }
 
-export default function AdminPaymentPage() {
-  const searchParams = useSearchParams()
-  const pageParam = searchParams?.get('page')
-  const currentPage = Number(pageParam ?? '1')
-  const pageSize = 15
-  const [payments, setPayments] = useState<NormalizedPayment[]>([])
+export default function FeePaymentsPage() {
+  const router = useRouter()
+  const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [search, setSearch] = useState("")
+
+  const fetchPayments = async () => {
+    try {
+      const res = await fetch("/api/fees/payments")
+      if (!res.ok) throw new Error("Failed to load")
+      setPayments(await res.json())
+    } catch {
+      toast.error("Failed to load payments")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    fetch('/api/fees/payments')
-      .then(async (res) => {
-        if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? 'Failed')
-        return res.json()
-      })
-      .then((rows: NormalizedPayment[]) => setPayments(Array.isArray(rows) ? rows : []))
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Failed'))
-      .finally(() => setLoading(false))
+    fetchPayments()
   }, [])
 
-  const totalPages = useMemo(() => {
-    return Math.max(1, Math.ceil(payments.length / pageSize))
-  }, [payments.length, pageSize])
+  const filtered = payments.filter((p) => {
+    const q = search.toLowerCase()
+    return (
+      p.student.user.name?.toLowerCase().includes(q) ||
+      p.receiptNo?.toLowerCase().includes(q) ||
+      p.student.class.name.toLowerCase().includes(q) ||
+      p.feeStructure?.name?.toLowerCase().includes(q)
+    )
+  })
 
-  const paged = useMemo(() => {
-    const start = (currentPage - 1) * pageSize
-    return payments.slice(start, start + pageSize)
-  }, [payments, currentPage, pageSize])
+  if (loading) {
+    return (
+      <div className="p-8 space-y-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />
+        ))}
+      </div>
+    )
+  }
 
   return (
-    <div className="flex-1 p-4 md:p-8 space-y-6">
-      <h1 className="text-3xl font-bold">All Payments</h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Payments</h1>
+          <p className="text-sm text-muted-foreground">
+            View and manage all fee payments
+          </p>
+        </div>
+        <Button onClick={() => router.push("/admin/fees/payments/new")}>
+          Record Payment
+        </Button>
+      </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Payments Table</CardTitle>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle>All Payments</CardTitle>
+            <div className="relative w-64">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search payments..."
+                className="pl-8"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
           <CardDescription>
-            Showing page {currentPage} of {totalPages}
+            {filtered.length} payment{filtered.length !== 1 ? "s" : ""} found
           </CardDescription>
         </CardHeader>
-
         <CardContent>
-          {loading ? <div className="py-8 text-center text-gray-500">Loading…</div> : null}
-          {error ? <div className="py-8 text-center text-red-600">{error}</div> : null}
-
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Receipt No</TableHead>
                 <TableHead>Student</TableHead>
-                <TableHead>Email</TableHead>
+                <TableHead>Class</TableHead>
                 <TableHead>Structure</TableHead>
-                <TableHead>Date</TableHead>
+                <TableHead>Month</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
-                <TableHead className="text-center">Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Mode</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Receipt</TableHead>
               </TableRow>
             </TableHeader>
-
             <TableBody>
-              {paged.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell>{p.student.user.name}</TableCell>
-                  <TableCell>{p.student.user.email}</TableCell>
-                  <TableCell>{p.feeStructure.name}</TableCell>
-                  <TableCell>
-                    {new Date(p.paymentDate ?? p.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    ₹{Number(p.amountPaid).toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge
-                      variant={
-                        p.status === 'PAID'
-                          ? 'secondary'
-                          : p.status === 'PARTIAL'
-                          ? 'outline'
-                          : 'destructive'
-                      }
-                    >
-                      {p.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Link
-                      className="text-sm font-semibold underline underline-offset-4"
-                      href={`/admin/fees/payments/${p.id}/receipt`}
-                    >
-                      Receipt
-                    </Link>
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                    No payments found
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filtered.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="font-mono text-xs">
+                      {p.receiptNo || "—"}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {p.student.user.name || "Unknown"}
+                    </TableCell>
+                    <TableCell>{p.student.class.name}</TableCell>
+                    <TableCell>{p.feeStructure?.name || "—"}</TableCell>
+                    <TableCell>
+                      {p.feeMonth ? (
+                        <Badge variant="outline">Month {p.feeMonth}</Badge>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <IndianRupee className="inline h-3 w-3" />
+                      {p.amountPaid.toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {p.paymentDate
+                        ? new Date(p.paymentDate).toLocaleDateString()
+                        : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {p.paymentMode ? (
+                        <Badge variant="secondary">{p.paymentMode}</Badge>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={statusStyles[p.status]} variant="secondary">
+                        {p.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => router.push(`/admin/fees/payments/${p.id}/receipt`)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
-
-          {/* Pagination */}
-          <div className="mt-6 flex justify-center gap-2">
-            <Link
-              href={`/admin/fees/payments?page=${Math.max(currentPage - 1, 1)}`}
-              className={`px-3 py-1 rounded-md border ${
-                currentPage === 1
-                  ? 'text-gray-400 cursor-not-allowed'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              Previous
-            </Link>
-
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <Link
-                key={page}
-                href={`/admin/fees/payments?page=${page}`}
-                className={`px-3 py-1 rounded-full border ${
-                  page === currentPage ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'
-                }`}
-              >
-                {page}
-              </Link>
-            ))}
-
-            <Link
-              href={`/admin/fees/payments?page=${Math.min(currentPage + 1, totalPages)}`}
-              className={`px-3 py-1 rounded-md border ${
-                currentPage === totalPages
-                  ? 'text-gray-400 cursor-not-allowed'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              Next
-            </Link>
-          </div>
         </CardContent>
       </Card>
     </div>

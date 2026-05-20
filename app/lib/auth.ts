@@ -1,4 +1,3 @@
-// lib/auth.ts
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { db } from "@/lib/prisma";
 import Credentials from "next-auth/providers/credentials";
@@ -14,14 +13,13 @@ export const authOption: AuthOptions = {
   adapter: PrismaAdapter(db),
 
   session: {
-    strategy: "jwt", // <- database sessions allow multiple logins in the same browser
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60,
   },
 
   providers: [
-    // Admin & Staff login
     Credentials({
-      id: "email-password",
+      id: "credentials",
       name: "Email & Password",
       credentials: {
         email: { label: "Email", type: "text" },
@@ -47,7 +45,7 @@ export const authOption: AuthOptions = {
           await recordLoginFailure({ req, identifier });
           throw new Error("Invalid credentials");
         }
-        if (!["ADMIN", "STAFF"].includes(user.role)) {
+        if (!["ADMIN", "STAFF", "SUPER_ADMIN"].includes(user.role)) {
           await recordLoginFailure({ req, identifier });
           throw new Error("Unauthorized role");
         }
@@ -70,11 +68,12 @@ export const authOption: AuthOptions = {
           name: user.name,
           email: user.email,
           role: user.role,
+          organizationId: user.organizationId,
+          isSuperAdmin: user.isSuperAdmin,
         };
       },
     }),
 
-    // Student login
     Credentials({
       id: "student-login",
       name: "Student Login",
@@ -127,6 +126,8 @@ export const authOption: AuthOptions = {
           name: user.name,
           email: user.email,
           role: user.role,
+          organizationId: user.organizationId,
+          isSuperAdmin: user.isSuperAdmin,
         };
       },
     }),
@@ -143,6 +144,8 @@ export const authOption: AuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.organizationId = user.organizationId;
+        token.isSuperAdmin = user.isSuperAdmin;
       }
       return token;
     },
@@ -151,6 +154,8 @@ export const authOption: AuthOptions = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role;
+        session.user.organizationId = token.organizationId;
+        session.user.isSuperAdmin = token.isSuperAdmin;
       }
       return session;
     },
@@ -161,4 +166,4 @@ export const authOption: AuthOptions = {
       return baseUrl;
     },
   },
-}
+};

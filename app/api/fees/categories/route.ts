@@ -1,38 +1,36 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/prisma";
-import { getServerSession } from "next-auth/next";
-import { authOption } from "@/app/lib/auth";
+import { NextRequest, NextResponse } from "next/server"
+import { db } from "@/lib/prisma"
+import { getServerSession } from "next-auth/next"
+import { authOption } from "@/app/lib/auth"
 
 export async function GET() {
-  const session = await getServerSession(authOption);
+  const session = await getServerSession(authOption)
   if (!session?.user || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   const categories = await db.feeCategory.findMany({
     orderBy: { name: "asc" },
-  });
+    include: { _count: { select: { structures: true } } },
+  })
 
-  return NextResponse.json(categories);
+  return NextResponse.json(categories)
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOption);
+  const session = await getServerSession(authOption)
   if (!session?.user || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const body = await req.json().catch(() => null);
-  if (!body || !body.name) {
-    return NextResponse.json({ error: "Name is required" }, { status: 400 });
+  const body = await req.json().catch(() => null)
+  if (!body?.name?.trim()) {
+    return NextResponse.json({ error: "Name is required" }, { status: 400 })
   }
 
   const created = await db.feeCategory.create({
-    data: {
-      name: body.name,
-      description: body.description ?? null,
-    },
-  });
+    data: { name: body.name.trim(), description: body.description?.trim() || null },
+  })
 
-  return NextResponse.json(created, { status: 201 });
+  return NextResponse.json(created, { status: 201 })
 }

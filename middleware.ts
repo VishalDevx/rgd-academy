@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-type Role = "ADMIN" | "STAFF" | "STUDENT";
+type Role = "ADMIN" | "STAFF" | "STUDENT" | "SUPER_ADMIN";
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -40,6 +40,10 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+
+  if (role === "SUPER_ADMIN") {
+    return NextResponse.next();
+  }
 
   if (pathname.startsWith("/admin") && role !== "ADMIN") {
     return NextResponse.redirect(new URL("/unauthorized", req.url));
